@@ -1,0 +1,18 @@
+Clifford Beshers <beshers@ohanlon.mcl.cs.columbia.edu>
+ - Input on interface design
+Mikael Djurfeldt <mdj@nada.kth.se>
+ - Fixed some ANSI compiliance problems
+Klaus Schilling <klaus@pessoa.none>
+ - Helped debug Makefile and initialization process
+Dominique Sidou <sidou@eurecom.fr>
+ - Helped with C++ support in guile
+Donovan Kolbly <donovan@rscheme.org>
+ - Has helped some with RScheme support
+Mark Horning <rip6@rip6.net>
+ - provided initial rpm spec file.
+Robert Graham Merkel <rgmerk@mira.net>
+ - much work on design and code.
+Dave Peticolas <dave@krondo.com>
+ - Various patches, bugfixes, RPM spec details, etc.
+Derek Atkins <warlord@mit.edu>
+ - Various patches, bugfixes, RPM spec details, etc.

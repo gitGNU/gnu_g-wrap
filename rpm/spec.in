@@ -1,0 +1,105 @@
+%define name g-wrap
+%define version @-VERSION-@
+%define release 1
+%define prefix /usr
+
+Summary: A tool for creating Scheme interfaces to C libraries.
+Name: %{name}
+Version: %{version}
+Release: %{release}
+Source: ftp://ftp.gnucash.org/pub/g-wrap/%{name}-%{version}.tar.gz
+Requires: guile
+Group: Development/Tools
+Copyright: GPL
+URL: coming-soon
+Packager: Derek Atkins <warlord@MIT.EDU>
+BuildRoot: /var/tmp/%{name}-%{version}
+
+%description
+g-wrap is a tool for creating Scheme interfaces to C libraries.  At
+the moment it is most heavily focused on providing access to C
+libraries from guile, but it also supports RScheme.
+
+The g-wrap package contains the libraries necessary to run
+applications built with g-wrap.  If you wish to build applications
+that use g-wrap, you should install the g-wrap-devel package.
+
+%package devel
+Summary: Include files and libraries needed for g-wrap development.
+Group: Development/Libraries
+Requires: g-wrap guile-devel
+
+%description devel
+g-wrap is a tool for creating Scheme interfaces to C libraries.  At
+the moment it is most heavily focused on providing access to C
+libraries from guile, but it also supports RScheme.
+
+You can provide access to a given C API by creating a specification
+file describing the interface you want published at the Scheme level.
+g-wrap will handle generating all the lower level library interface
+code so that the C library shows up as a set of Scheme functions.
+
+You should install g-wrap-devel if you need to compile programs that
+need to use g-wrap C<->Scheme functionality
+
+%prep
+%setup -q
+
+%build
+CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=/usr
+make
+
+%install
+make install-strip prefix=$RPM_BUILD_ROOT/usr
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+/usr/lib/libg-wrap-runtime-guile.so.@-GW_RTLIB_VER-@
+/usr/lib/libg-wrap-runtime-guile.so.@-GW_RTLIB_MAJ-@
+/usr/lib/libg-wrap-runtime-guile.so
+/usr/lib/libgw-runtime.so.0.0.0
+/usr/lib/libgw-runtime.so.0
+/usr/lib/libgw-runtime.so
+%dir /usr/share/guile/g-wrap
+/usr/share/guile/g-wrap/guile-types.scm
+/usr/share/guile/g-wrap/output-file.scm
+/usr/share/guile/g-wrap/g-translate.scm
+/usr/share/guile/g-wrap/sorting.scm
+%dir /usr/share/guile/g-wrapped
+/usr/share/guile/g-wrapped/gw-runtime.scm
+/usr/share/guile/g-wrapped/gw-runtime-spec.scm
+/usr/share/guile/g-wrap.scm
+%doc AUTHORS COPYING ChangeLog INSTALL NEWS README THANKS
+
+%files devel
+%defattr(-,root,root)
+/usr/bin/g-wrap-config
+/usr/lib/libg-wrap-runtime-guile.la
+/usr/lib/libg-wrap-runtime-guile.a
+/usr/lib/libgw-runtime.la
+/usr/lib/libgw-runtime.a
+/usr/include/g-wrap-runtime-guile.h
+%dir /usr/share/guile/g-wrapped
+/usr/share/aclocal/g-wrap.m4
+%doc /usr/info/*
+
+%changelog
+* Thu Jan 18 2001 Derek Atkins <warlord@MIT.EDU>
+- Update for g-wrap 1.1.9:  make sure to include the shared obj symlinks
+
+* Fri Jan 12 2001 Derek Atkins <warlord@MIT.EDU>
+- Update for g-wrap 1.1.4:  new file layout
+
+* Wed Nov 08 2000 Derek Atkins <warlord@MIT.EDU>
+- Don't destroy the build directory -- RPM can do that on its own
+- Properly build both g-wrap and g-wrap-devel (info file into -devel)
+- currently only one info file
+
+* Wed Oct 25 2000 Dave Peticolas <dave@krondo.com>
+- use /usr/info/* for automatic gzipping
+
+* Sat May 27 2000 Mark Horning <rip6@rip6.net>
+- Created spec file

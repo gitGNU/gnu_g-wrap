@@ -1,0 +1,131 @@
+#!/bin/sh
+exec ./guile-test-env guile -s "$0" "$@"
+!#
+
+(use-modules (gw-test-standard))
+
+(display "checking that <gw:void> works as advertized...")
+(if (unspecified? (gw-test-gw-standard-no-op))
+    (display "yes\n")
+    (begin (display "no\n") (exit 1)))
+
+(display "checking that <gw:scm> works as advertized...")
+(let* ((obj (vector 1 2 3))
+       (result (gw-test-gw-standard-echo-scm obj)))
+  (if (and (eq? obj result)
+           (= 1 (vector-ref result 0))
+           (= 2 (vector-ref result 1))
+           (= 3 (vector-ref result 2)))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1))))
+
+(display "checking that <gw:bool> works as advertized...")
+(if (and (eq? #f (gw-test-gw-standard-echo-bool #f))
+         (eq? #t (gw-test-gw-standard-echo-bool #t))
+         (eq? #t (gw-test-gw-standard-echo-bool 5))
+         (eq? #t (gw-test-gw-standard-echo-bool (list 1 2 3))))
+    (display "yes\n")
+    (begin (display "no\n") (exit 1)))
+
+(display "checking that <gw:char> works as advertized...")
+(if (and (eq? #\space (gw-test-gw-standard-echo-char #\space))
+         (eq? #\a (gw-test-gw-standard-echo-char #\a))
+         (eq? #\z (gw-test-gw-standard-echo-char #\z)))
+    (display "yes\n")
+    (begin (display "no\n") (exit 1)))
+
+;; TODO: check that overflows signal range errors appropriately...
+(define (check-integer-type type-sym echo-func min max)
+  (for-each display `("checking that " ,type-sym " works as advertized..."))
+  (if (and (= min (echo-func min))
+           (zero? (echo-func 0))
+           (= max (echo-func max)))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1))))
+
+(display (version)) (newline)
+(display (gw-test-gw-standard-get-int-min)) (newline)
+(display (gw-test-gw-standard-get-long-min)) (newline)
+
+(let ((int-min (gw-test-gw-standard-get-int-min))
+      (long-min (gw-test-gw-standard-get-long-min)))
+  
+  (if (string=? "1.3.4" (version))
+      (begin
+        ;; 1.3.4 was quite broken -- gh_scm2long can't handle 32bit min.
+        (if (= int-min long-min)
+            (set! int-min (+ int-min 1)))
+        (set! long-min (+ long-min 1))))
+
+  (for-each check-integer-type
+            (list '<gw:int> '<gw:unsigned-int> '<gw:long> '<gw:unsigned-long>)
+            (list gw-test-gw-standard-echo-int
+                  gw-test-gw-standard-echo-unsigned-int
+                  gw-test-gw-standard-echo-long
+                  gw-test-gw-standard-echo-unsigned-long)
+            (list int-min
+                  0
+                  long-min
+                  0)
+            (list (gw-test-gw-standard-get-int-max)
+                  (gw-test-gw-standard-get-uint-max)
+                  (gw-test-gw-standard-get-long-max)
+                  (gw-test-gw-standard-get-ulong-max))))
+  
+;; TODO add more demanding checks for <gw:mchars> allocation issues.
+
+(display "checking that (<gw:mchars> caller-owned) works as advertized...")
+(let* ((test-str "xyzzy")
+       (result-str (gw-test-gw-standard-echo-mchars-caller-owned test-str)))
+  (if (and (string? result-str)
+           (string=? test-str result-str)
+           (not (eq? test-str result-str))
+           (not (gw-test-gw-standard-echo-mchars-caller-owned #f)))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1))))
+
+(display "checking that (<gw:mchars> const caller-owned) works as advertized...")
+(let* ((test-str "xyzzy")
+       (result-str
+        (gw-test-gw-standard-echo-const-mchars-caller-owned test-str)))
+
+  (if (and (string? result-str)
+           (string=? test-str result-str)
+           (not (eq? test-str result-str))
+           (not (gw-test-gw-standard-echo-const-mchars-caller-owned #f)))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1))))
+
+(display "checking that (<gw:mchars> callee-owned) works as advertized...")
+(let* ((test-str "xyzzy")
+       (result-str (gw-test-gw-standard-echo-mchars-callee-owned test-str)))
+  (if (and (string? result-str)
+           (string=? test-str result-str)
+           (not (eq? test-str result-str))
+           (not (gw-test-gw-standard-echo-mchars-callee-owned #f)))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1))))
+
+(display "checking that (<gw:mchars> const callee-owned) works as advertized...")
+(let* ((test-str "xyzzy")
+       (result-str
+        (gw-test-gw-standard-echo-const-mchars-callee-owned test-str)))
+
+  (if (and (string? result-str)
+           (string=? test-str result-str)
+           (not (eq? test-str result-str))
+           (not (gw-test-gw-standard-echo-const-mchars-callee-owned #f)))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1))))
+
+(display "checking that gw:wrap-value works as advertized...")
+(if (and (= gw-test-gw-standard-foo-value 42)
+         (string=? gw-test-gw-standard-bar-value "42"))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1)))
+
+(exit 0)
+
+;; Local Variables:
+;; mode: scheme
+;; End:

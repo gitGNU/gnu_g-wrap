@@ -1,0 +1,287 @@
+g-wrap NEWS -- history of user-visible changes.
+Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
+Initially created by Christopher Lee.
+See the end for copying conditions.
+
+Version 1.3.3
+
+ - Support has been added for GSlists via gw:gslist-of.
+
+ - g-wrap's license has been changed to the Lesser GNU Public License.
+
+ - g-wrap's code generation has been reworked to eliminate all of the
+   -Wall warnings when compiling with gcc 3.2.
+
+Version 1.3.2
+
+ - Note that this version represents a major overhaul and is quite
+   incompatible with previous versions -- such is life on the unstable
+   branch.  I plan to rework the docs again shortly, but for now, use
+   the existing -spec files as examples and send me email when you're
+   confused.
+
+ - Note that all wrapset names starting with "gw-" are reserved by
+   g-wrap.  DON'T use them.
+
+Version 1.3.1
+
+ - Version numbers for g-wrap have been rearranged.  We'll be using
+   the Linux kernel version numbering scheme from now on.  Stable
+   versions have even "middle" numbers, i.e. 1.2.1, and unstable
+   versions have odd middle numbers, i.e. 1.3.4.  Note that there was
+   briefly a 1.1.12 which is actually "newer" than 1.2.1, but that
+   version is what became 1.3.1.  The other reason for the change was
+   that in 1.3.1 g-wrap's handling of Guile modules changed
+   substantially, and in a somewhat backward incompatible way.
+
+ - g-wrap has been rewritten to drop support for earlier Guile
+   version's "automagic loading a shared library as a module".  When
+   asked to generate a Guile module for a given g-wrap module, g-wrap
+   will generate a plain Scheme file that will export all of the
+   g-wrapped symbols and load the required g-wrap shared library to
+   provide the wrapped function bindings.  This should work across
+   guile 1.3.4, guile 1.4, and the forthcoming guile 1.6.  Note that
+   the Scheme file must be found in an appropriate place via the
+   %load-path just like any other guile module, and the directory
+   containing the g-wrap shared library representing the wrapped code
+   must be somewhere in LD_LIBRARY_PATH (for Guile 1.3.4), and
+   LD_LIBRARY_PATH or LTDL_LIBRARY_PATH for newer Guiles.
+
+ - Support has been added for a pre-c-lib-scmcodegen for both g-wrap
+   modules and types.  If registered, the code generated will be
+   inserted into the Scheme file generated (if any) for the Guile
+   module representing the g-wrapped code.
+
+ - g-wrap has now dropped official support for Guile versions earlier
+   than 1.3.4.
+
+Version 1.1.11
+
+ - added beta changes to info pages -- they're unfinished and still
+   partially document the old interface, but I'm going under the
+   assumption that something is better than nothing.
+
+ - automake's "make check" now runs the tests in ./test.
+
+ - gw_wct_p now recognizes #f as a wcp.
+
+ - missing string.h problems should be fixed.
+
+Version 1.1.10
+
+ - for enumerations, the automatically generated val->sym funcs now
+   always return a list if show-all? is not #f, but the list may be
+   empty.  This is better for memq, map, etc.
+
+Version 0.9.8
+
+ - Fixed bug which prevented inclusion of new m4 macros into tarfile.
+
+Version 0.9.7
+
+ - Fixed guile-1.3 problems. NOTE: Broken release - do not use!
+
+Version 0.9.6
+
+ - Fixed const-string bug (thanks to Robert Merkel).  Guile version
+   problem still not fixed - stay tuned.
+
+Version 0.9.5
+
+ - fixed problems with guile-1.4.
+
+Version 0.9.4
+
+ - Pointer tokens and pointer token arrays have changed semantics.
+   Now if a return value of one of these types would contain a NULL
+   pointer, g-wrap just returns #f, and on the other side, passing in
+   #f as an argument to a function expecting a pointer token or
+   pointer token array will result in NULL being passed to the
+   underlying C function.  As a result of these changes,
+   pointer-token-null? is gone.  If you still need it, you can just
+   (define (pointer-token-null? x) (eq? x #f)).
+
+Version 0.9.3
+
+ - RPM spec file available now as rpm/spec
+
+Version 0.9.2
+
+ - fixed --version command line arg.
+
+Version 0.9.1
+
+ - New development version.
+
+ - Start officially using something like the linux kernel version
+   numbering scheme.  This means that there will be three digits in
+   the version number where the first digit is the major version
+   number.  It changes whenever there's a large-scale change, like a
+   serious backward-incompatibility, the second digit indicates
+   whether this is considered a stable or development version.  When
+   this is odd, it's a development version.  The last digit is the
+   minor version number.  It gets bumped with every release.
+
+ - Guile is now required.  Even if you're just going to be wrapping
+   functions for languages other than guile, guile is now the
+   implementation language of g-wrap itself.
+
+ - added new top-level script, g-wrap.  This replaces all of the
+   target language specific scripts.  See the info pages for usage
+   details.
+
+ - added conditionally compiled long long support for guile wrappers.
+
+ - added g-wrap-config script to provide appropriate compile options
+   for programs using g-wrap.  See the info pages for usage details.
+
+ - added support for handling pointers to C structs on the guile side.
+   This is in flux, so don't use it unless you're prepared to possibly
+   rewrite everything when things settle.  See the info pages for
+   details.
+
+ - added support for a 'cleanup option to new types that lets you
+   specify how an argument should be cleaned up (generally this means
+   something like "free" for C APIs) whenever cleanup is needed.  This
+   works in conjunction with a new ability to enable/disable cleanup
+   for types by default, and for arguments/return values on a
+   per-function basis.  See the info pages for details.
+
+ - Add support for automatically generating a C header from the g-wrap
+   spec file.  This can be useful if you want the g-wrap file to be
+   the ultmate authority about the API.  See the info documentation
+   for gwrap-generate-wrapped-header.
+
+ - Add support for a guile-prefix to the gwrap-open-module call.  This
+   option will allow you to specify a prefix that will be appended to
+   the guile-side names.  This may be useful if you don't want to
+   create a module (which you can do with the (guile-module #f) option
+   to gwrap-open-module.
+
+Version 0.8.1
+
+ - Updates to get G-Wrap to build equivalent modules for RScheme and
+   Guile from the same specification file
+
+   - now, pointer '*'s are not assumed to be necessary when converting
+     Guile smob-values to native C types
+
+Version 0.8.0
+
+ - Support added for RScheme
+
+ - Changes in the name of some functions
+
+   gwrap-scan-source-file (was gwrap-c-scan-source-file)
+   gwrap-open-module (was gwrap-c-open-file)
+   gwrap-assume-types-wrapped (was gwrap-c-assume-types-wrapped)
+   gwrap-close-module (was gwrap-c-close-file)
+
+ - Some functions are removed:
+
+   gwrap-c-output-c
+   gwrap-c-output-h
+   gwrap-c-output-doc
+
+Version 0.3.9
+
+ - Prettier and more useful html documentation is generated from input
+   files
+
+ - Better C++ support
+
+Version 0.3.8
+
+ - Better ANISfication
+
+ - Better C++ support
+
+Version 0.3.7:
+
+ - Improved configuration process
+
+ - Integrated g-translate into g-wrap
+
+Version 0.3.6:
+
+ - Switched to automake/autoconf/libtool configuration
+
+Version 0.3.5:
+
+ - Generates an html file describing wrapped library
+
+Version 0.3.4:
+
+ - Option call-on-init in gwrap-c-open-file allows a function to be
+   called upon intialization of the library wrapper.
+
+Version 0.3:
+
+ - A capability for generating dynamically-linkable Guile modules
+
+ - Automatic support for exporting functions with more than 10
+   arguments, without modification of libguile.
+
+ - No longer relies on Slib (slib dependencies removed from
+   output-file.scm, and g-wrap.scm)
+
+ - Made generated *.h files more C++ friendly
+
+ - New options for wrapping structures which are passed by value
+   rather than by reference, and for generating C++ code.
+
+ - new-function: New interface, automatically adds description to an
+   assq list in variable "*gw:descriptions*", complete with a
+   prototype and list of parameter and return types.
+
+ - Renamed many functions -- the interface is pretty new overall.
+   define-constant     --> new-constant
+   c-file-include-local-header  --> gwrap-c-include-local-header
+   c-file-include-global-header --> gwrap-c-include-global-header
+   open-c-file		--> gwrap-c-open-file
+   output-c		--> gwrap-c-output-c
+   output-h		--> gwrap-c-output-h
+   make-wrapper-c-type --> gwrap-c-assume-types-wrapped (simpler interface)
+
+ - Code for generating Guile wrapper code is now a Guile module
+
+ - g-wrap-guile is now written to use Guile interpreter rather than
+   SCM
+
+ - types are now given symbolic keys rather than being returned in
+   structures
+
+   - new function formats:
+     (add-type scheme-sym c-type-str fn-to-scm fn-from-scm fn-isa)
+     (add-new-type scheme-sym the-type)
+     (new-type scheme-sym c-name c-print-name c-die-name c-eq-name . options)
+
+     - If options contains (c-gc-name "fname"), fname is called for
+       protecting objects from GC
+
+     - If options contains (pass-c-ptr? #f), type is passed as struct
+       rather than pointer to struct
+
+ - gwrap-c-open-file: Accepts options telling it to generate a C++
+   file and/or code for a dynamically linkable module
+
+For older news, see the file ONEWS.
+
+----------------------------------------------------------------------
+Copyright information:
+
+Copyright (C) 1996, 1997, 1998, 1999 Free Software Foundation, Inc.
+
+   Permission is granted to anyone to make or distribute verbatim copies
+   of this document as received, in any medium, provided that the
+   copyright notice and this permission notice are preserved,
+   thus giving the recipient permission to redistribute in turn.
+
+   Permission is granted to distribute modified versions
+   of this document, or of portions of it,
+   under the above conditions, provided also that they
+   carry prominent notices stating who last changed them.
+^L
+Local variables:
+mode: indented-text
+end:

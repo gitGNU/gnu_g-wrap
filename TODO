@@ -1,0 +1,19 @@
+-*-text-*-
+
+scan docs (and debian/control, etc.) and adjust to reflect the fact
+that g-wrap only supports Guile now.
+
+fix g-wrap/gtkobj.scm
+    ;; FIXME GtkCList -> gtk_clist...
+
+figure out how to get rid of bogus (void) gw__handle_wrapper_error; call.
+
+./test:
+
+  - test gtkobj and gw-gtkobj separately.
+  - test restargs
+  - test wrong num args
+  - test wrong type args
+  - add "expect-failure" type macros, or funcs...
+  - test error handling semantics of pre-arg/post-arg, etc.
+  - check typespec options handling in general and for each customized type.

@@ -1,0 +1,41 @@
+#!/bin/sh
+exec ./guile-test-env guile -s "$0" "$@"
+!#
+
+(use-modules (test gw-test-child))
+(use-modules (test gw-test-parent))
+(use-modules (g-wrap gw-wct))
+
+(display "checking that 2 wcp's with the same pointer and wct are equal?...")
+(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+       (same-obj (gw-test-parent-same-obj obj-1)))
+  (if (equal? obj-1 same-obj)
+      (display "yes\n")
+      (error "no")))
+
+(display "checking that 2 wcp's with the different pointers are not equal?...")
+(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+       (obj-2 (gw-test-parent-make-obj "object 2")))
+  (if (not (equal? obj-1 obj-2))
+      (display "yes\n")
+      (error "no")))
+
+(display "checking that gw:wcp-coerce works for pass-thru...")
+(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+       (coerced-obj (gw:wcp-coerce obj-1 <gw:TestParentObj*>)))
+  (if (equal? obj-1 coerced-obj)
+      (display "yes\n")
+      (error "no")))
+
+(display "checking that one module can use another module's types...")
+(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+       (passed-obj (gw-test-child-pass-back-parent-obj obj-1)))
+  (if (equal? obj-1 passed-obj)
+      (display "yes\n")
+      (error "no")))
+
+(exit 0)
+
+;; Local Variables:
+;; mode: scheme
+;; End:

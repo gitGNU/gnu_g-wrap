@@ -1,0 +1,99 @@
+#!@-GUILE-@ \
+-e main -s
+!#
+;;;; g-wrap --- main g-wrap command
+;;;;
+;;;; Copyright 2000 Rob Browning <rlb@defaultvalue.org>
+;;;; 
+;;;; This program is free software; you can redistribute it and/or
+;;;; modify it under the terms of the GNU Lesser General Public
+;;;; License as published by the Free Software Foundation; either
+;;;; version 2.1, or (at your option) any later version.
+;;;; 
+;;;; This program is distributed in the hope that it will be useful,
+;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;;;; Lesser General Public License for more details.
+;;;; 
+;;;; You should have received a copy of the GNU Lesser General Public
+;;;; License along with this software; see the file COPYING.  If not,
+;;;; write to the Free Software Foundation, Inc., 59 Temple Place,
+;;;; Suite 330, Boston, MA 02111-1307 USA
+;;;;
+
+(if (not (member "@-GUILE_MODULE_DIR-@" %load-path))
+    (set! %load-path (cons "@-GUILE_MODULE_DIR-@" %load-path)))
+
+(use-modules (g-wrap))
+
+(define *program-name* #f)
+(define *program-version* "@-VERSION-@")
+
+(define (stderr . args)
+  (let ((ep (current-error-port)))
+    (for-each (lambda (arg) (display arg ep)) args)))
+
+(define (stdout . args)
+  (for-each display args))
+
+(define (usage-msg)
+  (let ((pr (lambda ( . msg)
+              (stderr "  " *program-name* " ")
+              (apply stderr msg)
+              (stderr #\newline))))
+    (stderr "Usage: g-wrap [options] spec-name module-name" #\newline)
+    (pr "--version          - show version information")
+    (pr "--help             - show this message")
+    (pr "--api LANGUAGE     - language of the API being wrapped")
+    (pr "--target LANGUAGE  - language for which wrappers are being generated")
+    (pr "--spec-path PATH   - add directory to search for spec-name")
+    (stderr #\newline)
+    (stderr
+     "  Example: g-wrap --api c --target guile \"(g-wrapped foo-spec)\" foo")
+    (stderr #\newline)))
+
+(define (main args)
+  
+  (set! *program-name* (basename (car args)))
+  
+  ;; Right now we do dirt-stupid argument processing.
+  (let* ((rest (cdr args))
+         (command-args (if (= (length rest) 6)
+                           (reverse (cddr (reverse rest)))
+                           #f))
+         (module-name (if (= (length rest) 5)
+                          (car (reverse rest))
+                          #f))
+         (spec-name (if (= (length rest) 5)
+                        (cadr (reverse rest))
+                        #f)))   
+    (cond
+     ((null? rest)
+      (usage-msg)
+      (quit 1))
+     
+     ;; --version
+     ((equal? '("--version") rest)
+      (stdout "g-wrap " *program-version* #\newline)
+      (quit 0))
+     
+     ;; wrapping for guile
+     ((or (equal? '("--api" "c" "--target" "guile") command-args)
+          (equal? '("--target" "guile" "--api" "c") command-args))
+      (use-modules (g-wrapper (string->symbol spec-name)))
+      (gw:generate-module module-name)
+      (quit 0))
+     
+     ;; wrapping for rscheme
+     ((or (equal? '("--api" "c" "--target" "rscheme") command-args)
+          (equal? '("--target" "rscheme" "--api" "c") command-args))
+      (stdout "rscheme support is currently out-of-date.\n"))
+     
+     (else
+      (usage-msg)
+      1))))
+     
+;;; Local Variables:
+;;; mode: scheme
+;;; End:
+
