@@ -36,7 +36,7 @@
    gen-c-tmp-name make-typespec
    
    <gw-typespec>
-   type options c-type-name
+   type options c-type-name all-types
    
    <gw-value>
    var wrapped-var if-typespec-option
@@ -163,6 +163,12 @@
    `(gw:error ,status-var arg-range)))
 
 
+(define-method (pre-call-result-cg (lang <gw-language>)
+                                   (type <gw-type>)
+                                   (result <gw-value>)
+                                   status-var)
+  '())
+
 (define-method (call-arg-cg (lang <gw-language>) (type <gw-type>)
                             (value <gw-value>))
   (list (var value)))
@@ -181,8 +187,8 @@
 
 
 (define-method (post-call-arg-cg (lang <gw-language>) (type <gw-type>)
-                                 (value <gw-value>) error-var)
-  (destruct-value-cg lang type result status-var))
+                                 (value <gw-value>) status-var)
+  (destruct-value-cg lang type value status-var))
 
 ;;;
 
@@ -192,6 +198,9 @@
 (define-class <gw-typespec> ()
   (type #:init-keyword #:type #:getter type)
   (options #:init-keyword #:options #:getter options #:init-value '()))
+
+(define-method (all-types (typespec <gw-typespec>))
+  (list (type typespec)))
 
 (define-generic c-type-name)
 
@@ -216,6 +225,15 @@
 
 (define-method (argument-types (func <gw-function>))
   (map type (slot-ref func 'arguments)))
+
+(define-method (argument-typespecs (func <gw-function>))
+  (map typespec (slot-ref func 'arguments)))
+
+(define-method (all-types-referenced (func <gw-function>))
+  (fold (lambda (typespec rest)
+          (append (all-types typespec) rest))
+        '()
+        (cons (return-typespec func) (argument-typespecs func))))
 
 ;;; Function (formal) arguments
 
@@ -370,7 +388,18 @@
                        (format #f "neither list nor symbol (~S)" spec)))))
          (type (lookup-type wrapset (car form))))
     (if type
-        (make-typespec type (cdr form))
+        (make-typespec
+         type
+         (map (lambda (elt)
+                (cond
+                 ((list? elt) ; sub-typespec
+                  (resolve-typespec wrapset elt))
+                 ((symbol? elt)
+                  elt)
+                 (else
+                  (throw 'gw:bad-typespec
+                         (format #f "found bad option ~S" elt)))))
+              (cdr form)))
         (throw
          'gw:bad-typespec
          (format #f "no type ~S in wrapset ~S" (car form) (name wrapset))))))
@@ -531,8 +560,8 @@
             ;;(format #t "considering ~S as client type\n" type)
             (if (not (hashq-ref my-types type-name))
                 (hashq-set! client-type-hash type-name type))))
-        (cons (return-type func) (argument-types func))))
-       (slot-ref ws 'functions))
+        (all-types-referenced func)))
+     (slot-ref ws 'functions))
     (hash-fold (lambda (key val rest) (cons val rest)) '() client-type-hash)))
 
 (define-method (generate-wrapset (lang <gw-language>)
