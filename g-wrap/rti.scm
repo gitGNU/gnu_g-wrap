@@ -176,7 +176,7 @@
                    (let ((idx (car state))
                          (result (cdr state)))
                      (cons
-                      idx
+                      (+ idx 1)
                       (cons
                        (list
                         "  " arg-types "[" (number->string idx) "] = \""
@@ -205,7 +205,7 @@
   (define (cs-initializer lang error-var)
     (let ((ws-info (c-info-sym wrapset)))
       (list
-       ws-info " = gw_wrapset_new(\"" (name wrapset) "\", "
+       ws-info " = gw_wrapset_new(gw__arena, \"" (name wrapset) "\", "
        (map (lambda (dep)
               (list "\"" (name dep) "\", "))
             (wrapsets-depended-on wrapset))

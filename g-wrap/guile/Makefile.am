@@ -1,5 +1,5 @@
 moduledir = @GUILEMODDIR@/g-wrap/guile
-module_DATA = ws/standard.scm
+nobase_module_DATA = ws/standard.scm
 
-EXTRA_DIST = $(module_DATA)
+EXTRA_DIST = $(nobase_module_DATA)
 

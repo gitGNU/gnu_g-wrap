@@ -42,6 +42,48 @@ SCM gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val,
                           SCM scm_show_all_p);
 SCM gw_guile_enum_val2int(GWEnumPair enum_pairs[], SCM scm_val);
 
+/* G-Wrap C pointer object system funcs ****************************/
+/*
+ * Copyright (C) 1996 Christopher Lee
+ */
+
+/** Wrapped C type funcs **/
+
+SCM
+gw_wct_create (const char *type_name,
+               SCM (*equal_p)(SCM wcp_a, SCM wcp_b),
+               int (*print)(SCM wcp, SCM port,
+                            char writing_p,
+                            int *use_default_printer_p),
+               SCM (*mark)(SCM wcp),
+               size_t (*cleanup)(SCM wcp));
+
+int gw_wct_p(SCM obj);
+
+/** Wrapped C pointer funcs **/
+
+/* create a wrapped C pointer of the given type, wrapping ptr */
+SCM gw_wcp_assimilate_ptr(void *ptr, SCM type);
+
+/* see if the given obj is really a wcp */
+int gw_wcp_p(SCM obj);
+/* return the C pointer in the given wrapped C pointer object. */
+void *gw_wcp_get_ptr(SCM wcp);
+/* return non-zero if wrapped C pointer obj is of the given type. */
+int   gw_wcp_is_of_type_p(SCM type, SCM wcp);
+/* return a new wrapped C pointer */
+SCM   gw_wcp_coerce(SCM wcp, SCM new_type);
+/* set a finalization routine for the given wcp.  Called at garbage
+   collection time with one argument, the wcp. */
+
+/* private -- should only be manipulated by type-related code, not
+   accessed directly. */
+void gw_wcp_set_scm_data(SCM wcp, SCM user_data);
+SCM gw_wcp_get_scm_data(SCM wcp);
+
+/* Misc ************************************************************/
+void gw_wct_initialize (void);
+
 #ifdef __cplusplus
 }
 #endif

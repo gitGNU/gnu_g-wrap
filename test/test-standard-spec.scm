@@ -11,9 +11,10 @@
   
   (depends-on! ws 'standard)
   
-  (add-cs-global-declarator! ws
-                             (lambda (wrapset)
-                               (list "#include \"test/g-wrap-test-c-code.h\"\n")))
+  (add-cs-global-declarator!
+   ws
+   (lambda (wrapset)
+     (list "#include \"test/g-wrap-test-c-code.h\"\n")))
 
   (wrap-constant! ws
                   #:name 'gw-test-gw-standard-foo-value

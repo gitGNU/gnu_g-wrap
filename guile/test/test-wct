@@ -2,9 +2,9 @@
 exec ${srcdir:-.}/guile-test-env guile -s "$0" "$@"
 !#
 
+(use-modules (g-wrap gw standard))
 (use-modules (test gw-test-child))
 (use-modules (test gw-test-parent))
-(use-modules (g-wrap gw-wct))
 
 (display "checking that 2 wcp's with the same pointer and wct are equal?...")
 (let* ((obj-1 (gw-test-parent-make-obj "object 1"))

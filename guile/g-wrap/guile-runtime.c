@@ -47,6 +47,9 @@ char *alloca ();
 #include "g-wrap/guile-compatibility.h"
 #include "g-wrap/guile-runtime.h"
 
+#define ARENA NULL /* Guile has no concept of an arena */
+
+#if 0 // not useed ATM
 void
 gw_guile_runtime_get_version_info(int *major, int *revision, int *age)
 {
@@ -54,7 +57,7 @@ gw_guile_runtime_get_version_info(int *major, int *revision, int *age)
   *revision = GW_GUILE_RUNTIME_INTERFACE_REVISION;
   *age = GW_GUILE_RUNTIME_INTERFACE_AGE;
 }
-
+#endif
 
 SCM
 gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
@@ -285,10 +288,10 @@ dynproc_smob_apply (SCM smob, SCM args)
     if (!SCM_CONSP (args))
       scm_wrong_num_args (smob);
     arg = SCM_CAR (args);
-    fi->arg_types[i]->unwrap_value (values[i], &fi->arg_typespecs[i],
-                                    &arg, &error);
+    fi->arg_types[i]->unwrap_value (values[i], ARENA,
+                                    &fi->arg_typespecs[i], &arg, &error);
     if (error.status != GW_ERR_NONE)
-      gw_handle_wrapper_error (&error, fi->proc_name, i + 1);
+      gw_handle_wrapper_error (ARENA, &error, fi->proc_name, i + 1);
     offset += fi->arg_types[i]->type->size;
     args = SCM_CDR (args);
   }
@@ -296,22 +299,22 @@ dynproc_smob_apply (SCM smob, SCM args)
   
   ffi_call (&fi->cif, fi->proc, rvalue, values);
 
-  fi->ret_type->wrap_value (rvalue, &fi->ret_typespec, &result, &error);
+  fi->ret_type->wrap_value (&result, ARENA, &fi->ret_typespec, rvalue, &error);
   if (error.status != GW_ERR_NONE)
-    gw_handle_wrapper_error (&error, fi->proc_name, 0);
+    gw_handle_wrapper_error (ARENA, &error, fi->proc_name, 0);
 
-  fi->ret_type->destruct_value (rvalue, &fi->ret_typespec, &error);
+  fi->ret_type->destruct_value (ARENA, rvalue, &fi->ret_typespec, &error);
   if (error.status != GW_ERR_NONE)
-    gw_handle_wrapper_error (&error, fi->proc_name, 0);
+    gw_handle_wrapper_error (ARENA, &error, fi->proc_name, 0);
 
   /* call the destructors in the reverse orders, as done by the
    * traditional glue. */
   for (i = fi->n_args - 1; i >= 0; i--)
   {
-    fi->arg_types[i]->destruct_value (values[i], &fi->arg_typespecs[i],
+    fi->arg_types[i]->destruct_value (ARENA, values[i], &fi->arg_typespecs[i],
                                       &error);
     if (error.status != GW_ERR_NONE)
-      gw_handle_wrapper_error (&error, fi->proc_name, i + 1);
+      gw_handle_wrapper_error (ARENA, &error, fi->proc_name, i + 1);
   }
   
   return result;
@@ -343,7 +346,8 @@ dynproc_smob_print (SCM smob, SCM port, scm_print_state *pstate)
   
 
 static void
-gw_guile_handle_wrapper_error(GWError *error,
+gw_guile_handle_wrapper_error(GWLangArena arena,
+                              GWError *error,
                               const char *func_name,
                               unsigned int arg_pos)
 {
@@ -403,7 +407,7 @@ gw_guile_handle_wrapper_error(GWError *error,
 }
 
 static void
-gw_guile_raise_error (const char *proc, const char *error)
+gw_guile_raise_error (GWLangArena arena, const char *proc, const char *error)
 {
   scm_misc_error (proc, error, SCM_EOL);
 }
@@ -464,13 +468,24 @@ gw_guile_register_wrapset (GWWrapSet *ws)
   }
 }
 
+static void *
+gw_guile_malloc (GWLangArena arena, size_t size)
+{
+  return scm_malloc (size);
+}
+
+static void *
+gw_guile_realloc (GWLangArena arena, void *mem, size_t size)
+{
+  return scm_realloc (mem, size);
+}
 void
 gw_guile_runtime_init (void)
 {
   static GWLangSupport guile_support = {
     .register_wrapset = gw_guile_register_wrapset,
-    .malloc = scm_malloc,
-    .realloc = scm_realloc,
+    .malloc = gw_guile_malloc,
+    .realloc = gw_guile_realloc,
     .raise_error = gw_guile_raise_error,
     .handle_wrapper_error = gw_guile_handle_wrapper_error
   };
@@ -504,7 +519,8 @@ gw_guile_runtime_init (void)
     scm_set_smob_apply (dynproc_smob_tag,
                         (SCM (*)())dynproc_smob_apply, 0, 0, 1);
     scm_set_smob_print (dynproc_smob_tag, dynproc_smob_print);
-    
+
+    gw_wct_initialize ();
   }
 }
 

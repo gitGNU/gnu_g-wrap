@@ -30,13 +30,13 @@ char gw_test_gw_standard_echo_char (char arg);
 float gw_test_gw_standard_echo_float (float arg);
 double gw_test_gw_standard_echo_double (double arg);
 
-int gw_test_gw_standard_get_int_max();
-int gw_test_gw_standard_get_int_min();
-unsigned int gw_test_gw_standard_get_uint_max();
+int gw_test_gw_standard_get_int_max(void);
+int gw_test_gw_standard_get_int_min(void);
+unsigned int gw_test_gw_standard_get_uint_max(void);
 
-long gw_test_gw_standard_get_long_max();
-long gw_test_gw_standard_get_long_min();
-unsigned long gw_test_gw_standard_get_ulong_max();
+long gw_test_gw_standard_get_long_max(void);
+long gw_test_gw_standard_get_long_min(void);
+unsigned long gw_test_gw_standard_get_ulong_max(void);
 
 int gw_test_gw_standard_echo_int (int arg);
 unsigned int gw_test_gw_standard_echo_unsigned_int (unsigned int arg);

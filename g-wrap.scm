@@ -22,8 +22,7 @@
    generic-name 
    
    <gw-type>
-   class-name
-   c-type-name
+   c-type-name class-name
    wrap-value-cg unwrap-value-cg destruct-value-cg
    pre-call-arg-cg pre-call-result-cg call-arg-cg post-call-result-cg
    post-call-arg-cg
@@ -73,8 +72,11 @@
                #:init-keyword #:description
                #:init-value #f))
 
+(define-accessor class-name) ;; Upgrade the GOOPS class-name procedure
+
 (define-class <gw-type> (<gw-item>)
-  (name #:getter name #:init-keyword #:name))
+  (name #:getter name #:init-keyword #:name)
+  (class-name #:accessor class-name #:init-value #f))
 
 (define-method (gen-c-tmp-name (type <gw-type>) (suffix <string>))
   (gen-c-tmp (string-append (any-str->c-sym-str
@@ -183,10 +185,13 @@
   (cs-initializers #:init-value '()))
 
 ;;; Methods
-(define-method (depends-on! (ws <gw-wrapset>) (dep-name <symbol>))
+(define-method (depends-on! (ws <gw-wrapset>) (dep-name <symbol>) . deps)
   (slot-set! ws 'dependencies
-             (cons (get-wrapset (language ws) dep-name)
-                   (slot-ref ws 'dependencies))))
+             (append!
+              (map (lambda (name)
+                     (get-wrapset (language ws) name))
+                   (cons dep-name deps))
+              (slot-ref ws 'dependencies))))
 
 (define-method (add-type! (ws <gw-wrapset>) (type <gw-type>))
   (slot-set! ws 'types (acons (name type) type (slot-ref ws 'types)))
@@ -210,21 +215,23 @@
               (slot-ref ws 'types)))
   
 (define-method (lookup-type (wrapset <gw-wrapset>) (type-name <symbol>))
-  (define (lookup wrapset type-name cont)
+  
+  (define (lookup wrapset cont)
+    ;;(format #t "looking for ~S in ~S\n" type-name wrapset)
     (let* ((types-alist (slot-ref wrapset 'types))
            (ret (assq-ref types-alist type-name)))
-      (if ret
-          (cont ret)
-          (begin
-            (for-each
-             (lambda (ws)
-               (lookup ws type-name cont))
-             (wrapsets-depended-on wrapset))
-            (cont #f)))))
+      (cond (ret
+             (cont ret))
+            (else
+             (for-each
+              (lambda (ws)
+                (lookup ws cont))
+              (wrapsets-depended-on wrapset))
+              #f))))
   
   (call-with-current-continuation
    (lambda (exit)
-     (lookup wrapset type-name exit))))
+     (lookup wrapset exit))))
 
 (define-method (fold-functions kons knil (ws <gw-wrapset>))
   (fold kons knil(reverse (slot-ref ws 'functions))))
@@ -323,6 +330,7 @@
       (if (cdr entry)
           (cdr entry)
           (let ((wrapset (make (car entry) #:name name #:language lang)))
+            ;;(format #t "Instantiating ~A for ~A\n" name lang)
             (set-cdr! entry wrapset)
             wrapset)))))
 
@@ -346,7 +354,7 @@
               (flatten-display
                (list
                 "if ((" error-var ").status != GW_ERR_NONE)\n"
-                "  gw_handle_wrapper_error (&" error-var ",\n"
+                "  gw_handle_wrapper_error (gw__arena, &" error-var ",\n"
                 "                            \"" wrapset-init-func "\",\n"
                 "                            0);\n")
                port)))))
@@ -390,10 +398,13 @@
         (for-each (lambda (cg)
                     (render (cg lang) port))
                   (reverse (slot-ref wrapset 'cs-before-includes)))
-        
+
         (for-each (lambda (cg)
                     (render (cg lang) port))
                   (reverse (slot-ref wrapset 'cs-global-declarators)))
+        
+        (dsp-list
+         (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
         
         (for-each (lambda (cg)
                     (render (cg lang) port))
@@ -412,7 +423,7 @@
         (dsp-list
          (list
           "void\n"
-          "gw_init_wrapset_" wrapset-name-c-sym "(void) {\n"
+          "gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena gw__arena) {\n"
           "  static int gw_wrapset_initialized = 0;\n"
           "\n"))
 
@@ -460,3 +471,4 @@
                                    (item <gw-item>)
                                    error-var)
   '())
+

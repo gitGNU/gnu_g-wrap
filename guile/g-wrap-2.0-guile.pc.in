@@ -9,5 +9,5 @@ module_directory=@GUILEMODDIR@
 Name: G-Wrap
 Description: A Guile wrapper generator
 Version: @VERSION@
-Libs: -L${libdir} -lgwrap-runtime @LIBFFI_LIBS@
+Libs: -L${libdir} -lgwrap-guile-runtime -lgwrap-core-runtime @LIBFFI_LIBS@
 Cflags: -I${includedir} @LIBFFI_CFLAGS@

@@ -11,13 +11,17 @@
             <gw-ranged-integer-type>
             wrap-ranged-integer-type!
             
-            <gw-ctype-void> <gw-ctype-mchars>))
+            <gw-ctype-void> <gw-ctype-mchars>
+            
+            <gw-wct>
+            wrap-as-wct!))
 
 (define-generic wrap-simple-type!)
 
-;;
-;; <simple-ranged-integer-type>
-;;
+;;;
+;;; Ranged integers
+;;;
+
 (define-class <gw-ranged-integer-type> (<gw-simple-rti-type>)
   (min #:init-keyword #:min #:init-value #f)
   (max #:init-keyword #:max)
@@ -71,4 +75,25 @@
   (let ((c-var (var value)))
     (if-typespec-option value 'caller-owned
                         (list "if (" c-var ") free (" c-var ");\n"))))
+
+;;;
+;;; Wrapped C Types
+;;;
+
+(define-class <gw-wct> (<gw-rti-type>))
+
+(define-method (initialize (wct <gw-wct>) initargs)
+  (next-method)
+  (slot-set! wct 'ffspec 'pointer))
+
+(define-method (make-typespec (type <gw-wct>) (options <list>))
+  (let ((remainder options))
+    (set! remainder (delq 'const options))
+    (if (null? remainder)
+        (make <gw-typespec> #:type type #:options '(caller-owned))
+        (throw 'gw:bad-typespec
+               "Bad <gw-wct> options - spurious options: " remainder))))
+
+(define-method (wrap-as-wct! (wrapset <gw-wrapset>) . args)
+  (add-type! wrapset (apply make <gw-wct> args)))
 

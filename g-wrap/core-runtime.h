@@ -20,13 +20,14 @@ USA.
 #ifndef __G_WRAP_CORE_RUNTIME_H__
 #define __G_WRAP_CORE_RUNTIME_H__
 
-#include <g-wrap/ffi-support.h> // TODO: Make conditional
+#include <g-wrap/ffi-support.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void GWLangValue;
+typedef void *GWLangLocative;
+typedef void *GWLangArena;
 typedef enum _GWErrorStatus GWErrorStatus;
 typedef struct _GWError GWError;
 typedef struct _GWLangSupport GWLangSupport;
@@ -48,26 +49,31 @@ struct _GWError
 {
     GWErrorStatus status;
     const char *message;
-    GWLangValue *data;
+    GWLangLocative data;
 };
 
 struct _GWLangSupport
 {
     void  (*register_wrapset) (GWWrapSet *ws);
     
-    void *(*malloc) (size_t size);
-    void *(*realloc) (void *mem, size_t size);
-    void  (*raise_error) (const char *func_name, const char *error);
-    void  (*handle_wrapper_error) (GWError *error,
+    void *(*malloc) (GWLangArena arena, size_t size);
+    void *(*realloc) (GWLangArena arena, void *mem, size_t size);
+    void  (*raise_error) (GWLangArena arena,
+                          const char *func_name,
+                          const char *error);
+    void  (*handle_wrapper_error) (GWLangArena arena,
+                                   GWError *error,
                                    const char *func_name,
                                    unsigned int arg_pos);
 };
 
 int        gw_runtime_init (GWLangSupport *lang);
-void *     gw_malloc (size_t size);
-void *     gw_realloc (void *mem, size_t size);
-void       gw_raise_error (const char *proc, const char *fmt, ...);
-void       gw_handle_wrapper_error (GWError *error,
+void *     gw_malloc (GWLangArena arena, size_t size);
+void *     gw_realloc (GWLangArena arena, void *mem, size_t size);
+void       gw_raise_error (GWLangArena arena,
+                           const char *proc, const char *fmt, ...);
+void       gw_handle_wrapper_error (GWLangArena arena,
+                                    GWError *error,
                                     const char *func_name,
                                     unsigned int arg_pos);
 
@@ -83,23 +89,26 @@ typedef unsigned long GWTypeSpec;
 enum
 {
   GW_TYPESPEC_CALLER_OWNED = 0x01,
-  GW_TYPESPEC_CALLEE_OWNED = 0x02
+  GW_TYPESPEC_CALLEE_OWNED = 0x02,
+  GW_TYPESPEC_CONST        = 0x04
 };
 
 #define GW_TYPESPEC_USER_SHIFT 8
 
 typedef void (*GWUnWrapValueFunc)(void *instance,
+                                  GWLangArena arena,
                                   const GWTypeSpec *ts,
-                                  GWLangValue *val,
+                                  GWLangLocative val,
                                   GWError *error);
-typedef void (*GWWrapValueFunc)(void *instance,
+typedef void (*GWWrapValueFunc)(GWLangLocative val,
+                                GWLangArena arena,
                                 const GWTypeSpec *ts,
-                                GWLangValue *val,
+                                void *instance,
                                 GWError *error);
-typedef void (*GWDestructValueFunc)(void *instance,
+typedef void (*GWDestructValueFunc)(GWLangArena arena,
+                                    void *instance,
                                     const GWTypeSpec *ts,
                                     GWError *error);
-
 
 struct _GWTypeInfo
 {
@@ -145,13 +154,16 @@ struct _GWWrapSet
     int nfunctions;
     GWFunctionInfo *functions;
 
+    GWLangArena arena;
+    
     /* private */
     int ntypes_allocated;
     int types_sorted;
     int nfuncs_allocated;
 };
 
-GWWrapSet *gw_wrapset_new(const char *name, const char *dependency, ...);
+GWWrapSet *gw_wrapset_new (GWLangArena arena,
+                           const char *name, const char *dependency, ...);
 void       gw_wrapset_add_type(GWWrapSet *ws,
                                const char *name,        /* static */
                                const char *class_name,  /* static */

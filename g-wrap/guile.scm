@@ -6,13 +6,17 @@
   #:use-module (g-wrap util)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap enumeration)
+  #:use-module (g-wrap c-types)
 
   #:duplicates last
   
-  #:export (<gw-guile> guile
+  #:export (inline-scheme
+            
+            <gw-guile> guile
                        
             <gw-guile-wrapset>
             module module-exports
+            add-module-export!
             
             <gw-guile-simple-type>
             scm-var))
@@ -37,24 +41,93 @@
 
 (define guile (make <gw-guile>))
 
+
+
+;;;
+;;; Wrapset
+;;;
+
 (define-class <gw-guile-wrapset> (<gw-rti-wrapset>)
   (module #:init-keyword #:module #:accessor module)
   (module-exports #:getter module-exports #:init-value '()))
 
 (define-method (initialize (wrapset <gw-guile-wrapset>) initargs)
   (next-method)
+    
+  (let ((wrapset-name-c-sym (any-str->c-sym-str
+                             (symbol->string (name wrapset)))))
+    
+    (define (init-wrapper-cg lang)
+      (list "void gw_guile_init_wrapset_" wrapset-name-c-sym "(void);\n"
+            "void gw_guile_init_wrapset_" wrapset-name-c-sym "(void)\n"
+            "{\n"
+            "  gw_init_wrapset_" wrapset-name-c-sym "(NULL);\n"
+            "}\n"))
+    
+    ;; FIXME: this should be an initializer; we use a declarator to have
+    ;; this as first call...
+    (add-cs-declarator! wrapset (lambda (lang)
+                                  (list "gw_guile_runtime_init ();\n")))
+    (add-cs-global-declarator!
+     wrapset (lambda (lang)
+               (list "#include <g-wrap/guile-runtime.h>\n")))
+    (add-cs-definer! wrapset init-wrapper-cg)))
   
-  ;; FIXME: this should be an initializer; we use a declarator to have
-  ;; this as first call...
-  (add-cs-declarator! wrapset (lambda (lang)
-                                (list "gw_guile_runtime_init ();\n")))
-  (add-cs-global-declarator!
-   wrapset (lambda (lang)
-             (list "#include <g-wrap/guile-runtime.h>\n"))))
-  
+;;; Additional methods
 
 (define-method (add-module-export! (ws <gw-guile-wrapset>) (sym <symbol>))
   (slot-set! ws 'module-exports (cons sym (slot-ref ws 'module-exports))))
+
+
+(define-method (inline-scheme (ws <gw-guile-wrapset>) . code-chunks)
+  (map
+   (lambda (chunk)
+     (list "scm_c_eval_string(\""
+           (scm-form-str->safe-c-str
+            (call-with-output-string
+             (lambda (port)
+               (write chunk port))))
+           "\");\n"))
+   code-chunks))
+
+;;; Refined methods
+
+(define-method (add-constant! (wrapset <gw-guile-wrapset>)
+                              (constant <gw-constant>))
+
+  (define (cs-initializer lang error-var)
+    (let* ((scm-var (gen-c-tmp "scm_wrapped_value"))
+           (wrap-value-code
+            (wrap-value-cg lang (type constant)
+                           (make <gw-value>
+                             #:var (value constant)
+                             #:wrapped-var (string-append "&" scm-var))
+                           error-var)))
+      (list
+       "{\n"
+        "  SCM " scm-var ";\n"
+        "\n"
+        wrap-value-code
+        "if (!" `(gw:error? ,error-var) ")"
+        "  scm_c_define (\"" (symbol->string (name constant)) "\", " scm-var ");\n"
+        "}\n")))
+  
+  (next-method)
+  
+  (add-module-export! wrapset (name constant))
+  (add-cs-initializer! wrapset cs-initializer))
+
+(define-method (add-function! (wrapset <gw-guile-wrapset>)
+                              (func <gw-function>))
+  
+  (next-method)
+  
+  (add-module-export! wrapset (name func)))
+
+
+;;;
+;;; RTI
+;;;
 
 ;; TODO: We don' get full error messages yet (#f passed as param to
 ;; expand-special-forms)
@@ -68,7 +141,7 @@
                   #:wrapped-var "value")))
     (list
      "static void " (wrap-value-function-name type)
-     "(void *instance, const GWTypeSpec *typespec, GWLangValue *value, GWError *error) {\n"
+     "(GWLangLocative value, GWLangArena arena, const GWTypeSpec *typespec, void *instance, GWError *error) {\n"
      "  " (expand-special-forms (wrap-value-cg lang type value "*error")
                                 #f '(type arg-type range memory misc))
      "}\n")))
@@ -83,13 +156,13 @@
                   #:wrapped-var "value")))
     (list
      "static void " (unwrap-value-function-name type)
-     "(void *instance, const GWTypeSpec *typespec, GWLangValue *value, GWError *error) {\n"
+     "(void *instance, GWLangArena arena, const GWTypeSpec *typespec, GWLangLocative value, GWError *error) {\n"
      "  " (expand-special-forms (unwrap-value-cg lang type value "*error")
                                 #f '(type arg-type range memory misc))
      "}\n")))
 
 (define-method (destruct-value-function-cg (lang <gw-guile>)
-                                           (type <gw-type>))
+                                           (type <gw-rti-type>))
   
   (let* ((type-name (c-type-name type))
          (value (make <gw-rti-value>
@@ -98,15 +171,15 @@
                   #:wrapped-var "value")))
     (list
      "static void " (destruct-value-function-name type)
-     "(void *instance, const GWTypeSpec *typespec, GWError *error) {\n"
+     "(GWLangArena arena, void *instance, const GWTypeSpec *typespec, GWError *error) {\n"
      "  " (expand-special-forms
            (destruct-value-cg lang type value "*error")
            #f '(type arg-type range memory misc))
      "}\n")))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Enumerations
-;;
+;;;
+;;; Enumerations
+;;;
 
 (define-class <gw-guile-enum> (<gw-enumeration-type>)
   val->int-c-func
@@ -182,56 +255,127 @@
     (add-module-export! wrapset (slot-sym-ref enum 'val->int-scm-func))
     (add-module-export! wrapset (slot-sym-ref enum 'val->sym-scm-func))))
 
-(define-method (add-constant! (wrapset <gw-guile-wrapset>)
-                              (constant <gw-constant>))
 
-  (define (cs-initializer lang error-var)
-    (let* ((scm-var (gen-c-tmp "scm_wrapped_value"))
-           (wrap-value-code
-            (wrap-value-cg lang (type constant)
-                           (make <gw-value>
-                             #:var (value constant)
-                             #:wrapped-var (string-append "&" scm-var))
-                           error-var)))
-      (list
-       "{\n"
-        "  SCM " scm-var ";\n"
-        "\n"
-        wrap-value-code
-        "if (!" `(gw:error? ,error-var) ")"
-        "  scm_c_define (\"" (symbol->string (name constant)) "\", " scm-var ");\n"
-        "}\n")))
-  
-  (next-method)
-  
-  (add-module-export! wrapset (name constant))
-  (add-cs-initializer! wrapset cs-initializer))
+
+;;;
+;;; Simple Types
+;;;
 
-(define-method (add-function! (wrapset <gw-guile-wrapset>)
-                              (func <gw-function>))
-  
-;   (define (cs-initializer lang error-var)
-;     (let* ((scm-var (gen-c-tmp "scm_wrapped_value"))
-;            (wrap-value-code
-;             (wrap-value-cg lang (type constant)
-;                            (make <gw-value>
-;                              #:var (value constant)
-;                              #:wrapped-var scm-var)
-;                            error-var)))
-;       (list
-;        "{\n"
-;        "  SCM " scm-var ";\n"
-;        "\n"
-;        wrap-value-code
-;        "if (!" `(gw:error? ,error-var) ")"
-;         "  scm_c_define (\"" (symbol->string (name constant)) "\", " scm-var ");\n"
-;         "}\n")))
-  
+(define-class <gw-guile-simple-type> (<gw-simple-rti-type>)
+  (type-check #:init-keyword #:type-check)
+  (wrap #:init-keyword #:wrap)
+  (unwrap #:init-keyword #:unwrap))
+
+;; Helper
+(define (replace-syms tree alist)
+  (cond
+   ((null? tree) tree)
+   ((list? tree) (map (lambda (elt) (replace-syms elt alist)) tree))
+   ((symbol? tree)
+    (let ((expansion (assq-ref alist tree)))
+      (if (string? expansion)
+          expansion
+          (error
+           (string-append
+            "g-wrap expected string for expansion "
+            "while processing  ~S\n.") expansion))))
+   (else tree)))
+
+(define-method (unwrap-value-cg (lang <gw-language>)
+                                (type <gw-guile-simple-type>)
+                                (value <gw-value>)
+                                status-var)
+  (let* ((scm-var (scm-var value))
+         (c-var (var value))
+         (unwrap-code (replace-syms (slot-ref type 'unwrap)
+                                    `((c-var . ,c-var)
+                                      (scm-var . ,scm-var))))
+         (type-check (slot-ref type 'type-check)))
+    (if type-check
+        (list "if (!(" (replace-syms type-check `((scm-var . ,scm-var))) "))"
+              `(gw:error ,status-var type ,scm-var)
+              "else {" unwrap-code "}")
+        unwrap-code)))
+
+(define-method (wrap-value-cg (lang <gw-language>)
+                              (type <gw-guile-simple-type>)
+                              (value <gw-value>)
+                              status-var)
+  (replace-syms (slot-ref type 'wrap)
+                `((c-var . ,(var value))
+                  (scm-var . ,(scm-var value)))))
+
+(define-method (wrap-simple-type! (wrapset <gw-guile-wrapset>) . args)
+  (let ((type (apply make <gw-guile-simple-type> args)))
+    (add-type! wrapset type)))
+                                  
+
+
+;;;
+;;; Wrapped C Types
+;;;
+
+(define-class <gw-guile-wct> (<gw-wct>)
+  wct-var-name)
+
+(define-method (wrap-as-wct! (wrapset <gw-guile-wrapset>) . args)
+  (let ((type (apply make <gw-guile-wct> args)))
+    (add-module-export! wrapset (name type))
+    (add-type! wrapset type)))
+
+(define-method (initialize (wct <gw-guile-wct>) initargs)
   (next-method)
-  
-  (add-module-export! wrapset (name func))
-;;  (add-cs-initializer! wrapset cs-initializer))
-  )
+  (slot-set! wct 'wct-var-name
+             (gen-c-tmp (string-append
+                         "wct_info_for"
+                         (any-str->c-sym-str (symbol->string (name wct)))))))
+
+(define-method (wrap-value-cg (lang <gw-guile>)
+                              (wct <gw-guile-wct>)
+                              (value <gw-value>)
+                              status-var)
+  (let ((wct-var (slot-ref wct 'wct-var-name))
+        (sv (scm-var value))
+        (cv (var value)))
+    (list
+     "if(" cv " == NULL) " sv " = SCM_BOOL_F;\n"
+     "else " sv " = gw_wcp_assimilate_ptr((void *) " cv ", " wct-var ");\n")))
+
+
+(define-method (unwrap-value-cg (lang <gw-guile>)
+                                (wct <gw-guile-wct>)
+                                (value <gw-value>)
+                                status-var)
+  (let ((wct-var (slot-ref wct 'wct-var-name))
+        (sv (scm-var value))
+        (c-var (var value)))
+    (list
+     "if (SCM_FALSEP(" sv "))\n"
+     "  " c-var " = NULL;\n"
+     "else if (gw_wcp_is_of_type_p(" wct-var ", " sv "))\n"
+     "  " c-var " = gw_wcp_get_ptr(" sv ");\n"
+     "else\n"
+     `(gw:error ,status-var type ,sv))))
+
+(define-method (initializations-cg (lang <gw-guile>)
+                                   (wrapset <gw-wrapset>)
+                                   (wct <gw-guile-wct>)
+                                   error-var)
+  (let ((wct-var (slot-ref wct 'wct-var-name))
+        (wcp-type-name (symbol->string (name wct))))
+  (list
+   wct-var "= gw_wct_create(\"" wcp-type-name "\", NULL, NULL, NULL, NULL);\n"
+   "scm_c_define(\"" wcp-type-name "\", " wct-var ");\n")))
+
+(define-method (global-declarations-cg (lang <gw-guile>)
+                                       (wrapset <gw-wrapset>)
+                                       (wct <gw-guile-wct>))
+  (list "SCM "  (slot-ref wct 'wct-var-name) " = SCM_BOOL_F;\n"))
+
+
+;;;
+;;; Generation
+;;;
 
 (define-method (generate-wrapset (lang <gw-guile>)
                                  (wrapset <gw-guile-wrapset>)
@@ -270,7 +414,7 @@
                           (module-exports wrapset))
           "))\n"
           "\n"
-          "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
+          "(dynamic-call \"gw_guile_init_wrapset_" wrapset-name-c-sym "\"\n"
           "              (dynamic-link \"libgw-guile-" wrapset-name "\"))\n")
          port))))))
 

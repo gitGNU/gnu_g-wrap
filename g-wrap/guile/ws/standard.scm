@@ -7,10 +7,8 @@
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap ws standard)
-  #:use-module (g-wrap guile)
+  #:use-module (g-wrap guile))
   
-  #:export (standard-wrapset))
-
 (define-class <standard-wrapset> (<gw-guile-wrapset>
                                   <gw-standard-wrapset>))
 
@@ -44,19 +42,76 @@
                #:type-check '("1")
                #:ffspec 'pointer ;; FIXME: not accurate
                #:unwrap '(c-var " = " scm-var ";\n")
-               #:wrap '(scm-var " = " c-var ";\n"))))
+               #:wrap '(scm-var " = " c-var ";\n")))
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; <gw:wct> - wrapped c pointer type object
+  (add-type! wrapset
+             (make <gw-guile-simple-type>
+               #:name '<gw:wct>
+               #:c-type-name "SCM"
+               #:type-check '("gw_wct_p(" scm-var ")")
+               #:unwrap '(c-var " = " scm-var ";\n")
+               #:wrap '(scm-var " = " c-var ";\n")
+               #:ffspec 'pointer)) ;; not accurate
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; <gw:wcp> - wrapped c pointer object
+  (add-type! wrapset
+             (make <gw-guile-simple-type>
+               #:name '<gw:wcp>
+               #:c-type-name "SCM"
+               #:type-check '("gw_wcp_p(" scm-var ")")
+               #:unwrap '(c-var " = " scm-var ";\n")
+               #:wrap '(scm-var " = " c-var ";\n")
+               #:ffspec 'pointer)) ;; not accurate
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; <gw:void*> - wrapped c pointer object
+  (wrap-as-wct! wrapset
+                #:name '<gw:void*>
+                #:c-type-name "void *"
+                #:c-const-type-name "const void *")
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Wrapped functions...  
+
+  (wrap-function! wrapset
+                  #:name  'gw:wct?
+                  #:returns 'bool
+                  #:c-name "gw_wct_p"
+                  #:arguments '((scm obj))
+                  #:description "Is obj a gw:wct?")
+  
+  (wrap-function! wrapset
+                  #:name 'gw:wcp?
+                  #:returns 'bool
+                  #:c-name "gw_wcp_p"
+                  #:arguments '((scm obj))
+                  #:description "Is obj a gw:wcp?")
+  
+  (wrap-function! wrapset
+                  #:name 'gw:wcp-is-of-type?
+                  #:returns 'bool
+                  #:c-name "gw_wcp_is_of_type_p"
+                  #:arguments '((<gw:wct> type) (<gw:wcp> wcp))
+                  #:description
+"Returns #f iff the given wcp is not of the type specified.  type must be a
+g-wrap wrapped c type object, usually available via global bindings.  For
+example (gw:wcp-is-a? <gw:void*> foo)")
+  
+  (wrap-function! wrapset
+                  #:name 'gw:wcp-coerce
+                  #:returns '<gw:wcp>
+                  #:c-name "gw_wcp_coerce"
+                  #:arguments '((<gw:wcp> wcp) (<gw:wct> new-type))
+                  #:description "Coerce the given wcp to new-type.  This can be dangerous, so be careful."))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; <gw-guile-simple-type>
-;;
-(define-class <gw-guile-simple-type> (<gw-simple-rti-type>)
-  (type-check #:init-keyword #:type-check)
-  (wrap #:init-keyword #:wrap)
-  (unwrap #:init-keyword #:unwrap))
 
 (define *simple-type-wrapinfo*
-  '((bool #f
+  '((scm) (<gw:wct>) (<gw:wcp>)
+    (bool #f
           (c-var "= SCM_NFALSEP(" scm-var ");\n")
           (scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n"))
     
@@ -79,54 +134,19 @@
             (scm-var "= scm_double2num(" c-var ");\n"))))
 
     
-(define-method (wrap-simple-type! (wrapset <gw-wrapset>) . args)
-  (let* ((type (apply make <gw-guile-simple-type> args))
-         (info (assq-ref *simple-type-wrapinfo* (name type))))
-    (if (not info)
-        (error "attempt to wrap unknown simple type" (name type)))
-    (slot-set! type 'type-check (list-ref info 0))
-    (slot-set! type 'unwrap (list-ref info 1))
-    (slot-set! type 'wrap (list-ref info 2))
-    (add-type! wrapset type)))
+(define-method (add-type! (wrapset <standard-wrapset>)
+                          (type <gw-guile-simple-type>))
+  (let ((info (assq-ref *simple-type-wrapinfo* (name type))))
+  (cond ((null? info)
+         (next-method))
+        ((not info)
+         (error "attempt to wrap unknown simple type" (name type)))
+        (else
+         (slot-set! type 'type-check (list-ref info 0))
+         (slot-set! type 'unwrap (list-ref info 1))
+         (slot-set! type 'wrap (list-ref info 2))
+         (next-method)))))
 
-;; Helper
-(define (replace-syms tree alist)
-  (cond
-   ((null? tree) tree)
-   ((list? tree) (map (lambda (elt) (replace-syms elt alist)) tree))
-   ((symbol? tree)
-    (let ((expansion (assq-ref alist tree)))
-      (if (string? expansion)
-          expansion
-          (error
-           (string-append
-            "g-wrap expected string for expansion "
-            "while processing  ~S\n.") expansion))))
-   (else tree)))
-
-(define-method (unwrap-value-cg (lang <gw-language>)
-                                (type <gw-guile-simple-type>)
-                                (value <gw-value>)
-                                status-var)
-  (let* ((scm-var (scm-var value))
-         (c-var (var value))
-         (unwrap-code (replace-syms (slot-ref type 'unwrap)
-                                    `((c-var . ,c-var)
-                                      (scm-var . ,scm-var))))
-         (type-check (slot-ref type 'type-check)))
-    (if type-check
-        (list "if (!(" (replace-syms type-check `((scm-var . ,scm-var))) "))"
-              `(gw:error ,status-var type ,scm-var)
-              "else {" unwrap-code "}")
-        unwrap-code)))
-
-(define-method (wrap-value-cg (lang <gw-language>)
-                              (type <gw-guile-simple-type>)
-                              (value <gw-value>)
-                              status-var)
-  (replace-syms (slot-ref type 'wrap)
-                `((c-var . ,(var value))
-                  (scm-var . ,(scm-var value)))))
 
 ;;;
 ;;; <gw-ctype-void>

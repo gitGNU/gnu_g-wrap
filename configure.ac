@@ -1,10 +1,18 @@
 ### -*-m4-*-
 
 AC_INIT(g-wrap.scm)
-AM_INIT_AUTOMAKE(g-wrap, 1.5-tng-pre0, no-define)
+
+dnl Program version
+
+GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
+AC_SUBST(GW_BRANCH)
+GW_VERSION=2.0.0-pre0
+
+AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
 AM_CONFIG_HEADER(config.h)
 
 AM_MAINTAINER_MODE
+
 
 dnl Shared library versions
 GW_RUNTIME_VINFO(CORE, 0, 0, 0)
@@ -33,7 +41,8 @@ dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 if test "$GCC" = yes; then
-  CFLAGS="$CFLAGS -Wall" dnl -Wall is always a good idea
+  dnl Add the warnings we want
+  CFLAGS="$CFLAGS -Wall -Wmissing-prototypes"
   
   AC_MSG_CHECKING([whether $CC accepts -std=gnu99])
   save_CFLAGS="$CFLAGS"
@@ -69,6 +78,7 @@ AC_OUTPUT([Makefile
 	   g-wrap/guile/Makefile
 	   test/Makefile
            guile/Makefile
+	   guile/g-wrap-2.0-guile.pc
 	   guile/g-wrap/Makefile
 	   guile/g-wrap/gw/Makefile
 	   guile/test/Makefile

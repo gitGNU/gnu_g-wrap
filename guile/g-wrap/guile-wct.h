@@ -20,7 +20,7 @@ USA.
 #ifndef __G_WRAP_WCT_H__
 #define __G_WRAP_WCT_H__
 
-#include <libguile.h>
+#include <g-wrap/core-runtime.h>
   
 #ifdef __cplusplus
 extern "C" {
@@ -68,14 +68,7 @@ extern "C" {
    wcp's data.
 
 */
-SCM gw_wct_create(const char *type_name,
-                  SCM (*equal_p)(SCM wcp_a, SCM wcp_b),
-                  int (*print)(SCM wcp, SCM port,
-                               char writing_p,
-                               int *use_default_printer_p),
-                  SCM (*mark)(SCM wcp),
-                  size_t (*cleanup)(SCM wcp));
-  
+
 int gw_wct_p(SCM obj);
 
 /** Wrapped C pointer funcs **/
@@ -100,7 +93,7 @@ void gw_wcp_set_scm_data(SCM wcp, SCM user_data);
 SCM gw_wcp_get_scm_data(SCM wcp);
 
 /* Misc ************************************************************/
-void gw_wct_initialize(void);
+void gw_wct_initialize (void);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 /**********************************************************************
 Copyright (C) 1996, 1997, 1998 Christopher Lee
 Copyright (C) 2000 Rob Browning
+Copyright (C) 2004 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -21,53 +22,31 @@ USA.
 #include <stdio.h>
 
 #include <libguile.h>
-#include "g-wrap/guile-wct.h"
+
+#include "g-wrap/guile-runtime.h"
 #include "g-wrap/guile-compatibility.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-#ifndef SCM_SMOB_DATA
-#define SCM_SMOB_DATA(x) SCM_CDR((x))
-#endif
-
-#ifndef SCM_NEWSMOB
-#define GW_NEWSMOB(smob, id, data) \
-  SCM_NEWCELL((smob)); \
-  SCM_CAR((smob)) = (id); \
-  SCM_CDR((smob)) = (data);
-#else
-#define GW_NEWSMOB SCM_NEWSMOB
-#endif
-
-#ifndef SCM_RETURN_NEWSMOB
-#define GW_RETURN_NEWSMOB(id, data) \
-  do { \
-    SCM __SCM_smob_answer; \
-    GW_NEWSMOB(__SCM_smob_answer, (id), (data)); \
-       return __SCM_smob_answer; \
-  } while (0)
-#else
-#define GW_RETURN_NEWSMOB SCM_RETURN_NEWSMOB
-#endif
-
-
 /****************************************************************************/
 /* Wrapped C type/pointer info */
 
-typedef struct {
-  SCM name;
-  SCM (*equal_p)(SCM wcp_a, SCM wcp_b);
-  int (*print)(SCM wcp, SCM port, char writing_p, int *use_default_printer);
-  SCM (*mark)(SCM wcp);
-  size_t (*cleanup)(SCM wcp);
+typedef struct
+{
+    SCM name;
+    SCM (*equal_p)(SCM wcp_a, SCM wcp_b);
+    int (*print)(SCM wcp, SCM port, char writing_p, int *use_default_printer);
+    SCM (*mark)(SCM wcp);
+    size_t (*cleanup)(SCM wcp);
 } wrapped_c_type_data;
 
-typedef struct {
-  SCM type;
-  void *pointer;
-  SCM scm_data;
+typedef struct
+{
+    SCM type;
+    void *pointer;
+    SCM scm_data;
 } wrapped_c_pointer_data;
 
 static int wct_system_initialized = 0;
@@ -76,38 +55,37 @@ static long wcp_smob_id = 0;
 
 /* forward defs */
 
-#ifndef SCM_SMOB_PREDICATE
-# define SCM_SMOB_PREDICATE(tag, obj) \
-  (SCM_NIMP(obj) && SCM_TYP16 (obj) == (tag))
-#endif
-
 #define GW_WCT_P(obj) (SCM_SMOB_PREDICATE((wct_smob_id), (obj)))
 #define GW_WCP_P(obj) \
   (SCM_FALSEP(obj) || (SCM_SMOB_PREDICATE((wcp_smob_id), (obj))))
 
 int
-gw_wct_p(SCM obj) {
-  return(GW_WCT_P(obj));
+gw_wct_p (SCM obj)
+{
+  return GW_WCT_P(obj);
 }
 
 int
-gw_wcp_p(SCM obj) {
-  return(GW_WCP_P(obj));
+gw_wcp_p (SCM obj)
+{
+  return GW_WCP_P(obj);
 }
 
 /****************************************************************************/
 /* Wrapped C pointer functions */
 
 static size_t
-wcp_data_free(SCM wcp) {
+wcp_data_free (SCM wcp)
+{
   wrapped_c_pointer_data *data;
   wrapped_c_type_data *type_data;
   
-  data = (wrapped_c_pointer_data *) SCM_SMOB_DATA(wcp);
-  type_data = (wrapped_c_type_data *) SCM_SMOB_DATA(data->type);
+  data = (wrapped_c_pointer_data *) SCM_SMOB_DATA (wcp);
+  type_data = (wrapped_c_type_data *) SCM_SMOB_DATA (data->type);
 
-  if (type_data->cleanup) {
-    type_data->cleanup(wcp);
+  if (type_data->cleanup)
+  {
+    type_data->cleanup (wcp);
     /* c pointer may be destrotyed at this point (probably should be) */
   }
 
@@ -117,49 +95,52 @@ wcp_data_free(SCM wcp) {
 }
 
 static int
-wcp_data_print(SCM wcp, SCM port, scm_print_state *pstate) {
-  char endstr[512];
+wcp_data_print (SCM wcp, SCM port, scm_print_state *pstate)
+{
+  char endstr[64];
   int result = 1;
   int use_default_p = 1;
   int writing_p = SCM_WRITINGP(pstate);
   wrapped_c_pointer_data *data;
   wrapped_c_type_data *type_data;
   
-  data = (wrapped_c_pointer_data *) SCM_SMOB_DATA(wcp);
-  if(!GW_WCT_P(data->type)) {
+  data = (wrapped_c_pointer_data *) SCM_SMOB_DATA (wcp);
+  if(!GW_WCT_P (data->type))
+  {
     scm_misc_error("wcp_data_print", "Unknown type object.", data->type);
   }
+  
   type_data = (wrapped_c_type_data *) SCM_SMOB_DATA(data->type);
 
-  if(type_data->print) {
+  if (type_data->print)
+  {
     use_default_p = 0;
-    result = type_data->print(wcp, port, writing_p, &use_default_p);
+    result = type_data->print (wcp, port, writing_p, &use_default_p);
   }
   
-  if(use_default_p) {
-    snprintf(endstr, sizeof(endstr), " %p>", data->pointer);
-    scm_puts("#<gw:wcp ", port);
-    scm_display(type_data->name, port);
-    scm_puts(endstr, port);
+  if (use_default_p)
+  {
+    snprintf (endstr, sizeof (endstr), " %p>", data->pointer);
+    scm_puts ("#<gw:wcp ", port);
+    scm_display (type_data->name, port);
+    scm_puts (endstr, port);
     result = 1;
   }
+  
   return result;
 }
 
 static SCM
-wcp_data_mark(SCM wcp) {
+wcp_data_mark (SCM wcp)
+{
   wrapped_c_pointer_data *data;
   wrapped_c_type_data *type_data;
   
   data = (wrapped_c_pointer_data *) SCM_SMOB_DATA(wcp);
   type_data = (wrapped_c_type_data *) SCM_SMOB_DATA(data->type);
 
-  if(type_data->mark) {
-    scm_gc_mark(type_data->mark(wcp));
-  }
-
-  scm_gc_mark(data->type);
-  return(data->scm_data);
+  scm_gc_mark (data->type);
+  return data->scm_data;
 }
 
 static SCM
@@ -182,11 +163,12 @@ wcp_data_equal_p (SCM wcp_a, SCM wcp_b)
 
   if(!type_data->equal_p) return SCM_BOOL_F;
 
-  return type_data->equal_p(wcp_a, wcp_b);
+  return SCM_BOOL (type_data->equal_p (wcp_a, wcp_b));
 }
 
 SCM
-gw_wcp_assimilate_ptr(void *ptr, SCM type) {
+gw_wcp_assimilate_ptr (void *ptr, SCM type)
+{
   /* create a wrapped C pointer of the given type, wrapping ptr */
   wrapped_c_type_data *type_data;
   wrapped_c_pointer_data *ptr_data; 
@@ -202,7 +184,7 @@ gw_wcp_assimilate_ptr(void *ptr, SCM type) {
   ptr_data->type = type;
   ptr_data->scm_data = SCM_BOOL_F;
 
-  GW_RETURN_NEWSMOB(wcp_smob_id, ptr_data);
+  SCM_RETURN_NEWSMOB(wcp_smob_id, ptr_data);
 }
 
 void *
@@ -227,7 +209,8 @@ gw_wcp_is_of_type_p(SCM type, SCM obj)
 }
 
 SCM
-gw_wcp_coerce(SCM obj, SCM new_type) {
+gw_wcp_coerce(SCM obj, SCM new_type)
+{
   /* return a new wrapped C pointer */
 
   if(!SCM_SMOB_PREDICATE(wcp_smob_id, obj)) return SCM_BOOL_F;
@@ -252,11 +235,12 @@ static SCM
 wct_data_mark(SCM smob)
 {
   wrapped_c_type_data *data = (wrapped_c_type_data *) SCM_SMOB_DATA(smob);
-  return(data->name);
+  return data->name;
 }
 
 static int
-wct_data_print(SCM wct, SCM port, scm_print_state *pstate) {
+wct_data_print(SCM wct, SCM port, scm_print_state *pstate)
+{
   int writing_p = SCM_WRITINGP(pstate);
   if (writing_p)
   {
@@ -269,37 +253,73 @@ wct_data_print(SCM wct, SCM port, scm_print_state *pstate) {
   return 1;
 }
 
+/* create a new wrapped C type.  Returns the new gw:wct on success,
+   and #f on other failure.
+
+   equal_p - should return SCM_BOOL_F if the two objects should be
+   considered equal, anything else, otherwise.
+
+   If set to NULL, then by default, the objects are equal? only if
+   their wcp types and wcp ptrs match.
+
+   If you do specify an equal_p function, it will only be called
+   if the two objects' wcp types match, but their pointers don't.
+
+   print - should return non-zero on success.  If the function sets
+   use_default_print_p to non-zero value, then the default wcp
+   printer will be invoked on return, and this function's return
+   value will be ignored.  If print is set to NULL, a default
+   representation will be printed.  Note that it is your
+   responsibility to make sure you don't try to print a destroyed C
+   pointer.  The wcp's scm_data might be useful for keeping track in
+   cases where the scheme side doesn't wholly own the pointer...
+  
+   mark - should mark any scheme data stored in the c pointer.  As a
+   convenience, any scheme object returned by this function will
+   also be marked.  You do not need to mark the wcp's scm_data,
+   that will be handed for you.  If this is set to NULL, only the
+   scm_data will be marked.
+
+   cleanup - should destroy the c-side pointer as appropriate.  If
+   set, will be called at garbage collection time.  You do not
+   need to worry about the scm_data here.  If possible, this
+   function should return the amount of space reclaimed.  Also
+   note that you don't need to do anything about SCM data inside
+   (say in a struct) your C ptr.  It won't be marked and will be
+   collected automagically.  Basically, you just need to worry
+   about anything you malloced/gnewed/etc. when you created the
+   wcp's data.
+
+*/
+
 SCM
-gw_wct_create(const char *type_name,
-              SCM (*equal_p)(SCM wcp_a, SCM wcp_b),
-              int (*print)(SCM wcp, SCM port,
-                           char writing_p,
-                           int *use_default_printer_p),
-              SCM (*mark)(SCM wcp),
-              size_t (*cleanup)(SCM wcp))
+gw_wct_create (const char *type_name,
+               SCM (*equal_p)(SCM wcp_a, SCM wcp_b),
+               int (*print)(SCM wcp, SCM port,
+                            char writing_p,
+                            int *use_default_printer_p),
+               SCM (*mark)(SCM wcp),
+               size_t (*cleanup)(SCM wcp))
+
 {
-  /* see header for docs */
   wrapped_c_type_data *type_data;
 
-  if(!type_name) {
+  if (!type_name)
     scm_misc_error("gw_wct_create_and_register",
                    "null type_name argument",
                    SCM_EOL);
-  }
 
   type_data = (wrapped_c_type_data *)
     scm_gc_malloc(sizeof(wrapped_c_type_data),
                     "gw_wct_create_and_register: type_data");
 
-  /* (char *) fixes problem with guile 1.3.4 prototype. */
-  type_data->name = scm_makfrom0str ((char *) type_name);
-
+  type_data->name = scm_makfrom0str (type_name);
+  
   type_data->equal_p = equal_p;
   type_data->print = print;
-  type_data->mark = mark;
   type_data->cleanup = cleanup;
 
-  GW_RETURN_NEWSMOB(wct_smob_id, type_data);
+  SCM_RETURN_NEWSMOB (wct_smob_id, type_data);
 }
 
 

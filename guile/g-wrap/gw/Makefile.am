@@ -7,7 +7,7 @@ AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile
 
 libs = 
 nodist_libgw_guile_standard_la_SOURCES = standard.c
-libgw_guile_standard_la_LDFLAGS = -rpath $(libdir) -module $(GUILE_LDFLAGS)
+libgw_guile_standard_la_LDFLAGS = -module $(GUILE_LDFLAGS)
 libgw_guile_standard_la_LIBADD = ../libgwrap-guile-runtime.la
 
 LIBGW_STANDARD_GWGEN = $(addprefix standard, .h .c .scm .html) 

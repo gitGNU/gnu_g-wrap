@@ -15,19 +15,19 @@ static GWWrapSet **registered_wrapsets = NULL;
 static GWLangSupport *gw_lang = NULL;
 
 void *
-gw_malloc (size_t size)
+gw_malloc (GWLangArena arena, size_t size)
 {
-  return gw_lang->malloc (size);
+  return gw_lang->malloc (arena, size);
 }
 
 void *
-gw_realloc (void *mem, size_t size)
+gw_realloc (GWLangArena arena, void *mem, size_t size)
 {
-  return gw_lang->realloc (mem, size);
+  return gw_lang->realloc (arena, mem, size);
 }
 
 void
-gw_raise_error (const char *proc, const char *fmt, ...)
+gw_raise_error (GWLangArena arena, const char *proc, const char *fmt, ...)
 {
   char *message = NULL;
   va_list args;
@@ -36,21 +36,24 @@ gw_raise_error (const char *proc, const char *fmt, ...)
   vasprintf (&message, fmt, args);
   va_end (args);
   
-  gw_lang->raise_error (proc, message);
+  gw_lang->raise_error (arena, proc, message);
   
   free (message);
 }
 
 void
-gw_handle_wrapper_error (GWError *error,
+gw_handle_wrapper_error (GWLangArena arena,
+                         GWError *error,
                          const char *func_name,
                          unsigned int arg_pos)
 {
-  gw_lang->handle_wrapper_error (error, func_name, arg_pos);
+  gw_lang->handle_wrapper_error (arena, error, func_name, arg_pos);
 }
 
 GWWrapSet *
-gw_wrapset_new (const char *name, const char *dependency, ...)
+gw_wrapset_new (GWLangArena arena,
+                const char *name,
+                const char *dependency, ...)
 {
   GWWrapSet *ws;
   GWWrapSet **ws_deps;
@@ -61,7 +64,8 @@ gw_wrapset_new (const char *name, const char *dependency, ...)
   for (i = 0; i < nregistered_wrapsets; i++)
     if (strcmp (registered_wrapsets[i]->name, name) == 0)
     {
-      gw_raise_error ("%gw:wrapset-new", "tried to double-register wrapset %s",
+      gw_raise_error (arena, "%gw:wrapset-new",
+                      "tried to double-register wrapset %s",
                       name);
     }
   
@@ -76,28 +80,28 @@ gw_wrapset_new (const char *name, const char *dependency, ...)
         break;
       }
     if (ws == NULL)
-      gw_raise_error ("%gw:wrapset-new",
+      gw_raise_error (arena, "%gw:wrapset-new",
                       "dependency on nonexisting wrapset: %s", dependency);
     
-    ws_deps = gw_realloc (ws_deps, (ndeps + 1) * sizeof (GWWrapSet *));
+    ws_deps = gw_realloc (arena, ws_deps, (ndeps + 1) * sizeof (GWWrapSet *));
     ws_deps[ndeps] = ws;
 
     dependency = va_arg (args, const char *);
   }
   va_end (args);
   
-  ws = gw_malloc (sizeof (GWWrapSet));
+  ws = gw_malloc (arena, sizeof (GWWrapSet));
   ws->name = name;
   
   ws->ndependencies = ndeps;
   ws->dependencies = ws_deps;
   
-  ws->types = gw_malloc (start_size * sizeof (GWTypeInfo));
+  ws->types = gw_malloc (arena, start_size * sizeof (GWTypeInfo));
   ws->ntypes = 0;
   ws->ntypes_allocated = start_size;
   ws->types_sorted = 0;
 
-  ws->functions = gw_malloc (start_size * sizeof (GWFunctionInfo));
+  ws->functions = gw_malloc (arena, start_size * sizeof (GWFunctionInfo));
   ws->nfunctions = 0;
   ws->nfuncs_allocated = start_size;
   
@@ -119,7 +123,7 @@ gw_wrapset_add_type (GWWrapSet *ws,
   if (ws->ntypes >= ws->ntypes_allocated)
   {
     ws->ntypes_allocated <<= 1;
-    ws->types = gw_realloc (ws->types, ws->ntypes_allocated *
+    ws->types = gw_realloc (ws->arena, ws->types, ws->ntypes_allocated *
                              sizeof (GWTypeInfo));
   }
   
@@ -135,8 +139,8 @@ gw_wrapset_add_type (GWWrapSet *ws,
     for (nsubtypes = 0; subtypes[nsubtypes] != NULL; nsubtypes++)
       ;
     
-    type = gw_malloc (sizeof (ffi_type)
-                       + (nsubtypes + 1) * sizeof (ffi_type *));
+    type = gw_malloc (ws->arena, sizeof (ffi_type)
+                      + ((nsubtypes + 1) * sizeof (ffi_type *)));
     type_elements = (ffi_type **)((unsigned char *)type + sizeof (ffi_type));
     
     for (i = 0; i < nsubtypes; i++)
@@ -216,8 +220,9 @@ gw_wrapset_add_function (GWWrapSet *ws,
   if (ws->nfunctions >= ws->nfuncs_allocated)
   {
     ws->nfuncs_allocated <<= 1;
-    ws->functions = gw_realloc (ws->functions, ws->nfuncs_allocated *
-                                 sizeof (GWFunctionInfo));
+    ws->functions = gw_realloc (ws->arena,
+                                ws->functions, ws->nfuncs_allocated *
+                                sizeof (GWFunctionInfo));
   }
   fi = &ws->functions[ws->nfunctions];
   fi->proc = proc;
@@ -231,15 +236,16 @@ gw_wrapset_add_function (GWWrapSet *ws,
   if (arg_types != NULL)
   {
     if (fi->n_args > 0)
-      fi->arg_types = gw_malloc (fi->n_args * sizeof (GWTypeInfo *));
+      fi->arg_types = gw_malloc (ws->arena,
+                                 fi->n_args * sizeof (GWTypeInfo *));
     else
       fi->arg_types = NULL;
-    
+
     for (i = 0; i < fi->n_args; i++)
     {
       fi->arg_types[i] = gw_wrapset_lookup_type (ws, arg_types[i]);
       if (fi->arg_types[i] == NULL)
-        gw_raise_error ("%gw:wrapset-add-function",
+        gw_raise_error (ws->arena, "%gw:wrapset-add-function",
                         "invalid argument type reference %s "
                         "in argument list of %s",
                         arg_types[i], fi->proc_name);
@@ -259,7 +265,8 @@ gw_wrapset_add_function (GWWrapSet *ws,
   if (fi->n_args > 0)
   {
     /* Data is used by ffi_call, so don't free it */
-    arg_ffi = (ffi_type **) gw_malloc (sizeof (ffi_type *) * fi->n_args);
+    arg_ffi = (ffi_type **) gw_malloc (ws->arena,
+                                       sizeof (ffi_type *) * fi->n_args);
     for (i = 0; i < fi->n_args; i++)
     {
       arg_ffi[i] = fi->arg_types[i]->type;
@@ -297,7 +304,7 @@ gw_wrapset_register (GWWrapSet *ws)
     else
       nallocated_wrapsets = 4;
     registered_wrapsets =
-      gw_realloc (registered_wrapsets,
+      gw_realloc (ws->arena, registered_wrapsets,
                   nallocated_wrapsets * sizeof (GWWrapSet *));
   }
   registered_wrapsets[nregistered_wrapsets++] = ws;
