@@ -12,6 +12,10 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
   (assert-equal 123 (gw-test-strtol "123"))
   (assert-equal 7 (gw-test-strtol "111" 2)))
 
+(define-method (test-exception (self <test-standard>))
+  (assert-true (unspecified? (gw-test-retval-exception 2)))
+  (assert-exception (gw-test-retval-exception -1)))
+
 (define-method (test-output-arguments (self <test-standard>))
   (receive (a b c) (gw-test-out-args 123)
     (assert-equal 123 a)

@@ -1,5 +1,5 @@
 ;;;; File: guile-test-standard-spec.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004-2005 Andreas Rottmann
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
 (define-module (guile test guile-test-standard-spec)
   #:use-module (oop goops)
   #:use-module (g-wrap)
+  #:use-module (g-wrap util)
   #:use-module (g-wrap guile)
   #:use-module (g-wrap guile ws standard)
   #:use-module (test test-standard-spec))
@@ -35,12 +36,43 @@
 
 (define-method (initialize (ws <guile-test-standard-wrapset>) initargs)
   (next-method ws (append '(#:module (gw-test-standard)) initargs))
+
+  (add-type! ws (make <error-code-type>
+                  #:name 'error-code
+                  #:needs-result-var? #f))
   
   (wrap-function! ws
                   #:name 'gw-test-gw-standard-echo-scm
                   #:returns 'scm
                   #:c-name "gw_test_gw_standard_echo_scm"
                   #:arguments '((scm arg))
-                  #:description "Return arg."))
+                  #:description "Return arg.")
+  
+  (wrap-function! ws
+                  #:name 'gw-test-retval-exception
+                  #:returns 'error-code
+                  #:c-name "gw_test_retval_exception"
+                  #:arguments '((int arg))
+                  #:description "Throw exception if @var{arg} < 0."))
 
 
+(define-class <error-code-type> (<gw-type>))
+
+(define-method (c-type-name (type <error-code-type>))
+  "int")
+
+(define-method (call-cg (type <error-code-type>) (result <gw-value>)
+                        func-call-code error-var)
+  (let ((result-var (gen-c-tmp "result")))
+    (list
+     "{"
+     "  " (c-type-name type) " " result-var " = " func-call-code ";"
+     "  if (" func-call-code " != 0)"
+     "    scm_throw (scm_str2symbol (\"error-code\"), "
+     "               scm_int2num (" result-var "));"
+     "}")))
+
+(define-method (post-call-result-cg (type <error-code-type>)
+                                    (result <gw-value>)
+                                    status-var)
+  '())

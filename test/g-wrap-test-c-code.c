@@ -30,6 +30,14 @@ long gw_test_out_plus_default_args(int arg1, int arg2, char **arg3)
   return arg1 * arg2;
 }
 
+int gw_test_retval_exception (int arg)
+{
+  if (arg < 0)
+    return -arg;
+  else
+    return 0;
+}
+
 /*======================================================================*/
 /* Generics */
 

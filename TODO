@@ -1,5 +1,7 @@
 ** Release goals for the next release
 
+* Multiple argument mapping
+
 ** Simple Tasks
 
 * Make WCT types extensible via subclassing
