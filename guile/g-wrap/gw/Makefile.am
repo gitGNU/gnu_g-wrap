@@ -1,6 +1,7 @@
 include $(top_srcdir)/common.mk
 
-gwrapmodule_DATA = standard.scm
+gwmoduledir = $(gwrapmoduledir)/gw
+gwmodule_DATA = standard.scm
 
 GUILE_FLAGS =
 
