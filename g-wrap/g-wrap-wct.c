@@ -52,15 +52,6 @@ USA.
 #define GW_RETURN_NEWSMOB SCM_RETURN_NEWSMOB
 #endif
 
-void
-gw_puts(const char* str, SCM port) {
-#if HAVE_SCM_PUTS 
-  /* (char *) fixes problem with guile 1.3.4 prototype. */
- scm_puts((char *) str,port);
-#else
-  scm_gen_puts(scm_mb_string,str,port);
-#endif
-}
 
 /****************************************************************************/
 /* Wrapped C type/pointer info */
@@ -147,9 +138,9 @@ wcp_data_print(SCM wcp, SCM port, scm_print_state *pstate) {
   
   if(use_default_p) {
     snprintf(endstr, sizeof(endstr), " %p>", data->pointer);
-    gw_puts("#<gw:wcp ", port);
+    scm_puts("#<gw:wcp ", port);
     scm_display(type_data->name, port);
-    gw_puts(endstr, port);
+    scm_puts(endstr, port);
     result = 1;
   }
   return result;
@@ -271,9 +262,9 @@ wct_data_print(SCM wct, SCM port, scm_print_state *pstate) {
   {
     wrapped_c_type_data *data = (wrapped_c_type_data *) SCM_SMOB_DATA(wct);
     
-    gw_puts("#<gw:wct ", port);
+    scm_puts("#<gw:wct ", port);
     scm_display(data->name, port);
-    gw_puts(">", port);
+    scm_puts(">", port);
   }
   return 1;
 }
@@ -321,28 +312,6 @@ gw_wct_initialize()
 {
   if(!wct_system_initialized) {
 
-#ifdef GWRAP_OLD_GUILE_SMOB
-    {
-      scm_smobfuns wct_smob_data = {
-        wct_data_mark,
-        wct_data_free,
-        wct_data_print,
-        /* don't need equalp because there should never be more than one
-           of these and if we do, then they're *not* equal - only one
-           place (module or whatever) can provide a given type. */
-        NULL
-      };
-      scm_smobfuns wcp_smob_data = {
-        wcp_data_mark,
-        wcp_data_free,
-        wcp_data_print,
-        wcp_data_equal_p
-      };
-
-      wct_smob_id = scm_newsmob(&wct_smob_data);
-      wcp_smob_id = scm_newsmob(&wcp_smob_data);
-    }
-#else 
     wct_smob_id = scm_make_smob_type("gw:wct", sizeof(wrapped_c_type_data));
     scm_set_smob_mark(wct_smob_id, wct_data_mark);
     scm_set_smob_free(wct_smob_id, wct_data_free);
@@ -356,7 +325,6 @@ gw_wct_initialize()
     scm_set_smob_print(wcp_smob_id, wcp_data_print);
     scm_set_smob_mark(wcp_smob_id, wcp_data_mark);
     scm_set_smob_equalp(wcp_smob_id, wcp_data_equal_p);
-#endif
 
     wct_system_initialized = 1;
   }

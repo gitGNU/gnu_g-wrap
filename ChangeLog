@@ -1,3 +1,12 @@
+2004-02-12  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* configure.in:
+	(HAVE_SCM_PUTS, GWRAP_OLD_GUILE_SMOB): Not needed for Guile >= 1.4.
+	* g-wrap/g-wrap-wct.c: Adapted.
+
+	* configure.in: Removed cruft, reorganized a bit.
+	(GUILE_LIBS): Replaced by GUILE_LDFLAGS. Makefile.am:s adapted.
+
 2004-02-11  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* g-wrap.scm (gw:generate-error-handler): Removed, since it is

@@ -1,9 +1,9 @@
 SUBDIRS =  doc rpm bin g-wrap example test
 
-guilemoduledir=@GUILEMODDIR@
-guilemodule_DATA=@GUILEMOD_TARGET@
+guilemoduledir = @GUILEMODDIR@
+guilemodule_DATA = g-wrap.scm
 
-EXTRA_DIST = g-wrap.m4 g-wrap.scm g-wrap.pc.in kill-usr-include
+EXTRA_DIST = g-wrap.m4 g-wrap.scm g-wrap.pc.in
 
 pcdir = $(libdir)/pkgconfig
 

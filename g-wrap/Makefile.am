@@ -41,13 +41,13 @@ GW_RUNTIME_VINFO = \
 gwrapinclude_HEADERS += g-wrap-runtime.h g-wrap-compatibility.h g-wrap-wct.h
 libgwrap_runtime_la_SOURCES = g-wrap-runtime.c g-wrap-wct.c g-wrap-compatibility.c
 libgwrap_runtime_la_LDFLAGS = -rpath $(libdir) -version-info ${GW_RUNTIME_VINFO}
-libgwrap_runtime_la_LIBADD = @GUILE_LIBS@ $(LIBFFI_LIBS) @ALLOCA@
+libgwrap_runtime_la_LIBADD = $(GUILE_LDFLAGS) $(LIBFFI_LIBS) @ALLOCA@
 
 ################## (g-wrap gw-wct) section
 
 nodist_libgw_wct_la_SOURCES = gw-wct.c
 libgw_wct_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic
-libgw_wct_la_LIBADD =  libgwrap-runtime.la @GUILE_LIBS@ 
+libgw_wct_la_LIBADD =  libgwrap-runtime.la $(GUILE_LDFLAGS)
 
 gw-wct.scm gw-wct.c gw-wct.h gw-wct.html: gw-wct-spec.scm
 	guile $(GUILE_FLAGS) -c \
@@ -69,7 +69,7 @@ SETGWPPATH= "(set! %load-path (cons \"$(top_builddir)\" (cons \"$(top_srcdir)\" 
 ################## (g-wrap gw-standard) section
 
 nodist_libgw_standard_la_SOURCES = gw-standard.c
-libgw_standard_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic @GUILE_LIBS@
+libgw_standard_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic $(GUILE_LDFLAGS)
 libgw_standard_la_LIBADD = libgwrap-runtime.la
 LIBGW_STANDARD_GWGEN = $(addprefix gw-standard, .h .c .scm .html) 
 

@@ -32,7 +32,7 @@ EXTRA_DIST += $(wildcard $(srcdir)/*-spec.scm)
 
 noinst_PROGRAMS = test-link-wct
 test_link_wct_SOURCES = dummy-main.c
-test_link_wct_LDADD = ../g-wrap/libgw-wct.la
+test_link_wct_LDADD = ../g-wrap/libgw-wct.la $(GUILE_LDFLAGS)
 
 # ===========================================================================
 
@@ -53,7 +53,7 @@ noinst_LTLIBRARIES += libgw-test-standard.la
 nodist_libgw_test_standard_la_SOURCES = gw-test-standard.c
 libgw_test_standard_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic
 libgw_test_standard_la_LIBADD = ./libg-wrap-test-c-code.la \
-			        ../g-wrap/libgw-standard.la ${GUILE_LIBS}
+			        ../g-wrap/libgw-standard.la $(GUILE_LDFLAGS)
 
 gw-test-standard.scm gw-test-standard.h gw-test-standard.c gw-test-standard.html gw-test-standard-autogen.h: gw-test-standard-spec.scm
 	LD_LIBRARY_PATH=${LOCALPWD}/..:${LOCALPWD}/..: \
@@ -71,7 +71,7 @@ noinst_LTLIBRARIES += libgw-test-enumeration.la
 nodist_libgw_test_enumeration_la_SOURCES = gw-test-enumeration.c
 libgw_test_enumeration_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic
 libgw_test_enumeration_la_LIBADD = $(top_builddir)/g-wrap/libgw-standard.la \
-				   ./libg-wrap-test-c-code.la ${GUILE_LIBS}
+				   ./libg-wrap-test-c-code.la $(GUILE_LDFLAGS)
 
 gw-test-enumeration.scm gw-test-enumeration.h gw-test-enumeration.c gw-test-enumeration.html gw-test-enumeration-autogen.h: gw-test-enumeration-spec.scm
 	LD_LIBRARY_PATH=${LOCALPWD}/..:${LOCALPWD}/..:${LD_LIBRARY_PATH} \
