@@ -72,11 +72,20 @@
                #:init-keyword #:description
                #:init-value #f))
 
-(define-accessor class-name) ;; Upgrade the GOOPS class-name procedure
+ ;; Upgrade the GOOPS class-name procedure
+(define class-name (ensure-accessor class-name))
 
 (define-class <gw-type> (<gw-item>)
   (name #:getter name #:init-keyword #:name)
   (class-name #:accessor class-name #:init-value #f))
+
+(define-method (write (type <gw-type>) port)
+  (let ((class (class-of type)))
+    (display "#<" port)
+    (display (class-name class) port)
+    (display #\space port)
+    (display (name type) port)
+    (display #\> port)))
 
 (define-method (gen-c-tmp-name (type <gw-type>) (suffix <string>))
   (gen-c-tmp (string-append (any-str->c-sym-str
@@ -176,6 +185,7 @@
   (dependencies #:getter wrapsets-depended-on #:init-value '())
   (items #:init-value '())
   (types #:init-value '())
+  (type-hash #:init-form (make-hash-table))
   (functions #:init-value '())
 
   (cs-before-includes #:init-value '())
@@ -194,8 +204,9 @@
               (slot-ref ws 'dependencies))))
 
 (define-method (add-type! (ws <gw-wrapset>) (type <gw-type>))
-  (slot-set! ws 'types (acons (name type) type (slot-ref ws 'types)))
-  (slot-set! ws 'items (cons type (slot-ref ws 'items))))
+  (slot-set! ws 'types (cons type (slot-ref ws 'types)))
+  (slot-set! ws 'items (cons type (slot-ref ws 'items)))
+  (hashq-set! (slot-ref ws 'type-hash) (name type) type))
 
 (define-method (add-function! (ws <gw-wrapset>) (function <gw-function>))
   (slot-set! ws 'items (cons function (slot-ref ws 'items)))
@@ -205,21 +216,16 @@
   (slot-set! ws 'items (cons constant (slot-ref ws 'items))))
 
 (define-method (fold-types kons knil (ws <gw-wrapset>))
-  (fold-right (lambda (pr result) (kons (cdr pr) result))
-              knil
-              (slot-ref ws 'types)))
+  (fold-right kons knil (slot-ref ws 'types)))
 
 (define-method (for-each-type proc (ws <gw-wrapset>))
-  (fold-right (lambda (pr knil) (proc (cdr pr)))
-              knil
-              (slot-ref ws 'types)))
-  
+  (for-each proc (reverse (slot-ref ws 'types))))
+
 (define-method (lookup-type (wrapset <gw-wrapset>) (type-name <symbol>))
   
   (define (lookup wrapset cont)
     ;;(format #t "looking for ~S in ~S\n" type-name wrapset)
-    (let* ((types-alist (slot-ref wrapset 'types))
-           (ret (assq-ref types-alist type-name)))
+    (let ((ret (hashq-ref (slot-ref wrapset 'type-hash) type-name)))
       (cond (ret
              (cont ret))
             (else
@@ -291,14 +297,15 @@
 ;; only offer this as API
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)
   (let-keywords
-      args #f (name returns c-name arguments description)
+      args #f (name returns c-name arguments description generic-name)
       (add-function!
        wrapset (make <gw-function>
                  #:name name
                  #:returns (resolve-typespec wrapset returns)
                  #:c-name c-name
                  #:arguments (resolve-arguments wrapset arguments)
-                 #:description description))))
+                 #:description description
+                 #:generic-name generic-name))))
 
 (define-method (wrap-constant! (wrapset <gw-wrapset>) . args)
   (let-keywords
@@ -308,8 +315,10 @@
                                #:typespec (resolve-typespec wrapset type)
                                #:value value
                                #:description description))))
-
-;; Wrapset registry
+
+;;;
+;;; Wrapset registry
+;;;
 
 (define-generic initialize-wrapset)
 
@@ -334,9 +343,10 @@
             (set-cdr! entry wrapset)
             wrapset)))))
 
-;;
-;; Generation stuff
-;;
+
+;;;
+;;; Generation
+;;;
 (define (output-initializer-cgs wrapset lang cgs port)
   (let* ((error-var (gen-c-tmp "error_var"))
          (wrapset-name (name wrapset))

@@ -31,7 +31,7 @@
 (define-method (if-typespec-option (value <gw-rti-value>) (option <symbol>)
                                    code1 . code2-opt)
   (let ((code2 (cond ((null? code2-opt) #f)
-                     ((and (list? code2-opt) ((= length code2-opt) 1))
+                     ((and (list? code2-opt) (= (length code2-opt) 1))
                       (car code2-opt))
                      (else (error "bogus parameters")))))
   (list
@@ -189,7 +189,7 @@
      (typespec-cg (return-type function) (return-typespec function)) ", "
      arg-types ", " arg-typespecs ", \"" (name function) "\", "
      (if (generic-name function)
-         (list "\"" (symbol->string (generic-name function) "\""))
+         (list "\"" (symbol->string (generic-name function)) "\"")
          "NULL")
      ");\n"
      "}\n")))

@@ -108,44 +108,41 @@ example (gw:wcp-is-a? <gw:void*> foo)")
                   #:description "Coerce the given wcp to new-type.  This can be dangerous, so be careful."))
 
 
-
-(define *simple-type-wrapinfo*
-  '((scm) (<gw:wct>) (<gw:wcp>)
-    (bool #f
-          (c-var "= SCM_NFALSEP(" scm-var ");\n")
-          (scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n"))
-    
-    (char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
-          (c-var "= SCM_CHAR(" scm-var ");\n")
-          (scm-var "= SCM_MAKE_CHAR(" c-var ");\n"))
-    
-    (uchar ("SCM_NFALSEP(scm_char_p(" scm-var "))")
-           (c-var "= SCM_CHAR(" scm-var ");\n")
-           (scm-var "= SCM_MAKE_CHAR(" c-var ");\n"))
-    
-    (float ("SCM_NFALSEP(scm_number_p(" scm-var "))")
-           (c-var "= scm_num2float(" scm-var ", 1,"
-                  " \"gw:scm->float\");\n")
-           (scm-var "= scm_float2num(" c-var ");\n"))
-    
-    (double ("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
-            (c-var "= scm_num2double(" scm-var ", 1,"
-                              " \"gw:scm->double\");\n")
-            (scm-var "= scm_double2num(" c-var ");\n"))))
-
-    
 (define-method (add-type! (wrapset <standard-wrapset>)
                           (type <gw-guile-simple-type>))
-  (let ((info (assq-ref *simple-type-wrapinfo* (name type))))
-  (cond ((null? info)
-         (next-method))
-        ((not info)
-         (error "attempt to wrap unknown simple type" (name type)))
-        (else
-         (slot-set! type 'type-check (list-ref info 0))
-         (slot-set! type 'unwrap (list-ref info 1))
-         (slot-set! type 'wrap (list-ref info 2))
-         (next-method)))))
+  (let ((info (assq-ref
+               '((scm) (<gw:wct>) (<gw:wcp>)
+                 (bool #f
+                       (c-var "= SCM_NFALSEP(" scm-var ");\n")
+                       (scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n"))
+                 
+                 (char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
+                       (c-var "= SCM_CHAR(" scm-var ");\n")
+                       (scm-var "= SCM_MAKE_CHAR(" c-var ");\n"))
+                 
+                 (unsigned-char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
+                                (c-var "= SCM_CHAR(" scm-var ");\n")
+                                (scm-var "= SCM_MAKE_CHAR(" c-var ");\n"))
+                 
+                 (float ("SCM_NFALSEP(scm_number_p(" scm-var "))")
+                        (c-var "= scm_num2float(" scm-var ", 1,"
+                               " \"gw:scm->float\");\n")
+                        (scm-var "= scm_float2num(" c-var ");\n"))
+                 
+                 (double ("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
+                         (c-var "= scm_num2double(" scm-var ", 1,"
+                                " \"gw:scm->double\");\n")
+                         (scm-var "= scm_double2num(" c-var ");\n")))
+               (name type))))
+    (cond ((null? info)
+           (next-method))
+          ((not info)
+           (error "attempt to wrap unknown simple type" (name type)))
+          (else
+           (slot-set! type 'type-check (list-ref info 0))
+           (slot-set! type 'unwrap (list-ref info 1))
+           (slot-set! type 'wrap (list-ref info 2))
+           (next-method)))))
 
 
 ;;;

@@ -78,6 +78,17 @@
 (define-method (add-module-export! (ws <gw-guile-wrapset>) (sym <symbol>))
   (slot-set! ws 'module-exports (cons sym (slot-ref ws 'module-exports))))
 
+(define (scm-form-str->safe-c-str name)
+  (define (char->string-replacement char)
+    (case char
+      ((#\") "\\\"")
+      ((#\newline) "\\n")
+      (else (string char))))
+  (apply
+   string-append
+   (map
+    char->string-replacement
+    (string->list name))))
 
 (define-method (inline-scheme (ws <gw-guile-wrapset>) . code-chunks)
   (map
@@ -253,7 +264,8 @@
   (let ((enum (apply make <gw-guile-enum> args)))
     (add-type! wrapset enum)
     (add-module-export! wrapset (slot-sym-ref enum 'val->int-scm-func))
-    (add-module-export! wrapset (slot-sym-ref enum 'val->sym-scm-func))))
+    (add-module-export! wrapset (slot-sym-ref enum 'val->sym-scm-func))
+    enum))
 
 
 
@@ -321,7 +333,8 @@
 (define-method (wrap-as-wct! (wrapset <gw-guile-wrapset>) . args)
   (let ((type (apply make <gw-guile-wct> args)))
     (add-module-export! wrapset (name type))
-    (add-type! wrapset type)))
+    (add-type! wrapset type)
+    type))
 
 (define-method (initialize (wct <gw-guile-wct>) initargs)
   (next-method)

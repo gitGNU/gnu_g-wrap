@@ -49,7 +49,7 @@
                      #:ffspec 'schar) ;; FIXME: see above
 
   (wrap-simple-type! wrapset
-                     #:name 'uchar
+                     #:name 'unsigned-char
                      #:c-type-name "unsigned char"
                      #:ffspec 'uchar)
 

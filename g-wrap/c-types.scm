@@ -95,5 +95,6 @@
                "Bad <gw-wct> options - spurious options: " remainder))))
 
 (define-method (wrap-as-wct! (wrapset <gw-wrapset>) . args)
-  (add-type! wrapset (apply make <gw-wct> args)))
-
+  (let ((wct (apply make <gw-wct> args)))
+    (add-type! wrapset wct)
+    wct))

@@ -32,4 +32,6 @@
    " { 0, NULL } };\n"))
 
 (define-method (wrap-enum! (ws <gw-wrapset>) . args)
-  (add-type! ws (apply make <gw-enumeration-type> args)))
+  (let ((type (apply make <gw-enumeration-type> args)))
+    (add-type! ws type)
+    type))
