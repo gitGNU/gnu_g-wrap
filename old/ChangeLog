@@ -1,3 +1,14 @@
+2004-02-26  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* m4/libcheck.m4-in: Fix aclocal 1.8 "underquoted" warning.
+
+	* g-wrap/gw-standard-spec.scm: Removed duplicate
+	gw:type-set-post-call-result-ccg invocation for the void type.
+
+2004-02-17  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap.scm (generate-c-source-file): Don't #include <guile/gh.h>.
+
 2004-02-12  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* configure.in:

@@ -1175,7 +1175,6 @@
 
         (dsp-list
          (list
-          "#include <guile/gh.h>\n"
           "#include <libguile.h>\n"
           "#include <string.h>\n"
           "#include <g-wrap-compatibility.h>\n"

@@ -2,7 +2,7 @@ dnl -*- m4 -*-
 dnl
 dnl Copyright (c) 2002 Andreas Rottmann
 dnl
-dnl Version 0.0.1
+dnl Version 0.0.2
 dnl 
 dnl This file is distributed under the LGPL
 dnl
@@ -12,7 +12,7 @@ dnl
 dnl ar_DEFINE_LIB_CHECK(NAME, IDENTIFIER, HEADER-FILE, LIBNAMES, LIBFUNC [, EXTRALIBS])
 dnl
 define(ar_DEFINE_LIB_CHECK, `
-AC_DEFUN(`ar_WITH_LIB_'$1,
+AC_DEFUN([`ar_WITH_LIB_'$1],
 [
 
 AC_ARG_WITH($2-prefix, AC_HELP_STRING([--with-$2-prefix],

@@ -139,11 +139,6 @@
      (lambda (result func-call-code status-var)
        (list func-call-code ";\n")))
 
-    (gw:type-set-post-call-result-ccg!
-     wt
-     (lambda (result status-var)
-       (list (gw:result-get-scm-name result) " = SCM_UNSPECIFIED;\n")))
-    
     (gw:type-declare-scm-result-var?! wt #f))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
