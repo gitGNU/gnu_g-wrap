@@ -22,14 +22,15 @@
 @titlepage
 @title g-wrap
 @subtitle A tool to wrap C APIs for Guile use.
-@subtitle Version 1.3.2
+@subtitle Version 1.9.0
 @subtitle April 2001
-@author Christopher Lee <chrislee@@ri.cmu.edu> and Rob Browning <rlb@@defaultvalue.org>
+@author Christopher Lee <chrislee@@ri.cmu.edu>, Rob Browning <rlb@@defaultvalue.org> and Andreas Rottmann <rotty@@debian.org>
 
 @page
 @vskip 0pt plus 1filll
 Copyright @copyright{} 1996, 1997, 1998 Christopher Lee
 Copyright @copyright{} 2000-2001 Rob Browning
+Copyright @copyright{} 2004 Andreas Rottmann
 
 Permission is granted to make and distribute verbatim copies of this
 manual provided the copyright notice and this permission notice are
@@ -49,10 +50,9 @@ approved by the author.
 @node Top, Copying, (dir), (dir)
 @ifinfo
 
-This is the info manual for g-wrap, covering versions 1.3.*.
+This is the info manual for g-wrap, covering versions 1.9.*.
 
 @end ifinfo
-
 
 @center **********************************
 @center NOTE: THESE DOCS ARE NOT FINISHED.
@@ -89,7 +89,7 @@ Introduction
 
 Usage
 
-* A More Detailed Example.::    
+* A More Detailed Example::    
 * Creating a Wrapper Module::   
 * Defining New Wrapped Types::  
 * Wrapping C Functions::        
@@ -234,7 +234,7 @@ All of these things are my (rlb's) fault, not Christopher's :>
 @section Overview
 
 Given a definition of the types and prototypes for a given C interface,
-G-wrap will automatically generate the C code that provides access to
+g-wrap will automatically generate the C code that provides access to
 that interface and its types from the Scheme level.
 
 To use g-wrap, you must make sure it knows how to handle all of the C
@@ -247,7 +247,7 @@ any custom type specifications.
 G-wrap is implemented as a Guile module, and so its interface is a
 programmatic one.  You tell g-wrap about your functions and types, and
 ask it to generate wrappers for you by calling the functions exported
-from the g-wrap module.
+from the @code{(g-wrap)} module.
 
 As a simple example, if you wanted to wrap a C API that contained only
 one function with a prototype like this
@@ -260,31 +260,58 @@ one function with a prototype like this
 a complete g-wrap specification would look like this:
 
 @lisp
-  (use-modules (g-wrap))
-  (use-modules (g-wrap gw-standard-spec))
+  (define-module (my-wrapset)
+    #:use-modules (g-wrap)
+    #:use-modules (g-wrap guile)
+    #:use-modules (g-wrap guile ws standard)
+    
+    #:export (<my-wrapset>))
 
-  (let ((mod (gw:new-wrapset "my-g-wrap-wrapset")))
-    (gw:wrapset-depends-on mod "gw-standard")
-    (gw:wrap-function
-     mod
-     'frob
-     '<gw:int> "frob" '((<gw:int> x) (<gw:double> y))
-     "Return the result of frobbing x and y.")
+  (define-class <my-wrapset> (<gw-guile-wrapset>)
+    #:id 'my-wrapset)
+
+  (define-method (initialize (ws <my-wrapset>) initargs)
+    (next-method)
+
+    (depends-on! ws 'standard)
+
+    (wrap-function! ws 
+                    #:name 'frob
+                    #:returns 'int
+                    #:arguments '((int x) (double y))
+                    #:c-name "frob"
+                    #:description "Return the result of frobbing x and y."))
 @end lisp
+
+@noindent
+You can see that the specification is encapsulated in a Guile module
+that exports a class - @code{<my-wrapset>} derived from
+@code{<gw-wrapset>}. A wrapset is the g-wrap counterpart to some API;
+it describes how the API looks in C and additional information for the
+target language; the @code{(my-wrapset)} module as presented above is
+describes a Guile wrapset, as indicated by using
+@code{<gw-guile-wrapset>} as superclass. As you'll see later, you
+could have written the module without any reference to Guile, defining
+an @emph{abstract} wrapset, which can then be refined for each target
+language.
+
+In the @code{initialize} method, the wrapset
+declares a dependency on the standard wrapset, which provides the
+basic C types. Then the @code{frob} function is wrapped, providing all
+relevant data such as return and argument types.
 
 @noindent
 Once g-wrap has seen this specification, the code for the wrappers can
 be generated with this call:
 
 @lisp
-  (gw:generate-wrapset "my-g-wrap-wrapset")
+  (generate-wrapset guile 'my-wrapset "my-wrapset")
 @end lisp
 
 @noindent
-This will produce C code that when either compiled into a static Guile
-executable, or built as a shared library and dynamically loaded from
-Guile will define a Scheme function named @code{frob} which you can call
-as expected:
+This will produce the C file @file{my-wrapset.c}, that can be compiled
+into a shared library which will, when loaded by Guile, define a
+Scheme function named @code{frob} which you can call as expected:
 
 @lisp
   (frob 4 2.3)
@@ -304,22 +331,23 @@ type (both for their initialization and cleanup), what code is
 generated to handle the wrapper module's global initialization, and
 what code is generated to provide global declarations.  G-wrap can
 also spit out a fully functional, dynamically-loadable Guile module if
-you like (so technically, (use-modules (g-wrapped ncurses)) is now
-possible, and (with a minor tweak to re-enable some code) g-wrap can
-generate html docs for the wrapper interface.
+you like (so technically, @code{(use-modules (g-wrapped ncurses))} is
+now possible, and (with a minor tweak to re-enable some code) g-wrap
+can generate html docs for the wrapper interface).
 
-At the lowest level, there is a "most generic wrapper type" from which
-all other wrapper types are derived, and g-wrap comes with a few of
-these more specialized wrapper types pre-defined.  This set should cover
+At the lowest level, there is a "wrapping protocol" for types, which
+you can plug into to describe how a type is converted from and to the
+target language as well as other aspects of the type. G-wrap comes
+with a few of these more types pre-defined.  This set should cover
 most of the common cases, but you can extend this set if needed.  The
 wrapper types currently available by default include:
 
 @table @samp
 
-@item normal (native)
-a wrapper type to handle C types which can be represented most
+@item basic
+wrapper types to handle C types which can be represented most
 appropriately on the Scheme side by a conversion directly to a native
-Scheme type.
+Scheme type, e.g. @code{double} and @code{char}.
 
 @item non-native
 a wrapper type to handle "non-native" objects, that is, C types which
@@ -335,19 +363,18 @@ right C-side values at runtime.
 
 @end table
 
-Further, g-wrap now has a first pass at an implementation that should
-allow you to define types in one wrapper module that can then be used by
-other wrapper modules.  So as an example, you should be able to define a
-glib wrapper module that provides wrapper specifications for GList*'s
-that other wrapper modules can then import and use in their own wrapper
-function prototypes for argument and result types.  The goal is for this
-to allow different wrapper modules to be able to safely exchange data
-among their wrapped functions when they share common wrapped types.
+Furthermore, g-wrap allows you to define types in one wrapper module
+that can then be used by other wrapper modules.  So as an example, you
+should be able to define a glib wrapper module that provides wrapper
+specifications for GList*'s that other wrapper modules can then import
+and use in their own wrapper function prototypes for argument and
+result types.  The goal is for this to allow different wrapper modules
+to be able to safely exchange data among their wrapped functions when
+they share common wrapped types.
 
-As mentioned, g-wrap itself is now implemented as a purely Scheme-code
-Guile module, and no longer uses globals.  This means that you you can
-now wrap functions for multiple modules on the fly from any invocation
-of guile.
+As mentioned, g-wrap itself is implemented as purely Scheme-code Guile
+modules.  This means that you you can wrap functions for multiple
+modules on the fly from any invocation of guile.
 
 @node Why Create a Wrapper Generator?,  , Overview, Introduction
 @section Why Create a Wrapper Generator?
@@ -384,14 +411,14 @@ language independence, or an alternate possibility is to design a
 language neutral API spec file (as gnome-guile is trying to do) and then
 just have a translator from that to native g-wrap calls.
 
-g-wrap can be found at @url{ftp://ftp.gnucash.org/pub/g-wrap/}.
+G-wrap can be found at @url{http://www.nongnu.org/g-wrap/}.
 
 @c Chapter ==================================================================
 @node Usage, Extending G-wrap, Introduction, Top
 @chapter Usage
 
 @menu
-* A More Detailed Example.::    
+* A More Detailed Example::    
 * Creating a Wrapper Module::   
 * Defining New Wrapped Types::  
 * Wrapping C Functions::        
@@ -399,16 +426,16 @@ g-wrap can be found at @url{ftp://ftp.gnucash.org/pub/g-wrap/}.
 * Using the Wrapped Interface::  
 @end menu
 
-@node A More Detailed Example., Creating a Wrapper Module, Usage, Usage
-@section A More Detailed Example.
+@node A More Detailed Example, Creating a Wrapper Module, Usage, Usage
+@section A More Detailed Example
 
 In this chapter we'll walk through the process of wrapping an
 incresingly complex C API.  In the process, we'll try to hit all the
 important g-wrap features.
 
-You'll see how to define a wrapper module, add new types to it (when the
+You'll see how to define a wrapset, add new types to it (when the
 default set of types isn't sufficient), wrap the C-side functions, and
-then generate the Guile wrapper code from the wrapper module definition.
+then generate the Guile wrapper code from the wrapset definition.
 
 To start, let's presume you want to wrap a C interface that initially
 looks like this:
@@ -421,130 +448,129 @@ looks like this:
 @end example
 
 @noindent
-and you want to call your wrapper module ``miscutils''.
+and you want to call your wrapset ``miscutils''.
 
-To define your module, you need to create a wrapper specification, which
-is just a file (or files) of scheme code that calls g-wrap functions to
-create the wrapper module.  Conventionally, if you're creating a wrapper
-module named "foo", the wrapper-module specification file would be named
-foo-spec.scm.
+To define your module, you need to create a wrapper specification,
+which normally consists of deriving from the @code{<gw-wrapset>} class
+and providing an @code{initialize} method that adds the to-be-wrapped
+functions and types.  Conventionally, if you're creating a wrapper
+module named "foo", the wrapset specification file would be named
+foo-spec.scm, or placed in separate @file{ws/} subdirectory.
 
-@node Creating a Wrapper Module, Defining New Wrapped Types, A More Detailed Example., Usage
-@section Creating a Wrapper Module
+@node Creating a Wrapper Module, Defining New Wrapped Types, A More Detailed Example, Usage
+@section Creating a Wrapset
 
-Inside the wrapper module specification file, the first thing you have
-to do is create the wrapper module.  This is handled with a call to the
-function @code{gw:new-module}, but before that, you have to tell Guile
-that you want to use g-wrap functions with a call to @code{(use-modules
-(g-wrap))}.  So the most trivial wrapper module possible would look
-something like this:
+Inside the wrapset specification file, the first thing you have to do
+is create the wrapset class.  But before that, you have to tell Guile
+that you'll use the GOOPS and g-wrap modules. So the most trivial
+wrapper module possible would look something like this:
 
-@example
-  (let ((mod (gw:new-module "miscutils")))
-    #t)
-@end example
+@lisp
+  (use-modules (oop goops) (g-wrap) (g-wrap guile))
 
-However, this module won't let you do much.  In particular, a newly
-created wrapper module doesn't know about any wrapped types.  In general
+  (define-class <miscutils-wrapset> (<gw-guile-wrapset>)
+    #:id 'miscutils)
+
+  (define-method (initialize (ws <miscutils-wrapset>) initargs)
+    (next-method))
+@end lisp
+
+However, this wrapset won't let you do much.  In particular, a newly
+created wrapset doesn't know about any wrapped types.  In general
 you'll probably want to be able to use the standard set of g-wrap
 wrapped types which include support for int, double, strings, etc.  If
-so, then you need to add a call to @code{gw:module-depends-on} like so:
+so, then you need to add a call to @code{depends-on!} like this:
 
 @example
-  (let ((mod (gw:new-module "miscutils")))
-    (gw:module-depends-on mod "gw-runtime")
-    #t)
+  (define-method (initialize (ws <miscutils-wrapset>) initargs)
+    (next-method)
+    (depends-on! ws 'standard))
 @end example
 
 Now you can start wrapping functions using the default set of wrapped
-types with calls to @code{gw:wrap-function}.  To wrap
+types with calls to @code{wrap-function!}.  To wrap
 @code{join_strings} and @code{seconds_since}, you would
 want to say something like this:
 
 @example
-  (let ((mod (gw:new-module "miscutils")))
+  (define-method (initialize (ws <miscutils-wrapset>) initargs)
+    (next-method)
 
-    (gw:module-depends-on mod "gw-runtime")
+    (depends-on! ws 'standard)
 
-    (gw:wrap-function
-     mod
-     'join_strings
-     '<gw:char*> "join_strings" '((<gw:char*> a) (<gw:char*> b))
-     "Return a string consisting of a followed by b.")
+    (wrap-function! 
+      ws
+      #:name 'join_strings
+      #:returns 'mchars
+      #:c-name "join_strings" 
+      #:arguments '((mchars a) (mchars b))
+      #:description "Return a string consisting of a followed by b.")
 
-    (gw:wrap-function
-     mod
-     'seconds-since-dow
-     '<gw:double> "seconds_since_dow" '((<gw:unsigned-int> day-of-week))
-     "Given day-of-week (ranging 1-7), return elapsed time since then."))
+    (wrap-function!
+     ws
+     #:name 'seconds-since-dow
+     #:returns 'double
+     #:c-name "seconds_since_dow" 
+     #:arguments '((<gw:unsigned-int> day-of-week))
+     #:description "Given day-of-week (ranging 1-7), return elapsed time since then."))
 @end example
 
-@code{gw:wrap-function}'s arguments in order are
+@code{wrap-function!}'s arguments should be quite obvious:
 
-@enumerate
+@table @code
 
-@item
+@item ws
 the module to which the function wrapper should be added.
 
-@item
+@item #:name
 the symbol which should be bound to the wrapped function in Scheme at
 runtime.
 
-@item
+@item #:returns
 the symbol naming the g-wrap wrapped type of the C function result.
 
-@item
+@item #:c-name
 a string giving the C function's name.
 
-@item
+@item #:arguments
 a list of the C function's arguments where each element is of the form
 (g-wrapped-type arg-name-symbol).
 
-@item
+@item #:description
 a string describing the function.
 
-@end enumerate
+@end table
 
-Actually, the example given above won't work because g-wrap has no
-definition for char*'s.  There is no <gw:char*> wrapped type.  The
-reason is that specifying char* alone doesn't provide enough information
-about the allocation semantics of the argument or return value.  G-wrap
-needs to know whether a char* argument that's passed in to a function
-should be considered to be "owned" by the function after the C function
-returns, or should be considered caller owned, and hence safe for
-deletion if appropriate.  So g-wrap requires you to be explicit, and
-provides two different types for string type arguments and return
-values: @code{<gw:m-chars-caller-owned>} and
-@code{<gw:m-chars-callee-owned>}.  The "m" stands for @code{malloc},
-since it's conceivable that for some C functions, the argument or result
-might need to be allocated/freed via some other mechanism.
+Actually, the example given above won't work because specifying
+@code{mchars} (roughly g-wrap's type for @code{char*}) alone doesn't
+provide enough information about the allocation semantics of the
+argument or return value.  g-wrap needs to know whether a @code{char*}
+argument that's passed in to a function should be considered to be
+"owned" by the function after the C function returns, or should be
+considered caller owned, and hence safe for deletion if appropriate.
+So g-wrap requires you to be explicit, and provides two type options
+for string type arguments and return values: @code{caller-owned} and
+@code{callee-owned}.  The "m" in @code{mchars} stands for
+@code{malloc}, since it's conceivable that for some C functions, the
+argument or result might need to be allocated/freed via some other
+mechanism.
 
 So, for our example API, let's presume that @code{join_strings} takes
 two strings that are owned by the caller and returns a newly allocated
 string that will also be owned by the caller.  Given that, the correct
-way to wrap our example API would be:
+way to wrap this function would be:
 
 @example
-  (let ((mod (gw:new-module "miscutils")))
-
-    (gw:module-depends-on mod "gw-runtime")
-
-    (gw:wrap-function
-     mod
-     'join-strings
-     '<gw:m-chars-caller-owned> "join_strings"
-     '((<gw:m-chars-caller-owned> a) (<gw:m-chars-caller-owned> b))
-     "Return a string consisting of a followed by b.")
-
-    (gw:wrap-function
-     mod
-     'seconds-since-dow
-     '<gw:double> "seconds_since_dow" '((<gw:unsigned-int> day-of-week))
-     "Given day-of-week (ranging 1-7), return elapsed time since then."))
-
+    (wrap-function! 
+      ws
+      #:name 'join_strings
+      #:returns '(mchars caller-owned)
+      #:c-name "join_strings" 
+      #:arguments '(((mchars caller-owned) a) ((mchars caller-owned) b))
+      #:description "Return a string consisting of a followed by b.")
 @end example
 
-At this point, we have a wrapper module named "miscutils" that wraps our
+At this point, we have a wrapset named "miscutils" that wraps our
 two C functions so that when the wrapper module's C code is generated,
 compiled, and then loaded back into Guile, we should be able to call
 these C functions normally.  Presuming you set miscutils up as a g-wrap
@@ -1162,14 +1188,14 @@ may be useful if you don't want to create a module.
 @defun gwrap-generate-wrapped-header x
 Generate a C header file for all of the wrapped functions and store it
 in the file named "@var{x}".  This can be useful if you want the g-wrap
-file to be the ultmate authority about the API.  G-wrap will include
+file to be the ultimate authority about the API.  G-wrap will include
 documentation in the header file derived from the @code{new-function}
 documentation strings.
 @end defun
 
 @defun gwrap-assume-types-wrapped lst [options @dots{}]
-   Assume that types have been defined in another G-wrap file, so
-   that they may be used as parameters in the current G-wrap file.
+   Assume that types have been defined in another g-wrap file, so
+   that they may be used as parameters in the current g-wrap file.
    @var{lst} is a list of pairs of the form (@var{scheme-sym}
    @var{c-name}) where @var{scheme-sym} is a symbol for the type which
    will be used to for defining parameter types in calls to 'new-function', and

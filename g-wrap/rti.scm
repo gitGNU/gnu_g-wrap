@@ -71,31 +71,6 @@
   (slot-set! type 'unwrap-value-function-name (gen-name "unwrap_value"))
   (slot-set! type 'destruct-value-function-name (gen-name "destruct_value")))
 
-(define-method (pre-call-arg-cg (lang <gw-language>)
-                                (type <gw-rti-type>)
-                                (param <gw-value>)
-                                status-var)
-  (list
-   (unwrap-value-cg lang type param status-var)
-   "if (" `(gw:error? ,status-var type) ")"
-   `(gw:error ,status-var arg-type)
-   "else if (" `(gw:error? ,status-var range) ")"
-   `(gw:error ,status-var arg-range)))
-
-
-(define-method (call-ccg (lang <gw-language>)
-                         (type <gw-rti-type>)
-                         (result <gw-value>)
-                         (func-call-code <gw-code>)
-                         status-var)
-  (list (var result) " = " func-call-code ";\n"))
-
-(define-method (post-call-result-cg (lang <gw-language>)
-                                    (type <gw-rti-type>)
-                                    (result <gw-value>)
-                                    status-var)
-  (wrap-value-cg lang type result status-var))
-
 (define-generic wrap-value-function-cg)
 (define-generic unwrap-value-function-cg)
 (define-generic destruct-value-function-cg)

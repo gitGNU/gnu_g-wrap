@@ -60,7 +60,9 @@
 
 (define-class <gw-guile-wrapset> (<gw-rti-wrapset>)
   (module #:init-keyword #:module #:accessor module)
-  (module-exports #:getter module-exports #:init-value '()))
+  (module-exports #:getter module-exports #:init-value '())
+
+  #:language guile)
 
 (define-method (initialize (wrapset <gw-guile-wrapset>) initargs)
   (next-method wrapset (append (list #:function-class <gw-guile-function>)

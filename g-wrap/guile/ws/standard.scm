@@ -10,9 +10,8 @@
   #:use-module (g-wrap guile))
   
 (define-class <standard-wrapset> (<gw-guile-wrapset>
-                                  <gw-standard-wrapset>))
-
-(register-wrapset-class guile 'standard <standard-wrapset>)
+                                  <gw-standard-wrapset>)
+   #:language guile #:id 'standard)
 
 (define-method (initialize (wrapset <standard-wrapset>) initargs)
   (next-method)

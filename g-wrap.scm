@@ -63,7 +63,6 @@
    add-cs-declarator! add-cs-initializer! add-cs-init-finalizer!
    wrap-function! wrap-constant!
 
-   register-wrapset-class
    initialize-wrapset
    
    generate-wrapset
@@ -152,26 +151,38 @@
                                   error-var)
   '())
 
-(define-generic pre-call-arg-cg)
+(define-method (pre-call-arg-cg (lang <gw-language>)
+                                (type <gw-type>)
+                                (param <gw-value>)
+                                status-var)
+  (list
+   (unwrap-value-cg lang type param status-var)
+   "if (" `(gw:error? ,status-var type) ")"
+   `(gw:error ,status-var arg-type)
+   "else if (" `(gw:error? ,status-var range) ")"
+   `(gw:error ,status-var arg-range)))
 
-(define-method (pre-call-result-cg (lang <gw-language>) (type <gw-type>)
-                                   (value <gw-value>) error-var)
-  '())
 
 (define-method (call-arg-cg (lang <gw-language>) (type <gw-type>)
                             (value <gw-value>))
   (list (var value)))
 
-(define-generic post-call-result-cg)
-
-(define-method (post-call-arg-cg (lang <gw-language>) (type <gw-type>)
-                                 (value <gw-value>) error-var)
-  '())
-
 (define-method (call-cg (lang <gw-language>) (type <gw-type>)
                         (result <gw-value>) func-call-code error-var)
   (list (var result) " = " func-call-code ";\n"))
 
+(define-method (post-call-result-cg (lang <gw-language>)
+                                    (type <gw-type>)
+                                    (result <gw-value>)
+                                    status-var)
+  (list
+   (wrap-value-cg lang type result status-var)
+   (destruct-value-cg lang type result status-var)))
+
+
+(define-method (post-call-arg-cg (lang <gw-language>) (type <gw-type>)
+                                 (value <gw-value>) error-var)
+  (destruct-value-cg lang type result status-var))
 
 ;;;
 
@@ -243,9 +254,36 @@
 ;;; Wrapsets
 ;;;
 
+;;; Metaclass - handles wrapset registry
+(define-class <gw-wrapset-class> (<class>))
+
+;; This should be in goops.scm, really
+(define (class-supers c)
+  (letrec ((allsubs (lambda (c)
+                      (cons c (mapappend allsubs
+                                         (class-direct-supers c))))))
+    (list2set (cdr (allsubs c)))))
+
+(define-method (initialize (class <gw-wrapset-class>) initargs)
+  (next-method)
+  (let-keywords
+   initargs #t (language id)
+   (if (not language)
+       (set! language
+             (any (lambda (c) (class-slot-ref c 'language))
+                           (filter
+                            (lambda (c) (not (eq? <object> c)))
+                            (class-direct-supers class)))))
+   (class-slot-set! class 'language language)
+
+   (if (and language id)
+       (register-wrapset-class language id class))))
+
 (define-class <gw-wrapset> ()
   (name #:getter name #:init-keyword #:name)
-  (language #:getter language #:init-keyword #:language)
+  (language #:getter language #:init-keyword #:language
+            #:allocation #:each-subclass)
+  
   (dependencies #:getter wrapsets-depended-on #:init-value '())
   (items #:init-value '())
   (types #:init-value '())
@@ -263,7 +301,9 @@
   (cs-definers #:init-value '())
   (cs-declarators #:init-value '())
   (cs-initializers #:init-value '())
-  (cs-init-finalizers #:init-value '()))
+  (cs-init-finalizers #:init-value '())
+
+  #:metaclass <gw-wrapset-class>)
 
 ;;; Methods
 (define-method (depends-on! (ws <gw-wrapset>) (dep-name <symbol>) . deps)

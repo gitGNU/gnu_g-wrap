@@ -6,7 +6,8 @@
   #:use-module (test test-standard-spec))
 
 (define-class <guile-test-standard-wrapset> (<test-standard-wrapset>
-                                             <gw-guile-wrapset>))
+                                             <gw-guile-wrapset>)
+  #:id 'test-standard)
 
 (define-method (initialize (ws <guile-test-standard-wrapset>) initargs)
   (next-method)
@@ -24,4 +25,4 @@
                   #:arguments '((scm arg))
                   #:description "Return arg."))
 
-(register-wrapset-class guile 'test-standard  <guile-test-standard-wrapset>)
+

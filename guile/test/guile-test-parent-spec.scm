@@ -6,11 +6,12 @@
   #:use-module (test test-parent-spec))
 
 (define-class <guile-test-parent-wrapset> (<test-parent-wrapset>
-                                             <gw-guile-wrapset>))
+                                             <gw-guile-wrapset>)
+  #:id 'test-parent)
 
 (define-method (initialize (ws <guile-test-parent-wrapset>) initargs)
   (next-method)
 
   (set! (module ws) '(test gw-test-parent)))
 
-(register-wrapset-class guile 'test-parent  <guile-test-parent-wrapset>)
+

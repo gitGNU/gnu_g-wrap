@@ -14,6 +14,3 @@ libgwrap_guile_runtime_la_LIBADD = \
 	$(top_builddir)/g-wrap/libgwrap-core-runtime.la \
 	$(GUILE_LDFLAGS) $(LIBFFI_LIBS)
 
-
-EXTRA_DIST = $(gwrapmodule_DATA)
-CLEANFILES =

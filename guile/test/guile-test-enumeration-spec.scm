@@ -6,7 +6,8 @@
   #:use-module (test test-enumeration-spec))
 
 (define-class <guile-test-enumeration-wrapset> (<test-enumeration-wrapset>
-                                                <gw-guile-wrapset>))
+                                                <gw-guile-wrapset>)
+  #:id 'test-enumeration)
 
 (define-method (initialize (ws <guile-test-enumeration-wrapset>) initargs)
   (next-method)
@@ -14,5 +15,3 @@
   (set! (module ws) '(gw-test-enumeration)))
   
 
-(register-wrapset-class guile 'test-enumeration
-                        <guile-test-enumeration-wrapset>)
