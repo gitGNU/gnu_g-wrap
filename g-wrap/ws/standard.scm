@@ -28,6 +28,7 @@
   (next-method)
 
   (add-cs-before-includes! wrapset before-includes)
+  (add-client-cs-before-includes! wrapset before-includes)
   (add-cs-global-declarator! wrapset global-declarator)
   (add-client-cs-global-declarator! wrapset global-declarator)
   

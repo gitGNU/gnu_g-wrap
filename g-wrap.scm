@@ -18,7 +18,7 @@
 
    <gw-function>
    c-name
-   argument-count
+   argument-count arguments argument-types
    return-type return-typespec
    generic-name 
    
@@ -54,11 +54,12 @@
    <gw-wrapset>
    name language wrapsets-depended-on
    fold-types for-each-type lookup-type fold-functions
-   arguments
    depends-on!
    add-type! add-constant! add-function!
+   defines-generic?
+   
    add-cs-before-includes! add-cs-global-declarator! add-cs-definer!
-   add-client-cs-global-declarator! add-cs-definer!
+   add-client-cs-before-includes! add-client-cs-global-declarator! 
    add-cs-declarator! add-cs-initializer! add-cs-init-finalizer!
    wrap-function! wrap-constant!
 
@@ -134,7 +135,7 @@
 (define-method (if-typespec-option (value <gw-value>) (option <symbol>)
                                    code1 . code2-opt)
   (let ((code2 (cond ((null? code2-opt) #f)
-                     ((and (list? code2-opt) ((= length code2-opt) 1))
+                     ((and (list? code2-opt) (= (length code2-opt) 1))
                       (car code2-opt))
                      (else (error "bogus parameters")))))
     (if (memq option (options (typespec value)))
@@ -202,6 +203,9 @@
 (define-method (argument-count (func <gw-function>))
   (length (slot-ref func 'arguments)))
 
+(define-method (argument-types (func <gw-function>))
+  (map type (slot-ref func 'arguments)))
+
 ;;; Function (formal) arguments
 
 (define-class <gw-argument> ()
@@ -245,12 +249,15 @@
   (dependencies #:getter wrapsets-depended-on #:init-value '())
   (items #:init-value '())
   (types #:init-value '())
-  (type-hash #:init-form (make-hash-table))
+  (type-hash #:init-form (make-hash-table 53))
   (functions #:init-value '())
-
+  
+  (generic-hash #:init-form (make-hash-table 31))
+  
   (function-class #:init-keyword #:function-class #:init-value <gw-function>)
   
   (cs-before-includes #:init-value '())
+  (cs-client-before-includes #:init-value '())
   (cs-global-declarators #:init-value '())
   (cs-client-global-declarators #:init-value '())
   (cs-definers #:init-value '())
@@ -276,7 +283,11 @@
 
 (define-method (add-function! (ws <gw-wrapset>) (function <gw-function>))
   (slot-set! ws 'items (cons function (slot-ref ws 'items)))
-  (slot-set! ws 'functions (cons function (slot-ref ws 'functions))))
+  (slot-set! ws 'functions (cons function (slot-ref ws 'functions)))
+  (if (generic-name function)
+      (let ((handle (hashq-create-handle! (slot-ref ws 'generic-hash)
+                                          (generic-name function) '())))
+        (set-cdr! handle (cons function (cdr handle))))))
 
 (define-method (add-constant! (ws <gw-wrapset>) (constant <gw-constant>))
   (slot-set! ws 'items (cons constant (slot-ref ws 'items))))
@@ -287,23 +298,22 @@
 (define-method (for-each-type proc (ws <gw-wrapset>))
   (for-each proc (reverse (slot-ref ws 'types))))
 
+(define (wrapset-lookup-recursive wrapset slot name)
+  (let ((ret (hashq-ref (slot-ref wrapset slot) name)))
+    (or ret (any
+             (lambda (ws)
+               (wrapset-lookup-recursive ws slot name))
+             (wrapsets-depended-on wrapset)))))
+
 (define-method (lookup-type (wrapset <gw-wrapset>) (type-name <symbol>))
-  
-  (define (lookup wrapset cont)
-    ;;(format #t "looking for ~S in ~S\n" type-name wrapset)
-    (let ((ret (hashq-ref (slot-ref wrapset 'type-hash) type-name)))
-      (cond (ret
-             (cont ret))
-            (else
-             (for-each
-              (lambda (ws)
-                (lookup ws cont))
-              (wrapsets-depended-on wrapset))
-              #f))))
-  
-  (call-with-current-continuation
-   (lambda (exit)
-     (lookup wrapset exit))))
+  (wrapset-lookup-recursive wrapset 'type-hash type-name))
+
+(define-method (lookup-generic (wrapset <gw-wrapset>) (generic-name <symbol>))
+  (wrapset-lookup-recursive wrapset 'generic-hash generic-name))
+
+(define-method (defines-generic? (wrapset <gw-wrapset>) (name <symbol>))
+  (not (any (lambda (ws) (lookup-generic ws name))
+            (wrapsets-depended-on wrapset))))
 
 (define-method (fold-functions kons knil (ws <gw-wrapset>))
   (fold kons knil (reverse (slot-ref ws 'functions))))
@@ -369,6 +379,11 @@
   (slot-set! ws 'cs-client-global-declarators
              (cons cg (slot-ref ws 'cs-client-global-declarators))))
 
+(define-method (add-client-cs-before-includes! (ws <gw-wrapset>)
+                                               (cg <procedure>))
+  (slot-set! ws 'cs-client-before-includes
+             (cons cg (slot-ref ws 'cs-client-before-includes))))
+
 ;; High-level interface -- should move low-level stuff to core and
 ;; only offer this as API
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)
@@ -399,7 +414,7 @@
 
 (define-generic initialize-wrapset)
 
-(define *wrapset-registry* (make-hash-table))
+(define *wrapset-registry* (make-hash-table 7))
 
 (define-method (register-wrapset-class (lang <gw-language>) (name <symbol>)
                                        (class <class>))
@@ -466,18 +481,19 @@
   (generate-wrapset lang (get-wrapset lang name) basename))
 
 (define (compute-client-types ws)
-  (let ((client-type-hash (make-hash-table))
+  (let ((client-type-hash (make-hash-table 13))
         (my-types (slot-ref ws 'type-hash)))
     (for-each
      (lambda (func)
        (for-each
-        (lambda (arg)
-          (let ((type-name (name (type arg))))
+        (lambda (type)
+          (let ((type-name (name type)))
+            ;;(format #t "considering ~S as client type\n" type)
             (if (not (hashq-ref my-types type-name))
-                (hashq-set! client-type-hash type-name (type arg)))))
-        (arguments func)))
+                (hashq-set! client-type-hash type-name type))))
+        (cons (return-type func) (argument-types func))))
        (slot-ref ws 'functions))
-    (hash-map (lambda (key val) val) client-type-hash)))
+    (hash-fold (lambda (key val rest) (cons val rest)) '() client-type-hash)))
 
 (define-method (generate-wrapset (lang <gw-language>)
                                  (wrapset <gw-wrapset>)
@@ -486,6 +502,8 @@
         (wrapset-name-c-sym (any-str->c-sym-str
                              (symbol->string (name wrapset))))
         (client-types (compute-client-types wrapset)))
+
+    ;;(format #t "client types: ~S\n" client-types)
     
     (call-with-output-file wrapset-source-name
       (lambda (port)
@@ -502,6 +520,13 @@
                     (render (cg lang) port))
                   (reverse (slot-ref wrapset 'cs-before-includes)))
 
+        (for-each
+         (lambda (ws)
+           (for-each (lambda (cg)
+                       (render (cg lang) port))
+                     (reverse (slot-ref ws 'cs-client-before-includes))))
+         (wrapsets-depended-on wrapset))
+        
         (for-each
          (lambda (ws)
            (for-each (lambda (cg)
@@ -561,21 +586,15 @@
           "   return;\n"
           "\n"))
         
-        (output-initializer-cgs wrapset lang
-                                (reverse (slot-ref wrapset 'cs-initializers))
-                                port)
-
         (output-initializer-cgs
          wrapset lang
-         (map (lambda (item)
-                (lambda (lang error-var)
-                  (client-initializations-cg lang wrapset item error-var)))
-              client-types)
-         port)
-        
-        (output-initializer-cgs
-         wrapset lang
-         (map (lambda (item)
+         (append
+          (reverse (slot-ref wrapset 'cs-initializers))
+          (map (lambda (item)
+                 (lambda (lang error-var)
+                   (client-initializations-cg lang wrapset item error-var)))
+               client-types)
+          (map (lambda (item)
                 (lambda (lang error-var)
                   (initializations-cg lang wrapset item error-var)))
               (receive (types others)
@@ -583,11 +602,8 @@
                                 (is-a? item <gw-type>))
                               (reverse (slot-ref wrapset 'items)))
                 (append! types others)))
-         port)
-        
-        (output-initializer-cgs wrapset lang
-                                (slot-ref wrapset 'cs-init-finalizers)
-                                port)
+          (slot-ref wrapset 'cs-init-finalizers))
+          port)
         
         (dsp-list
          (list
@@ -756,4 +772,5 @@
           tree))))
      (else tree)))
   (expand-helper tree param allowed-errors tree))
+
 

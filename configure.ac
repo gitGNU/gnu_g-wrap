@@ -40,15 +40,22 @@ AM_PROG_LIBTOOL
 dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
+STD_CFLAGS=""
+
 if test "$GCC" = yes; then
   dnl Add the warnings we want
   CFLAGS="$CFLAGS -Wall -Wmissing-prototypes"
+  dnl -Werror ?
+  AC_ARG_ENABLE([Werror], AC_HELP_STRING([--disable-Werror], 
+					 [Don't stop the build on warnings]),
+                [], CFLAGS="$CFLAGS -Werror")
   
   AC_MSG_CHECKING([whether $CC accepts -std=gnu99])
   save_CFLAGS="$CFLAGS"
   CFLAGS="-std=gnu99"
   AC_COMPILE_IFELSE(AC_LANG_PROGRAM(), cc_std_gnu99=yes, cc_std_gnu99=no)
   if test "$cc_std_gnu99" = yes; then
+    STD_CFLAGS="$STD_CFLAGS -std=gnu99"
     CFLAGS="$save_CFLAGS -std=gnu99"
     AC_MSG_RESULT(yes)
   else
@@ -56,6 +63,8 @@ if test "$GCC" = yes; then
     AC_MSG_RESULT(no)
   fi
 fi
+
+AC_SUBST(STD_CFLAGS)
 
 dnl Checks for standard functions
 AC_FUNC_ALLOCA

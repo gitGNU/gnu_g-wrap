@@ -4,11 +4,9 @@
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
   
-  #:duplicates last
-  
   #:export
   (<gw-rti-wrapset>
-   c-info-sym typespec-cg
+   function-rti? c-info-sym typespec-cg
 
    <gw-rti-value>
    
@@ -22,9 +20,9 @@
 
 (define-class <gw-rti-wrapset> (<gw-wrapset>)
   (c-info-sym #:getter c-info-sym #:init-form (gen-c-tmp "c_info"))
-  (register-functions? #:getter register-functions?
-                       #:init-keyword #:register-functions?
-                       #:init-value #f))
+  (function-rti? #:getter function-rti?
+                 #:init-keyword #:function-rti?
+                 #:init-value #t))
 
 (define-class <gw-rti-value> (<gw-value>))
 
@@ -200,16 +198,15 @@
        "}\n")))
 
 (define (use-rti-for-function? wrapset function)
-  (and (slot-ref wrapset 'register-functions?)
+  (and (slot-ref wrapset 'function-rti?)
        (every (lambda (type)
                 (is-a? type <gw-rti-type>))
               (cons (return-type function)
                     (map type (arguments function))))))
 
-(define-method (global-definitions-cg (lang <gw-language>)
-                                      (wrapset <gw-rti-wrapset>)
-                                      (function <gw-function>)
-                                      error-var)
+(define-method (global-declarations-cg (lang <gw-language>)
+                                       (wrapset <gw-rti-wrapset>)
+                                       (function <gw-function>))
   (list
    (if (use-rti-for-function? wrapset function)
        '()

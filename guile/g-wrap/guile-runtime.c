@@ -176,9 +176,10 @@ static scm_t_bits dynproc_smob_tag = 0;
  *
  * 3. therefore, we export the bindings for generics to the root module */
 
-static void
-gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
-                              SCM generic_name)
+void
+gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
+                                     SCM generic_name)
+#define FUNC_NAME "%gw:guile-procedure->method-public"
 {
   SCM method_formals, method_args;
   SCM default_val = SCM_BOOL_F;
@@ -188,10 +189,12 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
   int i;
   char buffer[32];
   int is_generic = 0;
-  
-  if (SCM_FALSEP (scm_procedure_p (proc)))
-    return;
+  int nargs = scm_ilength (specializers);
 
+  SCM_VALIDATE_PROC (1, proc);
+  SCM_VALIDATE_LIST (2, specializers);
+  SCM_VALIDATE_SYMBOL (3, generic_name);
+  
   generic =
     scm_sym2var (generic_name, scm_module_lookup_closure (the_root_module),
                  SCM_BOOL_F);
@@ -235,7 +238,7 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
                              scm_list_5 (scm_class_generic,
                                          k_name, generic_name,
                                          k_default, default_val));
-
+    
     scm_call_3 (module_add_x, the_root_module, generic_name,
                 scm_make_variable (generic));
   }
@@ -259,6 +262,7 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
   
   scm_add_method (generic, meth);
 }
+#undef FUNC_NAME
 
 static SCM
 dynproc_smob_apply (SCM smob, SCM args)
@@ -451,8 +455,8 @@ gw_guile_register_wrapset (GWWrapSet *ws)
         SCM klass = scm_class_top;
         const char *class_name = fi->arg_types[j]->class_name;
 
-        /* we specialize only on the first parameter, since the others
-         * don't work with gobject/<gvalue> */
+        /* we specialize only on the first parameter, since its class
+         * is guaranteed to be defined in this module */
         if (j == 0 && class_name)
           klass = SCM_VARIABLE_REF (scm_c_lookup (class_name));
         
@@ -462,8 +466,8 @@ gw_guile_register_wrapset (GWWrapSet *ws)
         specializers = scm_cons (klass, specializers);
       }
       
-      gw_function_to_method_public (subr, fi->n_args, specializers,
-                                    scm_str2symbol (fi->generic_name));
+      gw_guile_procedure_to_method_public (subr, specializers,
+                                           scm_str2symbol (fi->generic_name));
     }
   }
 }
@@ -502,7 +506,7 @@ gw_guile_runtime_init (void)
             SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
                                                    "is-a?")));
     the_root_module = scm_permanent_object (
-            SCM_VARIABLE_REF ( scm_c_lookup ("the-root-module")));
+            SCM_VARIABLE_REF (scm_c_lookup ("the-root-module")));
     module_add_x = scm_permanent_object (
             SCM_VARIABLE_REF (scm_c_lookup ("module-add!")));
     k_specializers = scm_permanent_object (

@@ -29,7 +29,7 @@
                #:unwrap '(c-var " = " scm-var ";\n")
                #:wrap '(scm-var " = " c-var ";\n")))
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <gw:wct> - wrapped c pointer type object
   (add-type! wrapset
              (make <gw-guile-simple-type>
@@ -90,8 +90,14 @@ example (gw:wcp-is-a? <gw:void*> foo)")
                   #:returns '<gw:wcp>
                   #:c-name "gw_wcp_coerce"
                   #:arguments '((<gw:wcp> wcp) (<gw:wct> new-type))
-                  #:description "Coerce the given wcp to new-type.  This can be dangerous, so be careful."))
+                  #:description "Coerce the given wcp to new-type.  This can be dangerous, so be careful.")
 
+  (wrap-function! wrapset
+                  #:name '%gw:procedure->method-public
+                  #:returns 'void
+                  #:arguments '((scm proc) (scm specializers)
+                                (scm generic-name))
+                  #:c-name "gw_guile_procedure_to_method_public"))
 
 (define-method (add-type! (wrapset <standard-wrapset>)
                           (type <gw-guile-simple-type>))
