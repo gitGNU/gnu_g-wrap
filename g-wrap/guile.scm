@@ -4,13 +4,16 @@
   #:use-module (oop goops)
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
-  #:use-module (g-wrap ffi)
+  #:use-module (g-wrap rti)
   #:use-module (g-wrap enumeration)
 
   #:duplicates last
   
   #:export (<gw-guile> guile
+                       
             <gw-guile-wrapset>
+            module module-exports
+            
             <gw-guile-simple-type>
             scm-var))
 
@@ -34,8 +37,8 @@
 
 (define guile (make <gw-guile>))
 
-(define-class <gw-guile-wrapset> (<gw-ffi-wrapset>)
-  (module #:init-keyword #:module #:getter module)
+(define-class <gw-guile-wrapset> (<gw-rti-wrapset>)
+  (module #:init-keyword #:module #:accessor module)
   (module-exports #:getter module-exports #:init-value '()))
 
 (define-method (initialize (wrapset <gw-guile-wrapset>) initargs)
@@ -57,9 +60,9 @@
 ;; expand-special-forms)
 
 (define-method (wrap-value-function-cg (lang <gw-guile>)
-                                       (type <gw-ffi-type>))
+                                       (type <gw-rti-type>))
   (let* ((type-name (c-type-name type))
-         (value (make <gw-value>
+         (value (make <gw-rti-value>
                   #:var (string-append "(*(" type-name "*)instance)")
                   #:typespec "*typespec"
                   #:wrapped-var "value")))
@@ -72,9 +75,9 @@
 
 
 (define-method (unwrap-value-function-cg (lang <gw-guile>)
-                                         (type <gw-ffi-type>))
+                                         (type <gw-rti-type>))
   (let* ((type-name (c-type-name type))
-         (value (make <gw-value>
+         (value (make <gw-rti-value>
                   #:var (string-append "(*(" type-name "*)instance)")
                   #:typespec "*typespec"
                   #:wrapped-var "value")))
@@ -89,7 +92,7 @@
                                            (type <gw-type>))
   
   (let* ((type-name (c-type-name type))
-         (value (make <gw-value>
+         (value (make <gw-rti-value>
                   #:var (string-append "(*(" type-name "*)instance)")
                   #:typespec "*typespec"
                   #:wrapped-var "value")))
@@ -179,60 +182,6 @@
     (add-module-export! wrapset (slot-sym-ref enum 'val->int-scm-func))
     (add-module-export! wrapset (slot-sym-ref enum 'val->sym-scm-func))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; <gw-guile-simple-type>
-;;
-(define-class <simple-type> (<gw-ffi-type>)
-  (type-check #:init-keyword #:type-check)
-  (wrap #:init-keyword #:wrap)
-  (unwrap #:init-keyword #:unwrap))
-
-(define <gw-guile-simple-type> <simple-type>)
-
-;; Helper
-(define (replace-syms tree alist)
-  (cond
-   ((null? tree) tree)
-   ((list? tree) (map (lambda (elt) (replace-syms elt alist)) tree))
-   ((symbol? tree)
-    (let ((expansion (assq-ref alist tree)))
-      (if (string? expansion)
-          expansion
-          (error
-           (string-append
-            "g-wrap expected string for expansion "
-            "while processing  ~S\n.") expansion))))
-   (else tree)))
-
-(define-method (make-typespec (type <simple-type>) (options <list>))
-  (if (null? options)
-      (make <gw-typespec> #:type type)
-      (throw 'gw:bad-typespec
-             "Bad <simple-type> options - spurious options: " options)))
-
-(define-method (unwrap-value-cg (lang <gw-language>)
-                                (type <simple-type>)
-                                (value <gw-value>)
-                                status-var)
-  (let* ((scm-var (scm-var value))
-         (c-var (var value))
-         (type-check-code (replace-syms (slot-ref type 'type-check)
-                                        `((scm-var . ,scm-var))))
-         (unwrap-code (replace-syms (slot-ref type 'unwrap)
-                                    `((c-var . ,c-var)
-                                      (scm-var . ,scm-var)))))
-    (list "if (!(" type-check-code "))"
-          `(gw:error ,status-var type ,scm-var)
-          "else {" unwrap-code "}")))
-
-(define-method (wrap-value-cg (lang <gw-language>)
-                              (type <simple-type>)
-                              (value <gw-value>)
-                              status-var)
-  (replace-syms (slot-ref type 'wrap)
-                `((c-var . ,(var value))
-                  (scm-var . ,(scm-var value)))))
-
 (define-method (add-constant! (wrapset <gw-guile-wrapset>)
                               (constant <gw-constant>))
 
@@ -291,7 +240,8 @@
 
   (if (module wrapset)
       (let* ((wrapset-name (name wrapset))
-             (wrapset-name-c-sym (any-str->c-sym-str wrapset-name))
+             (wrapset-name-c-sym (any-str->c-sym-str
+                                  (symbol->string wrapset-name)))
              (wrapset-scm-file-name (string-append basename ".scm"))
              (guile-module (module wrapset))
              (guile-module-exports (module-exports wrapset)))

@@ -5,17 +5,24 @@
    expand-special-forms))
 
 (define (flatten-display lst port)
-  (cond ((null? lst) '())
-	((pair? lst) (flatten-display (car lst) port)
-		     (flatten-display (cdr lst) port))
-	((or (string? lst)
-	     (number? lst)
-	     (symbol? lst))
-	 (display lst port))
-;;	((procedure? lst)
-;;	 (flatten-display ((lst 'output)) port))
-	(else
-	 (error "flatten-display: bad element found in the tree " lst))))
+  (define (flatten lst port)
+    (cond ((null? lst) '())
+          ((pair? lst)
+           (flatten (car lst) port)
+           (flatten (cdr lst) port))
+          ((or (string? lst)
+               (number? lst)
+               (symbol? lst))
+           (display lst port))
+          ;;	((procedure? lst)
+          ;;	 (flatten-display ((lst 'output)) port))
+          (else
+           (throw 'bad-element lst))))
+  
+  (catch 'bad-element
+    (lambda () (flatten lst port))
+    (lambda (key elt)
+      (error  "flatten-display: bad element found in the tree " lst elt))))
 
 (define (flatten-string lst)
   (cond ((null? lst) "")

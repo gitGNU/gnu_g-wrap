@@ -13,7 +13,8 @@ libgwrap_core_runtime_la_LDFLAGS = -rpath $(libdir) \
 				    -version-info $(GW_CORE_RUNTIME_VINFO)
 libgwrap_core_runtime_la_LIBADD = $(LIBFFI_LIBS) @ALLOCA@
 
-gwrapmodule_DATA = util.scm rti.scm ffi.scm enumeration.scm \
+gwrapmodule_DATA = util.scm rti.scm enumeration.scm ws/standard.scm \
 		   guile.scm
 
 EXTRA_DIST = $(gwrapmodule_DATA)
+ 

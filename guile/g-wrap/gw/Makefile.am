@@ -14,12 +14,12 @@ LIBGW_STANDARD_GWGEN = $(addprefix standard, .h .c .scm .html)
 
 SETGWPPATH= "(set! %load-path (cons \"$(top_builddir)/guile\" (cons \"$(top_srcdir)\" %load-path)))"
 
-${LIBGW_STANDARD_GWGEN}: $(top_srcdir)/g-wrap/guile/standard-spec.scm
+${LIBGW_STANDARD_GWGEN}: $(top_srcdir)/g-wrap/guile/ws/standard.scm
 	guile $(GUILE_FLAGS) -c \
           ${SETGWPPATH}"(use-modules (g-wrap)) \
 	                (use-modules (g-wrap guile)) \
-                        (use-modules (g-wrap guile standard-spec)) \
-                        (generate-wrapset guile standard-wrapset \"standard\")"
+                        (use-modules (g-wrap guile ws standard)) \
+                        (generate-wrapset guile 'standard \"standard\")"
 
 CLEANFILES = ${LIBGW_STANDARD_GWGEN}
 

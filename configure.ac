@@ -67,6 +67,7 @@ GUILE_FLAGS
 AC_OUTPUT([Makefile
            g-wrap/Makefile
 	   g-wrap/guile/Makefile
+	   test/Makefile
            guile/Makefile
 	   guile/g-wrap/Makefile
 	   guile/g-wrap/gw/Makefile

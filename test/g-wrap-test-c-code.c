@@ -7,7 +7,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <guile/gh.h>
 
 /*======================================================================*/
 /* For test-gw-enumerationx */
@@ -24,12 +23,6 @@ gw_test_gw_enumeration_echo(enum GWTestEnum arg)
 void
 gw_test_gw_standard_no_op ()
 {
-}
-
-SCM
-gw_test_gw_standard_echo_scm (SCM arg)
-{
-  return arg;
 }
 
 int
@@ -56,12 +49,12 @@ gw_test_gw_standard_echo_double (double arg)
   return arg;
 }
 
-SCM gw_test_gw_standard_get_int_max () { return scm_long2num (INT_MAX); }
-SCM gw_test_gw_standard_get_int_min() { return scm_long2num (INT_MIN); }
-SCM gw_test_gw_standard_get_uint_max() { return scm_ulong2num (UINT_MAX); }
-SCM gw_test_gw_standard_get_long_max() { return scm_long2num (LONG_MAX); }
-SCM gw_test_gw_standard_get_long_min() { return scm_long2num (LONG_MIN); }
-SCM gw_test_gw_standard_get_ulong_max() { return scm_ulong2num (ULONG_MAX); }
+int gw_test_gw_standard_get_int_max () { return INT_MAX; }
+int gw_test_gw_standard_get_int_min() { return INT_MIN; }
+unsigned int gw_test_gw_standard_get_uint_max() { return UINT_MAX; }
+long gw_test_gw_standard_get_long_max() { return LONG_MAX; }
+long gw_test_gw_standard_get_long_min() { return LONG_MIN; }
+unsigned long gw_test_gw_standard_get_ulong_max() { return ULONG_MAX; }
 
 int
 gw_test_gw_standard_echo_int (int arg)
@@ -186,92 +179,4 @@ gw_test_child_pass_back_parent_obj(gwTestParentObj* x)
   return x;
 }
 
-/* For test-gw-glib */
 
-#if GW_HAVE_GLIB
-
-GList*
-gw_test_gw_glib_echo_list (GList *arg)
-{
-  return arg;
-}
-
-GSList*
-gw_test_gw_glib_echo_slist (GSList *arg)
-{
-  return arg;
-}
-
-gint64
-gw_test_gw_glib_echo_gint64 (gint64 arg)
-{
-  return arg;
-}
-
-/** gchars **/
-
-gchar *
-gw_test_gw_standard_echo_gchars_caller_owned (gchar *arg)
-{
-  if(arg)
-    return g_strdup(arg);  
-  return
-    arg;
-}
-
-const gchar *
-gw_test_gw_standard_echo_const_gchars_caller_owned (const gchar *arg)
-{
-  if(arg)
-    return g_strdup(arg);  
-  return
-    arg;
-}
-
-gchar *
-gw_test_gw_standard_echo_gchars_callee_owned (gchar *arg)
-{
-  static gchar *last_result = NULL;
-
-  if(!arg) return arg;
-  if(last_result) g_free(last_result);
-  last_result = g_strdup(arg);
-  return last_result;
-}
-
-const gchar *
-gw_test_gw_standard_echo_const_gchars_callee_owned (const gchar *arg)
-{
-  static gchar *last_result = NULL;
-
-  if(!arg) return arg;
-  if(last_result) g_free(last_result);
-  last_result = g_strdup(arg);
-  return last_result;
-}
-
-struct _gwTestIntCarrier {
-  int value;
-};
-
-gwTestIntCarrier *
-gw_test_make_int_carrier(int value)
-{
-  gwTestIntCarrier *result = malloc(sizeof(gwTestIntCarrier));
-  if(result) result->value = value;
-  return result;
-}
-
-void
-gw_test_destroy_int_carrier(gwTestIntCarrier *x)
-{
-  if(x) free(x);
-}
-
-int
-gw_test_int_carrier_get_value(const gwTestIntCarrier *x)
-{
-  return x->value;
-}
-
-#endif

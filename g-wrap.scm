@@ -31,10 +31,10 @@
    gen-c-tmp-name make-typespec
    
    <gw-typespec>
-   type
+   type options
    
    <gw-value>
-   var wrapped-var
+   var wrapped-var if-typespec-option
    
    <gw-param>
    number
@@ -43,7 +43,7 @@
    render
    
    <gw-wrapset>
-   name wrapsets-depended-on
+   name language wrapsets-depended-on
    fold-types for-each-type lookup-type fold-functions
    arguments
    depends-on!
@@ -51,6 +51,10 @@
    add-cs-before-includes! add-cs-global-declarator! add-cs-definer!
    add-cs-declarator! add-cs-initializer!
    wrap-function! wrap-constant!
+
+   register-wrapset-class
+   initialize-wrapset
+   
    generate-wrapset
    ))
 
@@ -72,8 +76,10 @@
 (define-class <gw-type> (<gw-item>)
   (name #:getter name #:init-keyword #:name))
 
-(define-method (gen-c-tmp-name (type <gw-type>) (name <string>))
-  (gen-c-tmp (string-append (any-str->c-sym-str (c-type-name type)) "_" name)))
+(define-method (gen-c-tmp-name (type <gw-type>) (suffix <string>))
+  (gen-c-tmp (string-append (any-str->c-sym-str
+                             (symbol->string
+                              (name type))) "_" suffix)))
 
 (define-method (make-typespec (type <gw-type>) (options <list>))
   (if (null? options)
@@ -91,7 +97,8 @@
 (define-generic post-call-arg-cg)
 
 (define-class <gw-typespec> ()
-  (type #:init-keyword #:type #:getter type))
+  (type #:init-keyword #:type #:getter type)
+  (options #:init-keyword #:options #:getter options #:init-value '()))
 
 (define-class <gw-function> (<gw-item>)
   (name #:getter name #:init-keyword #:name)
@@ -128,8 +135,15 @@
   (var #:getter var #:init-keyword #:var)
   (wrapped-var #:getter wrapped-var #:init-keyword #:wrapped-var))
 
-(define-class <gw-param> (<gw-value>)
-  (number #:getter number #:init-keyword #:getter))
+(define-method (if-typespec-option (value <gw-value>) (option <symbol>)
+                                   code1 . code2-opt)
+  (let ((code2 (cond ((null? code2-opt) #f)
+                     ((and (list? code2-opt) ((= length code2-opt) 1))
+                      (car code2-opt))
+                     (else (error "bogus parameters")))))
+    (if (memq option (options (typespec value)))
+        code1
+        (if code2 code2 '()))))
 
 (define-generic wrap-value-cg)
 (define-generic unwrap-value-cg)
@@ -141,13 +155,22 @@
                                   error-var)
   '())
 
+(define-class <gw-param> (<gw-value>)
+  (number #:getter number #:init-keyword #:getter))
+
 (define-class <gw-code> ())
 
 (define-method (render (code <list>) (port <port>))
   (flatten-display code port))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; <gw-wrapset>
+;;;
+
 (define-class <gw-wrapset> ()
   (name #:getter name #:init-keyword #:name)
+  (language #:getter language #:init-keyword #:language)
   (dependencies #:getter wrapsets-depended-on #:init-value '())
   (items #:init-value '())
   (types #:init-value '())
@@ -159,8 +182,11 @@
   (cs-declarators #:init-value '())
   (cs-initializers #:init-value '()))
 
-(define-method (depends-on! (ws <gw-wrapset>) (dependency <gw-wrapset>))
-  (slot-set! ws 'dependencies (cons dependency (slot-ref ws 'dependencies))))
+;;; Methods
+(define-method (depends-on! (ws <gw-wrapset>) (dep-name <symbol>))
+  (slot-set! ws 'dependencies
+             (cons (get-wrapset (language ws) dep-name)
+                   (slot-ref ws 'dependencies))))
 
 (define-method (add-type! (ws <gw-wrapset>) (type <gw-type>))
   (slot-set! ws 'types (acons (name type) type (slot-ref ws 'types)))
@@ -184,19 +210,21 @@
               (slot-ref ws 'types)))
   
 (define-method (lookup-type (wrapset <gw-wrapset>) (type-name <symbol>))
-  (let* ((types-alist (slot-ref wrapset 'types))
-         (ret (assq-ref types-alist type-name)))
-    (if ret
-        ret
-        (call-with-current-continuation
-         (lambda (exit)
-           (for-each
-            (lambda (ws)
-              (let ((ret (lookup-type ws type-name)))
-                (if ret
-                    (exit ret))))
-            (wrapsets-depended-on wrapset))
-           #f)))))
+  (define (lookup wrapset type-name cont)
+    (let* ((types-alist (slot-ref wrapset 'types))
+           (ret (assq-ref types-alist type-name)))
+      (if ret
+          (cont ret)
+          (begin
+            (for-each
+             (lambda (ws)
+               (lookup ws type-name cont))
+             (wrapsets-depended-on wrapset))
+            (cont #f)))))
+  
+  (call-with-current-continuation
+   (lambda (exit)
+     (lookup wrapset type-name exit))))
 
 (define-method (fold-functions kons knil (ws <gw-wrapset>))
   (fold kons knil(reverse (slot-ref ws 'functions))))
@@ -204,34 +232,36 @@
 (define-method (for-each-function proc (ws <gw-wrapset>))
   (for-each proc (reverse (slot-ref ws 'functions))))
 
-(define-method (resolve-typespec (wrapset <gw-wrapset>) (form <list>))
-  (let ((type (lookup-type wrapset (car form))))
+(define (resolve-typespec wrapset spec)
+  (let* ((form (cond
+                ((symbol? spec) (list spec))
+                ((list? spec) spec)
+                (else (throw
+                       'gw:bad-typespec
+                       (format #f "neither list nor symbol (~S)" spec)))))
+         (type (lookup-type wrapset (car form))))
     (if type
         (make-typespec type (cdr form))
         (throw
          'gw:bad-typespec
          (format #f "no type ~S in wrapset ~S" (car form) (name wrapset))))))
 
-(define-method (resolve-typespec (wrapset <gw-wrapset>) (sym <symbol>))
-  (resolve-typespec wrapset (list sym)))
-
-(define-method (argspec (wrapset <gw-wrapset>) (spec <list>))
-  (if (not (and (list? spec) (= (length spec) 2)))
-      (throw 'gw:bad-typespec
-             (format #f "argument spec must be a two-element list (got ~S)"
-                     spec)))
-  (let ((ts (car spec)))
-    (make <gw-argument>
+(define (resolve-arguments wrapset argspecs)
+  (define (argspec spec)
+    (if (not (and (list? spec) (= (length spec) 2)))
+        (throw 'gw:bad-typespec
+               (format #f "argument spec must be a two-element list (got ~S)"
+                       spec)))
+    (let ((ts (car spec)))
+      (make <gw-argument>
         #:name (cadr spec)
-        #:typespec 
-        (resolve-typespec wrapset ts))))
+        #:typespec (resolve-typespec wrapset ts))))
   
-(define-method (resolve-arguments (wrapset <gw-wrapset>) (argspecs <list>))
   (let loop ((specs argspecs) (args '()))
     (if (null? specs)
         (reverse args)
           (loop (cdr specs)
-                (cons (argspec wrapset (car specs)) args)))))
+                (cons (argspec (car specs)) args)))))
 
 (define-method (add-cs-before-includes! (ws <gw-wrapset>) (cg <procedure>))
   (slot-set! ws 'cs-before-includes
@@ -265,12 +295,36 @@
 
 (define-method (wrap-constant! (wrapset <gw-wrapset>) . args)
   (let-keywords
-      args #f (name type value description)
-      (add-constant! wrapset (make <gw-constant>
+   args #f (name type value description)
+   (add-constant! wrapset (make <gw-constant>
                                #:name name
                                #:typespec (resolve-typespec wrapset type)
                                #:value value
                                #:description description))))
+
+;; Wrapset registry
+
+(define-generic initialize-wrapset)
+
+(define *wrapset-registry* (make-hash-table))
+
+(define-method (register-wrapset-class (lang <gw-language>) (name <symbol>)
+                                       (class <class>))
+  (let ((key (cons lang name)))
+    (if (hash-ref *wrapset-registry* key)
+        (error "tried to re-register wrapset class" lang name class *wrapset-registry*))
+    (hash-set! *wrapset-registry* key (cons class #f))))
+
+(define-method (get-wrapset (lang <gw-language>) (name <symbol>))
+  (let ((handle (hash-get-handle *wrapset-registry* (cons lang name))))
+    (if (not handle)
+        (error "no wrapset registered for" lang name))
+    (let ((entry (cdr handle)))
+      (if (cdr entry)
+          (cdr entry)
+          (let ((wrapset (make (car entry) #:name name #:language lang)))
+            (set-cdr! entry wrapset)
+            wrapset)))))
 
 ;;
 ;; Generation stuff
@@ -278,7 +332,8 @@
 (define (output-initializer-cgs wrapset lang cgs port)
   (let* ((error-var (gen-c-tmp "error_var"))
          (wrapset-name (name wrapset))
-         (wrapset-name-c-sym (any-str->c-sym-str wrapset-name))
+         (wrapset-name-c-sym (any-str->c-sym-str
+                              (symbol->string wrapset-name)))
          (wrapset-init-func (string-append "gw_init_wrapset_"
                                            wrapset-name-c-sym)))
 
@@ -310,10 +365,16 @@
     (display "}\n" port)))
 
 (define-method (generate-wrapset (lang <gw-language>)
+                                 (name <symbol>)
+                                 (basename <string>))
+  (generate-wrapset lang (get-wrapset lang name) basename))
+
+(define-method (generate-wrapset (lang <gw-language>)
                                  (wrapset <gw-wrapset>)
                                  (basename <string>))
-  (let* ((wrapset-source-name (string-append basename ".c"))
-         (wrapset-name-c-sym (any-str->c-sym-str (name wrapset))))
+  (let ((wrapset-source-name (string-append basename ".c"))
+        (wrapset-name-c-sym (any-str->c-sym-str
+                             (symbol->string (name wrapset)))))
     
     (call-with-output-file wrapset-source-name
       (lambda (port)

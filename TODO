@@ -1,0 +1,6 @@
+
+* Split into low-level and "approved" API
+
+* Error handling
+  - Use srfi-35 conditions
+  - Present errors more nicely to user

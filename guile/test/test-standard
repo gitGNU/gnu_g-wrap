@@ -50,13 +50,6 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
 (let ((int-min (gw-test-gw-standard-get-int-min))
       (long-min (gw-test-gw-standard-get-long-min)))
   
-  (if (string=? "1.3.4" (version))
-      (begin
-        ;; 1.3.4 was quite broken -- gh_scm2long can't handle 32bit min.
-        (if (= int-min long-min)
-            (set! int-min (+ int-min 1)))
-        (set! long-min (+ long-min 1))))
-
   (for-each check-integer-type
             (list '<gw:int> '<gw:unsigned-int> '<gw:long> '<gw:unsigned-long>)
             (list gw-test-gw-standard-echo-int

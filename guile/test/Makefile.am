@@ -21,7 +21,7 @@ SETGWPATH = "(set! %load-path (cons \"$(top_builddir)/guile\" (cons \"$(top_srcd
 
 EXTRA_DIST += $(wildcard $(srcdir)/*-spec.scm)
 
-std_libs = ./libg-wrap-test-c-code.la \
+std_libs = $(top_builddir)/test/libg-wrap-test-c-code.la \
 	   ../g-wrap/libgwrap-guile-runtime.la \
 	   $(top_builddir)/g-wrap/libgwrap-core-runtime.la \
 	   $(GUILE_LDFLAGS)
@@ -31,12 +31,10 @@ std_libs = ./libg-wrap-test-c-code.la \
 AM_CFLAGS = -Wall -Wno-uninitialized -Werror 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile
 
-# ===========================================================================
-
-noinst_LTLIBRARIES += libg-wrap-test-c-code.la
-libg_wrap_test_c_code_la_SOURCES = g-wrap-test-c-code.c g-wrap-test-c-code.h
-libg_wrap_test_c_code_la_LDFLAGS = -rpath $(libdir) ${GUILE_LIBS}
-libg_wrap_test_c_code_la_LIBADD = 
+noinst_LTLIBRARIES += libg-wrap-guile-test-c-code.la
+libg_wrap_guile_test_c_code_la_SOURCES = guile-test-c-code.c guile-test-c-code.h
+libg_wrap_guile_test_c_code_la_LDFLAGS = -rpath $(libdir)
+libg_wrap_guile_test_c_code_la_LIBADD = $(std_libs)
 
 # ======================================================================
 # gw-test-standard
@@ -44,17 +42,19 @@ libg_wrap_test_c_code_la_LIBADD =
 noinst_LTLIBRARIES += libgw-guile-test-standard.la
 nodist_libgw_guile_test_standard_la_SOURCES = gw-test-standard.c
 libgw_guile_test_standard_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic
-libgw_guile_test_standard_la_LIBADD = $(std_libs)
+libgw_guile_test_standard_la_LIBADD = libg-wrap-guile-test-c-code.la $(std_libs)
 
-gw-test-standard.scm gw-test-standard.h gw-test-standard.c gw-test-standard.html gw-test-standard-autogen.h: test-standard-spec.scm
-	LD_LIBRARY_PATH=${LOCALPWD}/../..: \
+test_standard_GWGEN = $(addprefix gw-test-standard, .h .c .scm .html) 
+
+$(test_standard_GWGEN): guile-test-standard-spec.scm $(top_srcdir)/test/test-standard-spec.scm 
+	LD_LIBRARY_PATH=${LOCALPWD}/../..:${LD_LIBRARY_PATH} \
 	guile $(GUILE_FLAGS) -c \
 	  ${SETGWPATH}" \
            (use-modules (g-wrap)) \
            (use-modules (g-wrap guile)) \
-           (primitive-load \"$(srcdir)/test-standard-spec.scm\") \
-           (generate-wrapset guile test-standard-wrapset \"gw-test-standard\")"
-CLEANFILES += gw-test-standard.scm gw-test-standard.h gw-test-standard.c gw-test-standard.html
+           (use-modules (guile test guile-test-standard-spec)) \
+           (generate-wrapset guile 'test-standard \"gw-test-standard\")"
+CLEANFILES += $(test_standard_GWGEN)
 
 # ======================================================================
 # gw-test-enumeration
@@ -64,14 +64,17 @@ nodist_libgw_guile_test_enumeration_la_SOURCES = gw-test-enumeration.c
 libgw_guile_test_enumeration_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic
 libgw_guile_test_enumeration_la_LIBADD = $(std_libs)
 
-gw-test-enumeration.scm gw-test-enumeration.h gw-test-enumeration.c gw-test-enumeration.html gw-test-enumeration-autogen.h: test-enumeration-spec.scm
-	LD_LIBRARY_PATH=${LOCALPWD}/..:${LOCALPWD}/..:${LD_LIBRARY_PATH} \
+test_enumeration_GWGEN = $(addprefix gw-test-enumeration, .h .c .scm .html) 
+
+$(test_enumeration_GWGEN): guile-test-enumeration-spec.scm $(top_srcdir)/test/test-enumeration-spec.scm
+	LD_LIBRARY_PATH=${LOCALPWD}/..:${LD_LIBRARY_PATH} \
 	guile $(GUILE_FLAGS) -c  \
 	  ${SETGWPATH}" \
-           (use-modules (g-wrap)) \
-           (primitive-load \"$(srcdir)/test-enumeration-spec.scm\") \
-           (generate-wrapset guile test-enumeration-wrapset \"gw-test-enumeration\")"
-CLEANFILES += gw-test-enumeration.scm gw-test-enumeration.h gw-test-enumeration.c gw-test-enumeration.html gw-test-enumeration-autogen.h
+	  (use-modules (g-wrap)) \
+	  (use-modules (g-wrap guile)) \
+	  (use-modules (guile test guile-test-enumeration-spec)) \
+	  (generate-wrapset guile 'test-enumeration \"gw-test-enumeration\")"
+CLEANFILES += $(test_enumeration_GWGEN)
 
 # # ======================================================================
 # # gw-test-parent

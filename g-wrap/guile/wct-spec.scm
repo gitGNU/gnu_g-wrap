@@ -1,10 +1,10 @@
 ;; -*-scheme-*-
 
-(define-module (g-wrap gw-wct-spec)
+(define-module (g-wrap guile wct-spec)
   #:use-module (g-wrap)
-  #:use-module (g-wrap simple-type)
-  #:use-module (g-wrap dynamic-type)
-  #:use-module (g-wrap gw-standard-spec))
+  #:use-module (g-wrap guile)
+  #:use-module (g-wrap ffi)
+  #:use-module (g-wrap guile standard-spec))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Wrapped C type (wct)
@@ -37,12 +37,45 @@
 
 (define wrapsets-w-wct-initializers (make-hash-table 31))
 
-(define-public (gw:wrap-as-wct wrapset name-sym c-type-name c-const-type-name)
+(define-class <gw-wct> (<gw-ffi-type>)
+  print-func-name
+  equal?-func-name
+  gc-mark-func-name)
 
-  (let ((wct-var-name (gw:gen-c-tmp
+(define-method (initialize (type <gw-wct>) initargs)
+  (next-method)
+  (slot-set! type 'print-func-name
+             (string-append "gw__wct_print_for_"
+                            (any-str->c-sym-str
+                             (symbol->string (type-get-name type)))))
+  (slot-set! type 'equal?-func-name
+             (string-append "gw__wct_equal_p_for_"
+                            (any-str->c-sym-str
+                             (symbol->string (type-get-name type)))))
+  (slot-set! type 'gc-mark-func-name
+             (string-append "gw__wct_gc_mark_for_"
+                            (any-str->c-sym-str
+                             (symbol->string (type-get-name type)))))
+  (slot-set! type 'cleanup-func-name
+             (string-append "gw__wct_cleanup_for_"
+                             (any-str->c-sym-str
+                              (symbol->string (type-get-name type))))))
+
+(define-generic wct-print-cg)
+(define-generic wct-equal?-cg)
+(define-generic wct-gc-mark-cg)
+(define-generic wct-cleanup-cg)
+
+(define-method (global-definitions-cg (lang <gw-guile>)
+                                      (wrapset <gw-guile-wrapset>)
+                                      (type <gw-wct>))
+  
+(define-public (wrap-as-wct wrapset name-sym c-type-name c-const-type-name)
+
+  (let ((wct-var-name (gen-c-tmp
                        (string-append
                         "wct_info_for_"
-                        (gw:any-str->c-sym-str (symbol->string name-sym))))))
+                        (any-str->c-sym-str (symbol->string name-sym))))))
     
     (define (generate-print-func type func-name)
       (let ((func-ccg (hashq-ref type 'wct:print-ccg #f)))
@@ -85,7 +118,7 @@
         (set! remainder (delq 'const options-form))
         (if (null? remainder)
             (cons 'caller-owned options-form)
-            (throw 'gw:bad-typespec "Bad wct options form." options-form))))
+            (throw 'bad-typespec "Bad wct options form." options-form))))
     
     (define (scm->c-ccg c-var scm-var typespec status-var)
       (let* ((sv scm-var)
@@ -98,7 +131,7 @@
                "if(SCM_FALSEP(" sv ")) " c-var " = NULL;\n"
                "else " c-var " = gw_wcp_get_ptr(" sv ");\n")))
         
-        (list "if(!(" type-check-code "))" `(gw:error ,status-var type ,sv)
+        (list "if(!(" type-check-code "))" `(error ,status-var type ,sv)
               "else {" scm->c-code "}\n")))
     
     (define (c->scm-ccg scm-var c-var typespec status-var)
@@ -144,7 +177,7 @@
     
     ;; TODO: maybe use status-var.
     (define (global-init-ccg type client-wrapset status-var)
-      (let* ((wcp-type-name (gw:type-get-name type))
+      (let* ((wcp-type-name (type-get-name type))
              (equal-func (hashq-ref type 'wct:equal-func-name "NULL"))
              (print-func (hashq-ref type 'wct:print-func-name "NULL"))
              (mark-func (hashq-ref type 'wct:gc-mark-func-name "NULL"))
@@ -181,79 +214,79 @@
     ;; wraps a wct will also have the header inserted...
     (if (not (hashq-ref wrapsets-w-wct-initializers wrapset #f))
         (begin          
-          (gw:wrapset-add-cs-declarations!
+          (wrapset-add-cs-declarations!
            wrapset
            (lambda (wrapset client-wrapset)
              "#include <g-wrap-wct.h>\n"))
           (hashq-set! wrapsets-w-wct-initializers wrapset #t)))
 
     
-    (let ((wct (gw:wrap-dynamic-type wrapset name-sym
+    (let ((wct (wrap-dynamic-type wrapset name-sym
                                      c-type-name c-const-type-name
                                      scm->c-ccg c->scm-ccg c-destructor
                                      'pointer)))
           
-      (gw:type-set-typespec-options-parser! wct typespec-options-parser)
+      (type-set-typespec-options-parser! wct typespec-options-parser)
 
-      (gw:type-set-global-declarations-ccg! wct global-declarations-ccg)
-      (gw:type-set-global-definitions-ccg! wct global-definitions-ccg)
-      (gw:type-set-global-initializations-ccg! wct global-init-ccg)
+      (type-set-global-declarations-ccg! wct global-declarations-ccg)
+      (type-set-global-definitions-ccg! wct global-definitions-ccg)
+      (type-set-global-initializations-ccg! wct global-init-ccg)
       
-      (gw:wrapset-add-guile-module-export! wrapset name-sym)
+      (wrapset-add-guile-module-export! wrapset name-sym)
     
       wct)))
 
 ;; Are all these the overrides the "right thing"?  Is there a better
 ;; approach, and/or do we need them at all?
 
-; (define-public (gw:wct-set-global-ccg! t generator)
+; (define-public (wct-set-global-ccg! t generator)
 ;   (hashq-set! t 'wct:global-ccg generator))
 
-; (define-public (gw:wct-set-init-ccg! t generator)
+; (define-public (wct-set-init-ccg! t generator)
 ;   (hashq-set! t 'wct:init-ccg generator))
 
-(define-public (gw:wct-set-print-ccg! t generator)
+(define-public (wct-set-print-ccg! t generator)
   (hashq-set! t 'wct:print-func-name
               (string-append "gw__wct_print_for_"
-                             (gw:any-str->c-sym-str
-                              (symbol->string (gw:type-get-name type)))))
+                             (any-str->c-sym-str
+                              (symbol->string (type-get-name type)))))
   (hashq-set! t 'wct:print-ccg generator))
 
-(define-public (gw:wct-set-equal?-ccg! t generator)
+(define-public (wct-set-equal?-ccg! t generator)
   (hashq-set! t 'wct:equal?-func-name
               (string-append "gw__wct_equal_p_for_"
-                             (gw:any-str->c-sym-str
-                              (symbol->string (gw:type-get-name type)))))
+                             (any-str->c-sym-str
+                              (symbol->string (type-get-name type)))))
   (hashq-set! t 'wct:equal?-ccg generator))
 
-(define-public (gw:wct-set-gc-mark-ccg! t generator)
+(define-public (wct-set-gc-mark-ccg! t generator)
   (hashq-set! t 'wct:gc-mark-func-name
               (string-append "gw__wct_gc_mark_for_"
-                             (gw:any-str->c-sym-str
-                              (symbol->string (gw:type-get-name type)))))
+                             (any-str->c-sym-str
+                              (symbol->string (type-get-name type)))))
   (hashq-set! t 'wct:gc-mark-ccg generator))
 
-(define-public (gw:wct-set-cleanup-c-rep-ccg! t generator)
+(define-public (wct-set-cleanup-c-rep-ccg! t generator)
   (hashq-set! t 'wct:cleanup-func-name
               (string-append "gw__wct_cleanup_for_"
-                             (gw:any-str->c-sym-str
-                              (symbol->string (gw:type-get-name type)))))
+                             (any-str->c-sym-str
+                              (symbol->string (type-get-name type)))))
   (hashq-set! t 'wct:cleanup-ccg generator))
 
 
 
-(let ((ws (gw:new-wrapset "gw-wct")))
+(let ((ws (new-wrapset "gw-wct")))
 
-  (gw:wrapset-set-guile-module! ws '(g-wrap gw-wct))
+  (wrapset-set-guile-module! ws '(g-wrap gw-wct))
 
-  (gw:wrapset-depends-on ws "gw-standard")
+  (wrapset-depends-on ws "gw-standard")
 
-  ;;(gw:wrapset-add-cs-declarations!
+  ;;(wrapset-add-cs-declarations!
   ;; ws
   ;; (lambda (wrapset client-wrapset)
   ;;    "#include <g-wrap-wct.h>\n"))
           
-  (gw:wrapset-add-cs-initializers!
+  (wrapset-add-cs-initializers!
    ws
    (lambda (wrapset client-wrapset status-var)
      (if (not client-wrapset)
@@ -261,50 +294,50 @@
          '())))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; <gw:wct> - wrapped c pointer type object
-  (gw:wrap-simple-type ws '<gw:wct> "SCM"
+  ;; <wct> - wrapped c pointer type object
+  (wrap-simple-type ws '<wct> "SCM"
                        '("gw_wct_p(" scm-var ")")
                        '(c-var " = " scm-var ";\n")
                        '(scm-var " = " c-var ";\n")
                        'pointer) ;; not accurate
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; <gw:wcp> - wrapped c pointer object
-  (gw:wrap-simple-type ws '<gw:wcp> "SCM"
+  ;; <wcp> - wrapped c pointer object
+  (wrap-simple-type ws '<wcp> "SCM"
                        '("gw_wcp_p(" scm-var ")")
                        '(c-var " = " scm-var ";\n")
                        '(scm-var " = " c-var ";\n")
                        'pointer) ;; not accurate
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; <gw:void*> - wrapped c pointer object
-  (gw:wrap-as-wct ws '<gw:void*> "void *" "const void *")
+  ;; <void*> - wrapped c pointer object
+  (wrap-as-wct ws '<void*> "void *" "const void *")
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Wrapped functions...  
 
-  (gw:wrap-function
+  (wrap-function
    ws
-   'gw:wct?
-   '<gw:bool> "gw_wct_p" '((<gw:scm> obj))
-   "Is obj a gw:wct?")
+   'wct?
+   '<bool> "gw_wct_p" '((<scm> obj))
+   "Is obj a wct?")
   
-  (gw:wrap-function
+  (wrap-function
    ws
-   'gw:wcp?
-   '<gw:bool> "gw_wcp_p" '((<gw:scm> obj))
-   "Is obj a gw:wcp?")
+   'wcp?
+   '<bool> "gw_wcp_p" '((<scm> obj))
+   "Is obj a wcp?")
   
-  (gw:wrap-function
+  (wrap-function
    ws
-   'gw:wcp-is-of-type?
-   '<gw:bool> "gw_wcp_is_of_type_p" '((<gw:wct> type) (<gw:wcp> wcp))
+   'wcp-is-of-type?
+   '<bool> "gw_wcp_is_of_type_p" '((<wct> type) (<wcp> wcp))
    "Returns #f iff the given wcp is not of the type specified.  type must be a
 g-wrap wrapped c type object, usually available via global bindings.  For
-example (gw:wcp-is-a? <gw:void*> foo)")
+example (wcp-is-a? <void*> foo)")
 
-  (gw:wrap-function
+  (wrap-function
    ws
-   'gw:wcp-coerce
-   '<gw:wcp> "gw_wcp_coerce" '((<gw:wcp> wcp) (<gw:wct> new-type))
+   'wcp-coerce
+   '<wcp> "gw_wcp_coerce" '((<wcp> wcp) (<wct> new-type))
    "Coerce the given wcp to new-type.  This can be dangerous, so be careful."))
