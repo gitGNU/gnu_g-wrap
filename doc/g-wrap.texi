@@ -701,8 +701,8 @@ So in our Timespec64 example, we might define our unwrap codegen like
 this:
 
 @lisp
-  (define-method (unwrap-value-cg (type <gw-ctype-void>)
-                                    (value <gw-value>) error-var)
+  (define-method (wrap-value-cg (type <gw-ctype-void>)
+                                (value <gw-value>) error-var)
     (list
       (scm-var value) " = "msu_timespec64_to_scm(" (scm-var value) ");\n"))
 @end lisp

@@ -136,7 +136,57 @@
                              #:c-type-name "unsigned long long"
                              #:max "ULLONG_MAX"
                              #:ffspec 'ulong_long)
+
+  ;; Bit-counted types from <inttypes.h>
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'int8
+                             #:c-type-name "int8_t"
+                             #:min "INT8_MIN" #:max "INT8_MAX"
+                             #:ffspec 'sint8)
   
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'unsigned-int8
+                             #:c-type-name "uint8_t"
+                             #:max "UINT8_MAX"
+                             #:ffspec 'uint8)
+  
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'int16
+                             #:c-type-name "int16_t"
+                             #:min "INT16_MIN" #:max "INT16_MAX"
+                             #:ffspec 'sint16)
+  
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'unsigned-int16
+                             #:c-type-name "uint16_t"
+                             #:max "UINT16_MAX"
+                             #:ffspec 'uint16)
+  
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'int32
+                             #:c-type-name "int32_t"
+                             #:min "INT32_MIN" #:max "INT32_MAX"
+                             #:ffspec 'sint32)
+  
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'unsigned-int32
+                             #:c-type-name "uint32_t"
+                             #:max "UINT32_MAX"
+                             #:ffspec 'uint32)
+  
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'int64
+                             #:c-type-name "int64_t"
+                             #:min "INT64_MIN" #:max "INT64_MAX"
+                             #:ffspec 'sint64)
+  
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'unsigned-int64
+                             #:c-type-name "uint64_t"
+                             #:max "UINT64_MAX"
+                             #:ffspec 'uint64)
+  
+
   (wrap-type! wrapset 'mchars
               #:name 'mchars
               #:c-type-name "char *"

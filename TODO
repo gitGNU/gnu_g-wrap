@@ -1,9 +1,7 @@
+* Add file explanation headers
+
+* Do the metaclass simplification of types vs. values
 
 * Split into low-level and "approved" API
-
-* Error handling
-  - Use srfi-35 conditions
-  - Present errors more nicely to user
-  - Remove output files on error
 
 * Tests for generic functions creation

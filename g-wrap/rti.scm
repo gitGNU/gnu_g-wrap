@@ -29,7 +29,7 @@
   #:export
   (<gw-rti-wrapset>
    c-info-sym typespec-cg
-   function-rti? use-rti-for-function?
+   function-rti? uses-rti-for-function?
    
    <gw-rti-value>
    
@@ -224,20 +224,21 @@
        "}\n")))
 
 ;; Returns #t if we can support RTI for the function and it is enabled
-(define-method (use-rti-for-function? (wrapset <gw-rti-wrapset>)
-                                      (function <gw-function>))
+(define-method (uses-rti-for-function? (wrapset <gw-rti-wrapset>)
+                                       (function <gw-function>))
   (and (slot-ref wrapset 'function-rti?)
        (every (lambda (type) (is-a? type <gw-rti-type>))
               (cons (return-type function)
                     (argument-types function)))
-       (every (lambda (arg) (not (default-value arg)))
+       (every (lambda (arg) (not (or (default-value arg)
+                                     (output-argument? arg))))
               (arguments function))))
 
 (define-method (initializations-cg (wrapset <gw-rti-wrapset>)
                                    (function <gw-function>)
                                    error-var)
   (list
-   (if (use-rti-for-function? wrapset function)
+   (if (uses-rti-for-function? wrapset function)
        (add-function-rti-cg wrapset function)
        (next-method))))
 

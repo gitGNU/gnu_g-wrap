@@ -243,7 +243,7 @@
 ;; the method for rti wrapsets. It should be refactored into core.
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>)
                                       (function <gw-guile-function>))
-  (if (use-rti-for-function? wrapset function)
+  (if (uses-rti-for-function? wrapset function)
       '()
       (function-wrapper-cg wrapset function)))
 
@@ -729,16 +729,15 @@
       "(dynamic-call \"gw_guile_init_wrapset_" wrapset-name-c-sym "\"\n"
       "              (dynamic-link \"libgw-guile-" wrapset-name "\"))\n")
      port)
-    (if (not (function-rti? wrapset))
-        (let ((gf-hash (make-hash-table 67)))
-          (fold-functions
-           (lambda (func rest)
-             (let ((gf-name (generic-name func)))
-               (if gf-name
-                   (let ((handle
-                          (hashq-create-handle! gf-hash gf-name '())))
-                     (set-cdr! handle (cons func (cdr handle)))))))
-           #f wrapset)
+    (let ((gf-hash (make-hash-table 67)))
+      (fold-functions
+       (lambda (func rest)
+         (let ((gf-name (generic-name func)))
+           (if (and gf-name (not (uses-rti-for-function? wrapset func)))
+               (let ((handle
+                      (hashq-create-handle! gf-hash gf-name '())))
+                 (set-cdr! handle (cons func (cdr handle)))))))
+       #f wrapset)
           (hash-fold
            (lambda (gf funcs rest)
              (for-each 
@@ -756,7 +755,7 @@
                 (newline port))
               funcs)
              (newline port))
-           #f gf-hash)))))
+           #f gf-hash))))
   
 (define-method (generate-wrapset (lang <symbol>)
                                  (wrapset <gw-guile-wrapset>)

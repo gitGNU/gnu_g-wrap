@@ -68,7 +68,7 @@
    var wrapped-var if-typespec-option
    
    <gw-argument>
-   visible? default-value
+   visible? default-value output-argument?
 
    <gw-param>
    number output-param?
@@ -366,6 +366,9 @@
 
 (define-method (visible? (arg <gw-argument>))
   (arguments-visible? (type arg)))
+
+(define-method (output-argument? (arg <gw-argument>))
+  (memq 'out (options (typespec arg))))
 
 ;;; Constants
 
