@@ -51,6 +51,8 @@ void *  scm_realloc(void *mem, size_t size);
 #define scm_gc_malloc(size, what) scm_must_malloc((size), (what))
 void    scm_gc_free(void *mem, size_t size, const char *what);
 
+#define SCM_VECTOR_SET(x, idx, val) (SCM_VELTS(x)[(idx)] = (val))
+
 #endif
 
 #ifdef __cplusplus

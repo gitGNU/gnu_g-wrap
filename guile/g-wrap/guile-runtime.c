@@ -267,16 +267,21 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM class_name, SCM module,
       specializers = scm_cons (scm_class_top, specializers);
   }
 
-  if (use_optional_args) {
-      procm = scm_closure (scm_list_2 (scm_append (scm_list_2 (formals, rest_sym)),
-                                       scm_append (scm_list_3
-                                                   (scm_list_2 (scm_f_apply, subr),
-                                                    formals,
-                                                    scm_cons (rest_sym, SCM_EOL)))),
-                           scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
-  } else {
-      procm = scm_closure (scm_list_2 (formals, scm_cons (subr, formals)),
-                           scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
+  if (use_optional_args)
+  {
+    SCM f_apply = scm_c_eval_string ("apply");
+    procm = scm_closure (
+            scm_list_2 (scm_append (scm_list_2 (formals, rest_sym)),
+                        scm_append (scm_list_3
+                                    (scm_list_2 (f_apply, subr),
+                                     formals,
+                                     scm_cons (rest_sym, SCM_EOL)))),
+            scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
+  }
+  else
+  {
+    procm = scm_closure (scm_list_2 (formals, scm_cons (subr, formals)),
+                         scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
   }
 
   meth = scm_apply_0 (scm_sym_make,
@@ -311,7 +316,8 @@ static SCM gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
 
   while (!SCM_NULLP (proc_list))
   {
-    SCM entry, *velts;
+    SCM entry;
+    const SCM *velts;
     entry = SCM_CAR (proc_list);
     /* entry := #(proc class_name module n_req_args use_optional_args) */
     velts = SCM_VELTS (entry);
@@ -367,17 +373,17 @@ gw_guile_procedure_to_method_public (SCM proc, SCM class_name,
   {
     /* Handle the common case when there's not already a symbol in the
      * root. */
-    SCM entry, *velts;
+    SCM entry;
     SCM handle = scm_hashq_create_handle_x (latent_generics_hash, generic_name,
                                             SCM_EOL);
     entry = scm_c_make_vector (5, SCM_BOOL_F);
     /* entry := #(proc class_name module n_req_args use_optional_args) */
-    velts = SCM_VELTS (entry);
-    velts[0] = proc;
-    velts[1] = class_name;
-    velts[2] = scm_current_module ();
-    velts[3] = n_req_args;
-    velts[4] = use_optional_args;
+    
+    SCM_VECTOR_SET (entry, 0, proc);
+    SCM_VECTOR_SET (entry, 1, class_name);
+    SCM_VECTOR_SET (entry, 2, scm_current_module ());
+    SCM_VECTOR_SET (entry, 3, n_req_args);
+    SCM_VECTOR_SET (entry, 4, use_optional_args);
     SCM_SETCDR (handle, scm_cons (entry, SCM_CDR (handle)));
     return;
   }
