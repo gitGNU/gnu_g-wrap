@@ -7,28 +7,8 @@ AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 
 dnl Shared library versions
-
-GW_GUILE_RUNTIME_INTERFACE_MAJOR_VER=0
-GW_GUILE_RUNTIME_INTERFACE_REVISION=0
-GW_GUILE_RUNTIME_INTERFACE_AGE=0
-
-AC_SUBST(GW_GUILE_RUNTIME_INTERFACE_MAJOR_VER)
-AC_SUBST(GW_GUILE_RUNTIME_INTERFACE_REVISION)
-AC_SUBST(GW_GUILE_RUNTIME_INTERFACE_AGE)
-
-AC_DEFINE_UNQUOTED(GW_GUILE_RUNTIME_INTERFACE_MAJOR_VER,
-                   ${GW_GUILE_RUNTIME_INTERFACE_MAJOR_VER},
-                   [The major interface number for libgwrap-guile-runtime.])
-
-AC_DEFINE_UNQUOTED(GW_GUILE_RUNTIME_INTERFACE_REVISION,
-                   ${GW_GUILE_RUNTIME_INTERFACE_REVISION},
-                   [The revision number for libgwrap-guile-runtime.])
-
-AC_DEFINE_UNQUOTED(GW_GUILE_RUNTIME_INTERFACE_AGE,
-                   ${GW_GUILE_RUNTIME_INTERFACE_AGE},
-  [Number of previous interfaces supported by the current libgwrap-guile-runtime API.])
-
-
+GW_RUNTIME_VINFO(CORE, 0, 0, 0)
+GW_RUNTIME_VINFO(GUILE, 0, 0, 0)
 
 dnl
 dnl Checks for user options
@@ -52,6 +32,21 @@ AM_PROG_LIBTOOL
 dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
+if test "$GCC" = yes; then
+  CFLAGS="$CFLAGS -Wall" dnl -Wall is always a good idea
+  
+  AC_MSG_CHECKING([whether $CC accepts -std=gnu99])
+  save_CFLAGS="$CFLAGS"
+  CFLAGS="-std=gnu99"
+  AC_COMPILE_IFELSE(AC_LANG_PROGRAM(), cc_std_gnu99=yes, cc_std_gnu99=no)
+  if test "$cc_std_gnu99" = yes; then
+    CFLAGS="$save_CFLAGS -std=gnu99"
+    AC_MSG_RESULT(yes)
+  else
+    CFLAGS="$save_CFLAGS"
+    AC_MSG_RESULT(no)
+  fi
+fi
 
 dnl Checks for standard functions
 AC_FUNC_ALLOCA
@@ -70,4 +65,6 @@ dnl Guile
 GUILE_FLAGS
 
 AC_OUTPUT([Makefile
-           g-wrap/Makefile])
+           g-wrap/Makefile
+	   g-wrap/guile/Makefile
+	   test/Makefile])

@@ -181,7 +181,6 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
   SCM generic;
   SCM procm;
   SCM meth;
-  clock_t start, end;
   int i;
   char buffer[32];
   int is_generic = 0;
@@ -257,287 +256,36 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
   scm_add_method (generic, meth);
 }
 
-static int nregistered_wrapsets = 0;
-static int nallocated_wrapsets = 0;
-static GWWrapSet **registered_wrapsets = NULL;
-
-GWWrapSet *
-gw_wrapset_new (const char *name, const char *dependency, ...)
-{
-  GWWrapSet *ws;
-  GWWrapSet **ws_deps;
-  int i, ndeps;
-  const int start_size = 4;
-  va_list args;
-
-  /* TODO: We use linear searching now (stuff would be easier when we
-   * could use GLib). */
-  
-  for (i = 0; i < nregistered_wrapsets; i++)
-    if (strcmp (registered_wrapsets[i]->name, name) == 0)
-    {
-      scm_misc_error ("%gw:wrapset-new", "Tried to double-register wrapset",
-                      scm_makfrom0str (name));
-                      
-    }
-  
-  va_start (args, dependency);
-  for (ndeps = 0, ws_deps = NULL; dependency != NULL; ndeps++)
-  {
-    ws = NULL;
-    for (i = 0; i < nregistered_wrapsets; i++)
-      if (strcmp (registered_wrapsets[i]->name, dependency) == 0)
-      {
-        ws = registered_wrapsets[i];
-        break;
-      }
-    if (ws == NULL)
-      scm_misc_error ("%gw:wrapset-new",
-                      "Dependency on nonexisting wrapset: ~S.",
-                      scm_list_1 (scm_makfrom0str (dependency)));
-      
-    ws_deps = scm_realloc (ws_deps, (ndeps + 1) * sizeof (GWWrapSet *));
-    ws_deps[ndeps] = ws;
-
-    dependency = va_arg (args, const char *);
-  }
-  va_end (args);
-  
-  ws = scm_malloc (sizeof (GWWrapSet));
-  ws->name = name;
-  
-  ws->ndependencies = ndeps;
-  ws->dependencies = ws_deps;
-  
-  ws->types = scm_malloc (start_size * sizeof (GWTypeInfo));
-  ws->ntypes = 0;
-  ws->ntypes_allocated = start_size;
-  ws->types_sorted = 0;
-
-  ws->functions = scm_malloc (start_size * sizeof (GWFunctionInfo));
-  ws->nfunctions = 0;
-  ws->nfuncs_allocated = start_size;
-  
-  return ws;
-}
-
-void
-gw_wrapset_add_type (GWWrapSet *ws,
-                     const char *name,
-                     const char *class_name,
-                     ffi_type *type,
-                     const char **subtypes,
-                     GWFromScmFunc from_scm,
-                     GWToScmFunc to_scm,
-                     GWDestructorFunc destructor)
-{
-  GWTypeInfo *ti;
-  
-  if (ws->ntypes >= ws->ntypes_allocated)
-  {
-    ws->ntypes_allocated <<= 1;
-    ws->types = scm_realloc (ws->types, ws->ntypes_allocated *
-                             sizeof (GWTypeInfo));
-  }
-  
-  ti = &ws->types[ws->ntypes++];
-
-  assert (!(type != NULL && subtypes != NULL));
-  
-  if (subtypes)
-  {
-    int nsubtypes, i;
-    ffi_type **type_elements;
-    
-    for (nsubtypes = 0; subtypes[nsubtypes] != NULL; nsubtypes++)
-      ;
-    
-    type = scm_malloc (sizeof (ffi_type)
-                       + (nsubtypes + 1) * sizeof (ffi_type *));
-    type_elements = (ffi_type **)((unsigned char *)type + sizeof (ffi_type));
-    
-    for (i = 0; i < nsubtypes; i++)
-    {
-      GWTypeInfo *subtype_info = gw_wrapset_lookup_type(ws, subtypes[i]);
-      assert (subtype_info != NULL && subtype_info->type != NULL);
-      type_elements[i] = subtype_info->type;
-    }
-    type_elements[nsubtypes] = NULL;
-
-    type->type = FFI_TYPE_STRUCT;
-    type->size = type->alignment = 0;
-    type->elements = type_elements;
-  }
-  
-  ti->name = name;
-  ti->class_name = class_name;
-  ti->type = type;
-  ti->from_scm = from_scm;
-  ti->to_scm = to_scm;
-  ti->destructor = destructor;
-  
-  ws->types_sorted = 0;
-}
-
-static int
-typeinfo_cmp (const void *a, const void *b)
-{
-  return strcmp (((GWTypeInfo *) a)->name, ((GWTypeInfo *) b)->name);
-}
-
-GWTypeInfo *
-gw_wrapset_lookup_type (GWWrapSet *ws, const char *name)
-{
-  GWTypeInfo key;
-  GWTypeInfo *result;
-
-  if (!ws->types_sorted)
-  {
-    qsort (ws->types, ws->ntypes, sizeof (GWTypeInfo), typeinfo_cmp);
-    ws->types_sorted = 1;
-  }
-
-  key.name = name;
-  result = (GWTypeInfo *) bsearch (&key, ws->types, ws->ntypes,
-                                   sizeof (GWTypeInfo), typeinfo_cmp);
-  if (result == NULL)
-  {
-    int i;
-    /* Recursivly search wrapsets we depend on. */
-    for (i = 0; i < ws->ndependencies; i++)
-    {
-      result = gw_wrapset_lookup_type (ws->dependencies[i], name);
-      if (result)
-        break;
-    }
-  }
-  return result;
-}
-
-void
-gw_wrapset_add_function (GWWrapSet *ws,
-                         int dynamic,
-                         void *proc,
-                         int n_req_args,
-                         int n_opt_args,
-                         int use_extra_args,
-                         const char *ret_type,
-                         GWTypeSpec ret_typespec,
-                         const char **arg_types,
-                         GWTypeSpec *arg_typespecs,
-                         const char *proc_name,
-                         const char *generic_name)
-{
-  GWFunctionInfo *fi;
-  ffi_type **arg_ffi = NULL;
-  ffi_status status;
-  int i;
-
-  if (ws->nfunctions >= ws->nfuncs_allocated)
-  {
-    ws->nfuncs_allocated <<= 1;
-    ws->functions = scm_realloc (ws->functions, ws->nfuncs_allocated *
-                                 sizeof (GWFunctionInfo));
-  }
-  fi = &ws->functions[ws->nfunctions];
-  fi->dynamic = dynamic;
-  fi->proc = proc;
-  fi->n_required_args = n_req_args;
-  fi->n_optional_args = n_opt_args;
-  fi->use_extra_args = use_extra_args;
-  fi->proc_name = proc_name;
-  fi->generic_name = generic_name;
-  
-  assert ((arg_types && ret_type) || !dynamic);
-  
-  if (arg_types != NULL && fi->dynamic)
-  {
-    for (fi->nargs = 0; arg_types[fi->nargs] != NULL; fi->nargs++)
-      ;
-    
-    if (fi->nargs > 0)
-      fi->arg_types = scm_malloc (fi->nargs * sizeof (GWTypeInfo *));
-    else
-      fi->arg_types = NULL;
-    
-    for (i = 0; i < fi->nargs; i++)
-    {
-      fi->arg_types[i] = gw_wrapset_lookup_type (ws, arg_types[i]);
-      if (fi->arg_types[i] == NULL)
-        scm_misc_error ("%gw:wrapset-add-function",
-                        "invalid argument type reference ~S "
-                        "in argument list of ~S\n",
-                        scm_list_2 (scm_makfrom0str (arg_types[i]),
-                                    scm_makfrom0str (fi->proc_name)));
-    }
-  }
-  else
-  {
-    fi->nargs = 0;
-    fi->arg_types = NULL;
-  }
-  
-  /* argument must be static */
-  fi->arg_typespecs = arg_typespecs;
-
-  fi->ret_type = ret_type ? gw_wrapset_lookup_type (ws, ret_type) : NULL;
-  fi->ret_typespec = ret_typespec;
-  
-  fi->data_area_size = fi->nargs * sizeof (void *);
-  
-  if (fi->nargs > 0)
-  {
-    /* Data is used by ffi_call, so don't free it */
-    arg_ffi = (ffi_type **) scm_malloc (sizeof (ffi_type *) * fi->nargs);
-    for (i = 0; i < fi->nargs; i++)
-    {
-      arg_ffi[i] = fi->arg_types[i]->type;
-      assert (arg_ffi[i] != NULL);
-    }
-  }
-
-  if (fi->dynamic)
-  {
-    status = ffi_prep_cif (&fi->cif, FFI_DEFAULT_ABI, fi->nargs,
-                           fi->ret_type->type, arg_ffi);
-    assert (status == FFI_OK);
-  
-    /* now we know the sizes of the types and calculate the data
-     * area size where we store the arguments' values */
-    for (i = 0; i < fi->nargs; i++)
-      fi->data_area_size += arg_ffi[i]->size;
-    fi->data_area_size += fi->ret_type->type->size;
-  }
-  
-  ws->nfunctions++;
-}
-
 static SCM
 dynproc_smob_apply (SCM smob, SCM args)
 {
   GWFunctionInfo *fi = (GWFunctionInfo *) SCM_SMOB_DATA (smob);
   SCM result;
-  ffi_cif *cif;
   void **values;
   void *rvalue;
   int i;
   unsigned offset;
   void *data;
   GWError error;
-
+  
+  /* TODO: Most of this should be factored out into the core; but how
+   * to deal with the arg list? */
+  
   data = alloca (fi->data_area_size);
   values = (void **) data;
 
   error.status = GW_ERR_NONE;
-  
+
   offset = fi->nargs * sizeof (void *);
   for (i = 0; i < fi->nargs; i++)
   {
+    SCM arg;
     values[i] = (void *) ((unsigned char *) data + offset);
     if (!SCM_CONSP (args))
       scm_wrong_num_args (smob);
-    fi->arg_types[i]->from_scm (values[i], &fi->arg_typespecs[i],
-                                SCM_CAR (args), &error);
+    arg = SCM_CAR (args);
+    fi->arg_types[i]->unwrap_value (values[i], &fi->arg_typespecs[i],
+                                    &arg, &error);
     if (error.status != GW_ERR_NONE)
       gw_handle_wrapper_error (&error, fi->proc_name, i + 1);
     offset += fi->arg_types[i]->type->size;
@@ -547,11 +295,11 @@ dynproc_smob_apply (SCM smob, SCM args)
   
   ffi_call (&fi->cif, fi->proc, rvalue, values);
 
-  result = fi->ret_type->to_scm (rvalue, &fi->ret_typespec, &error);
+  fi->ret_type->wrap_value (rvalue, &fi->ret_typespec, &result, &error);
   if (error.status != GW_ERR_NONE)
     gw_handle_wrapper_error (&error, fi->proc_name, 0);
 
-  fi->ret_type->destructor (rvalue, &fi->ret_typespec, 0, &error);
+  fi->ret_type->destruct_value (rvalue, &fi->ret_typespec, &error);
   if (error.status != GW_ERR_NONE)
     gw_handle_wrapper_error (&error, fi->proc_name, 0);
 
@@ -559,7 +307,8 @@ dynproc_smob_apply (SCM smob, SCM args)
    * traditional glue. */
   for (i = fi->nargs - 1; i >= 0; i--)
   {
-    fi->arg_types[i]->destructor (values[i], &fi->arg_typespecs[i], 0, &error);
+    fi->arg_types[i]->destruct_value (values[i], &fi->arg_typespecs[i],
+                                      &error);
     if (error.status != GW_ERR_NONE)
       gw_handle_wrapper_error (&error, fi->proc_name, i + 1);
   }
@@ -581,8 +330,8 @@ dynproc_smob_print (SCM smob, SCM port, scm_print_state *pstate)
   return 1;
 }
 
-void
-gw_runtime_init (void)
+static void
+gw_guile_runtime_init (void)
 {
   static int initialized = 0;
   
@@ -631,73 +380,10 @@ gw_runtime_init (void)
  */
   
 
-/* Note that the wrapset must not be modified once this function has
- * been called. */
-void
-gw_wrapset_register (GWWrapSet *ws)
-{
-  int i;
-
-  for (i = 0; i < ws->nfunctions; i++)
-  {
-    SCM subr;
-    GWFunctionInfo *fi = &ws->functions[i];
-    
-    if (fi->dynamic)
-    {
-      SCM_NEWSMOB(subr, dynproc_smob_tag, fi);
-      scm_c_define (fi->proc_name, subr);
-    }
-    else
-      subr = scm_c_define_gsubr (fi->proc_name, 
-                                 fi->n_required_args,
-                                 fi->n_optional_args,
-                                 fi->use_extra_args,
-                                 (SCM (*)())fi->proc);
-    
-    if (fi->generic_name)
-    {
-      SCM specializers = SCM_EOL;
-      int j;
-      
-      for (j = fi->nargs - 1; j >= 0; j--)
-      {
-        SCM klass = scm_class_top;
-        const char *class_name = fi->arg_types[j]->class_name;
-
-        /* we specialize only on the first parameter, since the others
-         * don't work with gobject/<gvalue> */
-        if (j == 0 && class_name)
-          klass = SCM_VARIABLE_REF (scm_c_lookup (class_name));
-        
-        if (SCM_FALSEP (scm_call_2 (is_a_p_proc, klass, scm_class_class)))
-          scm_misc_error ("%gw:wrapset-init", "specializer is not a class: ~A",
-                          scm_list_1 (klass));
-        specializers = scm_cons (klass, specializers);
-      }
-      
-      gw_function_to_method_public (subr, fi->nargs, specializers,
-                                    scm_str2symbol (fi->generic_name));
-    }
-  }
-  
-  if (nallocated_wrapsets <= nregistered_wrapsets)
-  {
-    if (nallocated_wrapsets > 0)
-      nallocated_wrapsets <<= 1;
-    else
-      nallocated_wrapsets = 4;
-    registered_wrapsets =
-      scm_realloc (registered_wrapsets,
-                   nallocated_wrapsets * sizeof (GWWrapSet *));
-  }
-  registered_wrapsets[nregistered_wrapsets++] = ws;
-}
-
-void
-gw_handle_wrapper_error(GWError *error,
-                        const char *func_name,
-                        unsigned int arg_pos)
+static void
+gw_guile_handle_wrapper_error(GWError *error,
+                              const char *func_name,
+                              unsigned int arg_pos)
 {
   static SCM out_of_range_key = SCM_BOOL_F;
   static SCM wrong_type_key = SCM_BOOL_F;
@@ -754,5 +440,51 @@ gw_handle_wrapper_error(GWError *error,
   exit(1);
 }
 
-/*  LocalWords:  age
- */
+static void
+gw_guile_register_wrapset (GWWrapSet *ws)
+{
+  int i;
+
+  for (i = 0; i < ws->nfunctions; i++)
+  {
+    SCM subr;
+    GWFunctionInfo *fi = &ws->functions[i];
+    
+    if (fi->dynamic)
+    {
+      SCM_NEWSMOB(subr, dynproc_smob_tag, fi);
+      scm_c_define (fi->proc_name, subr);
+    }
+    else
+      subr = scm_c_define_gsubr (fi->proc_name, 
+                                 fi->n_required_args,
+                                 fi->n_optional_args,
+                                 fi->use_extra_args,
+                                 (SCM (*)())fi->proc);
+    
+    if (fi->generic_name)
+    {
+      SCM specializers = SCM_EOL;
+      int j;
+      
+      for (j = fi->nargs - 1; j >= 0; j--)
+      {
+        SCM klass = scm_class_top;
+        const char *class_name = fi->arg_types[j]->class_name;
+
+        /* we specialize only on the first parameter, since the others
+         * don't work with gobject/<gvalue> */
+        if (j == 0 && class_name)
+          klass = SCM_VARIABLE_REF (scm_c_lookup (class_name));
+        
+        if (SCM_FALSEP (scm_call_2 (is_a_p_proc, klass, scm_class_class)))
+          scm_misc_error ("%gw:wrapset-init", "specializer is not a class: ~A",
+                          scm_list_1 (klass));
+        specializers = scm_cons (klass, specializers);
+      }
+      
+      gw_function_to_method_public (subr, fi->nargs, specializers,
+                                    scm_str2symbol (fi->generic_name));
+    }
+  }
+}

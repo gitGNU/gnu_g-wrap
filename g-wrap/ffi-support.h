@@ -17,28 +17,39 @@ to the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139,
 USA.
 **********************************************************************/
 
-#ifndef __G_WRAP_GUILE_RUNTIME_H__
-#define __G_WRAP_GUILE_RUNTIME_H__
+#ifndef __G_WRAP_FFI_SUPPORT_H__
+#define __G_WRAP_FFI_SUPPORT_H__
 
-#include <libguile.h>
-
-#include <g-wrap/ffi-support.h>
-#include <g-wrap/core-runtime.h>
+#include <ffi.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct _GWEnumPair GWEnumPair;
+/* FFI has messed-up type #defines, see
+ * http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12782 */
+#if !defined(ffi_type_ulong_long)
 
-struct _GWEnumPair
-{
-    int val;
-    const char *sym;
-};
+#undef ffi_type_ulong
+#undef ffi_type_slong
 
-SCM gw_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p);
-SCM gw_enum_val2int(GWEnumPair enum_pairs[], SCM scm_val);
+#if SIZEOF_LONG == 4
+
+#define ffi_type_ulong ffi_type_uint32
+#define ffi_type_slong ffi_type_sint32
+
+#elif SIZEOF_LONG == 8
+
+#define ffi_type_ulong ffi_type_uint64
+#define ffi_type_slong ffi_type_sint64
+
+#endif
+
+/* any machines with 128bit long longs yet? */
+#define ffi_type_ulong_long ffi_type_uint64
+#define ffi_type_slong_long ffi_type_sint64
+
+#endif /* !defined(ffi_type_ulong_long) */
 
 #ifdef __cplusplus
 }
