@@ -309,7 +309,7 @@
               (list
                "/* ARG " (number param) " */\n"
                "gw__arg_pos++;\n"
-               (if (> (number param) *max-fixed-params*)
+               (if (>= (number param) *max-fixed-params*)
                    (list
                     "if (SCM_NULLP (gw__restargs))\n"
                     (if (>= (number param) opt-args-start)

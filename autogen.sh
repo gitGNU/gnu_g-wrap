@@ -5,7 +5,7 @@ DIE=0
 package=g-wrap-tng
 srcfile=g-wrap/guile.scm
 
-. autogen-support.sh
+. ./autogen-support.sh
 
 CONFIGURE_DEF_OPT='--enable-maintainer-mode'
 ACLOCAL_FLAGS="-I m4 $ACLOCAL_FLAGS"
@@ -43,9 +43,9 @@ echo "+ creating m4/libchecks.m4"
 ( cd m4 && m4 < libchecks.m4-in > libchecks.m4 )
 
 if test -f acinclude.m4; then rm acinclude.m4; fi
-tool_run "$aclocal" "$ACLOCAL_FLAGS"
 
 tool_run "$libtoolize" "--copy --force"
+tool_run "$aclocal" "$ACLOCAL_FLAGS"
 tool_run "$autoheader"
 
 tool_run "$autoconf"
