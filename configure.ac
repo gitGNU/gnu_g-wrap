@@ -6,7 +6,7 @@ dnl Program version
 
 GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
 AC_SUBST(GW_BRANCH)
-GW_VERSION=1.9.4
+GW_VERSION=1.9.5
 
 AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
 AM_CONFIG_HEADER(config.h)
@@ -18,7 +18,7 @@ AC_SUBST(ACLOCAL_FLAGS,$ACLOCAL_FLAGS)
 
 dnl Shared library versions
 GW_RUNTIME_VINFO(CORE, 0, 1, 0)
-GW_RUNTIME_VINFO(GUILE, 0, 1, 0)
+GW_RUNTIME_VINFO(GUILE, 0, 2, 0)
 
 dnl
 dnl Checks for user options

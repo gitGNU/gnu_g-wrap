@@ -34,7 +34,7 @@ if HAVE_GLIB
 # libgw-guile-gw-glib
 #---------------------
 lib_LTLIBRARIES += libgw-guile-gw-glib.la
-nodist_libgw_guile_gw_glib_la_SOURCES = glib.c
+nodist_libgw_guile_gw_glib_la_SOURCES = gw-glib.c
 libgw_guile_gw_glib_la_LDFLAGS = -module $(GUILE_LDFLAGS)
 libgw_guile_gw_glib_la_LIBADD = ../libgwrap-guile-runtime.la $(GLIB_LIBS)
 libgw_guile_gw_glib_la_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
