@@ -59,6 +59,11 @@ void gw_test_generic__double_double_ptr (double d, double *pd)
   *pd = d;
 }
 
+int gw_test_generic__bool_bool (int b1, int b2)
+{
+  return b1 && b2;
+}
+
 /*======================================================================*/
 /* For test-gw-enumeration */
 

@@ -114,7 +114,9 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
   (assert-equal "foo foo foo " (gw-test-generic "foo " 3))
   (assert-equal #f (gw-test-generic #f))
   (assert-equal "foo" (gw-test-generic "foo"))
-  (assert-equal 666.0 (gw-test-generic 666.0)))
+  (assert-equal 666.0 (gw-test-generic 666.0))
+  (assert-equal #f (gw-test-generic #t))
+  (assert-equal #t (gw-test-generic #t #t)))
 
 (exit-with-summary (run-all-defined-test-cases))
 

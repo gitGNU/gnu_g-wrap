@@ -15,6 +15,7 @@ int gw_test_generic__int (int n);
 char *gw_test_generic__str_int (const char *str, int n);
 const char *gw_test_generic__str_null_ok (const char *str);
 void gw_test_generic__double_double_ptr (double d, double *pd);
+int gw_test_generic__bool_bool (int b1, int b2);
 
 /* For test-enumeration */
 

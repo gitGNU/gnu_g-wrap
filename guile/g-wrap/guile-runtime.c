@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2004 Andreas Rottmann
+Copyright (C) 2003-2005 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -239,7 +239,7 @@ gw_guile_make_latent_variable (SCM sym, SCM proc, SCM arg)
 
 /* Grr. Seems subrs can't be methods. */
 static void 
-gw_guile_add_subr_method (SCM generic, SCM subr, SCM req_specializers,
+gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
                           SCM module, int n_req_args, int use_optional_args)
 {
   int i;
@@ -247,16 +247,16 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM req_specializers,
   SCM specializers, formals, procm, meth, rest_sym = SCM_BOOL_F;
   
   specializers = SCM_EOL;
-  while (SCM_CONSP (req_specializers))
+  for (i = n_req_args; i > 0 && SCM_CONSP (all_specializers); i--)
   {
-    SCM class_name = SCM_CAR (req_specializers);
+    SCM class_name = SCM_CAR (all_specializers);
     if (SCM_NFALSEP (class_name)) {
         SCM var = scm_module_lookup (module, class_name);
         specializers = scm_cons (SCM_VARIABLE_REF (var), specializers);
     } else {
         specializers = scm_cons (scm_class_top, specializers);
     }
-    req_specializers = SCM_CDR (req_specializers);
+    all_specializers = SCM_CDR (all_specializers);
   }
   specializers = scm_reverse (specializers);
   
@@ -370,7 +370,7 @@ ensure_scm_module_hacked (void)
 
 /* no explicit returns in this function */
 void
-gw_guile_procedure_to_method_public (SCM proc, SCM req_specializers,
+gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
                                      SCM generic_name,
                                      SCM n_req_args, SCM use_optional_args)
 #define FUNC_NAME "%gw:procedure-to-method-public!"
@@ -379,7 +379,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM req_specializers,
   SCM existing_latents;
 
   SCM_VALIDATE_PROC (1, proc);
-  SCM_VALIDATE_LIST (2, req_specializers);
+  SCM_VALIDATE_LIST (2, specializers);
   SCM_VALIDATE_SYMBOL (3, generic_name);
   SCM_VALIDATE_INUM (4, n_req_args);
   /* the fifth is a bool */
@@ -408,7 +408,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM req_specializers,
     /* entry := #(proc specializers module n_req_args use_optional_args) */
     
     SCM_VECTOR_SET (entry, 0, proc);
-    SCM_VECTOR_SET (entry, 1, req_specializers);
+    SCM_VECTOR_SET (entry, 1, specializers);
     SCM_VECTOR_SET (entry, 2, scm_current_module ());
     SCM_VECTOR_SET (entry, 3, n_req_args);
     SCM_VECTOR_SET (entry, 4, use_optional_args);
@@ -464,8 +464,8 @@ gw_guile_procedure_to_method_public (SCM proc, SCM req_specializers,
       scm_call_3 (module_add_x, the_root_module, generic_name,
                   scm_make_variable (generic));
     }
-    gw_guile_add_subr_method (generic, proc, req_specializers, 
-                              scm_current_module (),                              
+    gw_guile_add_subr_method (generic, proc, specializers, 
+                              scm_current_module (),
                               SCM_INUM (n_req_args),
                               SCM_NFALSEP (use_optional_args));
   }

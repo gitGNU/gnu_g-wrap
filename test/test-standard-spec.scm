@@ -1,5 +1,5 @@
 ;;;; File: test-standard-spec.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004-2005 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -232,4 +232,12 @@
                   #:returns 'void
                   #:c-name "gw_test_generic__double_double_ptr"
                   #:arguments '((double d) ((double out) d-out)))
+  
+  (wrap-function! ws
+                  #:generic-name 'gw-test-generic
+                  #:name 'gw-test-generic/bool-bool
+                  #:returns 'bool
+                  #:c-name "gw_test_generic__bool_bool"
+                  #:arguments '((bool b1) (bool b2 (default "0"))))
+
   )

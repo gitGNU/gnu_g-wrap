@@ -4,6 +4,13 @@ Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Initially created by Christopher Lee.
 See the end for copying conditions.
 
+Version 1.9.5
+
+  - Bugfixes
+    + A problem with generic specializer class lookup has been fixed.
+    + A problem with generics specialization and default arguments has
+      been fixed.
+
 Version 1.9.4
 
   - Enhanced generics support: now all arguments of methods are 
