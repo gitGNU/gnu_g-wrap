@@ -240,7 +240,7 @@ gw_guile_make_latent_variable (SCM sym, SCM proc, SCM arg)
 /* Grr. Seems subrs can't be methods. */
 static void 
 gw_guile_add_subr_method (SCM generic, SCM subr, SCM req_specializers,
-                          int n_req_args, int use_optional_args)
+                          SCM module, int n_req_args, int use_optional_args)
 {
   int i;
   char buffer[32];
@@ -250,10 +250,12 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM req_specializers,
   while (SCM_CONSP (req_specializers))
   {
     SCM class_name = SCM_CAR (req_specializers);
-    specializers = scm_cons (SCM_NFALSEP (class_name)
-                             ? SCM_VARIABLE_REF ( scm_lookup (class_name))
-                             : scm_class_top,
-                             specializers);
+    if (SCM_NFALSEP (class_name)) {
+        SCM var = scm_module_lookup (module, class_name);
+        specializers = scm_cons (SCM_VARIABLE_REF (var), specializers);
+    } else {
+        specializers = scm_cons (scm_class_top, specializers);
+    }
     req_specializers = SCM_CDR (req_specializers);
   }
   specializers = scm_reverse (specializers);
@@ -329,7 +331,7 @@ gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
     velts = SCM_VELTS (entry);
 
     gw_guile_add_subr_method (generic,
-                              velts[0], velts[1],
+                              velts[0], velts[1], velts[2],
                               SCM_INUM (velts[3]), SCM_NFALSEP (velts[4]));
 
     proc_list = SCM_CDR (proc_list);
@@ -463,6 +465,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM req_specializers,
                   scm_make_variable (generic));
     }
     gw_guile_add_subr_method (generic, proc, req_specializers, 
+                              scm_current_module (),                              
                               SCM_INUM (n_req_args),
                               SCM_NFALSEP (use_optional_args));
   }
