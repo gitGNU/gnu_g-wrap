@@ -323,7 +323,7 @@
      
      (map
       (lambda (number)
-        (list "  SCM " (out-param-name number) ";\n"))
+        (list "  SCM " (out-param-name number) " = SCM_UNSPECIFIED;\n"))
       (iota (length out-params)))
      
      "\n"
