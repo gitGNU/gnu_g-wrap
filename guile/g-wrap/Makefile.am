@@ -10,7 +10,7 @@ lib_LTLIBRARIES = libgwrap-guile-runtime.la
 nobase_gwrapmodule_DATA = \
   guile.scm guile/ws/standard.scm \
   compat.scm simple-type.scm gw-standard-spec.scm gw-wct-spec.scm \
-  gw-glib-spec.scm
+  gw-glib-spec.scm gw-wct.scm
 
 gwrapinclude_HEADERS = guile-runtime.h guile-compatibility.h guile-wct.h
 libgwrap_guile_runtime_la_SOURCES = \
