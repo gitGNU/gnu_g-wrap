@@ -5,7 +5,6 @@
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
   #:use-module (g-wrap ffi)
-  #:use-module (g-wrap simple-type)
   #:use-module (g-wrap guile)
   
   #:export (wrapset-gw-standard))
@@ -55,7 +54,7 @@
        'gw:bad-typespec #f
        (format #f "bad <simple-ranged-integer-type> typespec ~S" options))))
 
-(define-method (add-type! (wrapset <gw-standard-wrapset>) (name <symbol>)
+(define-method (add-type! (wrapset <gw-standard-wrapset>)
                           (type <simple-ranged-integer-type>))
   (next-method)
   (slot-set! wrapset 'use-limits? #t))
@@ -176,22 +175,25 @@
                                     status-var)
   (list (wrapped-var result) " = SCM_UNSPECIFIED"))
 
-(add-type! wrapset 'void
+(add-type! wrapset
            (make <void>
+             #:name 'void
              #:c-type-name "void"
              #:ffspec 'void))
  
 ;; SCM - pass scheme pointers through unmolested.
-(add-type! wrapset 'scm
-           (make <simple-type> 
+(add-type! wrapset
+           (make <simple-type>
+             #:name 'scm
              #:c-type-name "SCM"
              #:type-check '("1")
              #:ffspec 'pointer ;; FIXME: not accurate
              #:unwrap '(c-var " = " scm-var ";\n")
              #:wrap '(scm-var " = " c-var ";\n")))
 
-(add-type! wrapset 'bool
+(add-type! wrapset
            (make <simple-type>
+             #:name 'bool
              #:c-type-name "int"
              #:type-check '("1")  ;; Any scheme value is a valid bool.
              #:ffspec 'sint
@@ -199,24 +201,27 @@
              #:wrap '(scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n")))
 
 ;; FIXME: Guile chars are 0-255, not [-128,127] like c chars *may* be
-(add-type! wrapset 'char
+(add-type! wrapset
            (make <simple-type>
+             #:name 'char
              #:c-type-name "char"
              #:type-check '("SCM_NFALSEP(scm_char_p(" scm-var "))\n")
              #:unwrap '(c-var "= SCM_CHAR(" scm-var ");\n")
              #:wrap '(scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
              #:ffspec 'schar)) ;; FIXME: see above
 
-(add-type! wrapset 'uchar
+(add-type! wrapset
            (make <simple-type>
+             #:name 'uchar
              #:c-type-name "unsigned char"
              #:type-check '("SCM_NFALSEP(scm_char_p(" scm-var "))\n")
              #:unwrap '(c-var "= SCM_CHAR(" scm-var ");\n")
              #:wrap '(scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
              #:ffspec 'uchar))
 
-(add-type! wrapset 'float
+(add-type! wrapset
            (make <simple-type>
+             #:name 'float
              #:c-type-name "float"
              #:type-check '("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
              #:unwrap '(c-var "= scm_num2float(" scm-var ", 1,"
@@ -224,8 +229,9 @@
              #:wrap '(scm-var "= scm_float2num(" c-var ");\n")
              #:ffspec 'float))
 
-(add-type! wrapset 'double
+(add-type! wrapset
            (make <simple-type>
+             #:name 'double
              #:c-type-name "double"
              #:type-check '("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
              #:unwrap '(c-var "= scm_num2double(" scm-var ", 1,"
@@ -235,57 +241,65 @@
 
 ;; We might well do these with a loop iteration, since the types are
 ;; quite regular
-(add-type! wrapset 'short
+(add-type! wrapset
            (make <simple-ranged-integer-type>
+             #:name 'short
              #:c-type-name "short"
              #:min "SHRT_MIN" #:max "SHRT_MAX"
              #:wrap "scm_short2num" #:unwrap "scm_num2short"
              #:ffspec 'sshort))
 
-(add-type! wrapset 'unsigned-short
+(add-type! wrapset 
            (make <simple-ranged-integer-type>
+             #:name 'unsigned-short
              #:c-type-name "unsigned short"
              #:max "USHRT_MAX"
              #:wrap "scm_ushort2num" #:unwrap "scm_num2ushort"
              #:ffspec 'ushort))
 
-(add-type! wrapset 'int
+(add-type! wrapset
            (make <simple-ranged-integer-type>
+             #:name 'int
              #:c-type-name "int"
              #:min "INT_MIN" #:max "INT_MAX"
              #:wrap "scm_int2num" #:unwrap "scm_num2int"
              #:ffspec 'sint))
 
-(add-type! wrapset 'unsigned-int
+(add-type! wrapset
            (make <simple-ranged-integer-type>
+             #:name 'unsigned-int
              #:c-type-name "unsigned int"
              #:max "UINT_MAX"
              #:wrap "scm_uint2num" #:unwrap "scm_num2uint"
              #:ffspec 'uint))
 
-(add-type! wrapset 'long
+(add-type! wrapset
            (make <simple-ranged-integer-type>
+             #:name  'long
              #:c-type-name "long"
              #:min "LONG_MIN" #:max "LONG_MAX"
              #:wrap "scm_long2num" #:unwrap "scm_num2long"
              #:ffspec 'slong))
 
-(add-type! wrapset 'unsigned-long
+(add-type! wrapset
            (make <simple-ranged-integer-type>
+             #:name 'unsigned-long
              #:c-type-name "long"
              #:min "LONG_MIN" #:max "LONG_MAX"
              #:wrap "scm_long2num" #:unwrap "scm_num2long"
              #:ffspec 'slong))
 
-(add-type! wrapset 'long-long
+(add-type! wrapset
            (make <simple-ranged-integer-type>
+             #:name 'long-long
              #:c-type-name "long long"
              #:min "LLONG_MIN" #:max "LLONG_MAX"
              #:wrap "scm_long_long2num" #:unwrap "scm_num2long_long"
              #:ffspec 'slong_long))
 
-(add-type! wrapset 'unsigned-long-long
+(add-type! wrapset
            (make <simple-ranged-integer-type>
+             #:name  'unsigned-long-long
              #:c-type-name "unsigned long long"
              #:max "ULLONG_MAX"
              #:wrap "scm_ulong_long2num" #:unwrap "scm_num2ulong_long"
@@ -330,7 +344,8 @@
      ;; FIXME: typespec-option (caller-owned)
     (list "if (" c-var ") free (" c-var ");\n")))
 
-(add-type! wrapset 'mchars
+(add-type! wrapset
            (make <mchars>
+             #:name 'mchars
              #:c-type-name "char *" #:c-const-type-name "const char *"
              #:ffspec 'pointer))

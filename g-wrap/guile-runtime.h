@@ -37,8 +37,10 @@ struct _GWEnumPair
     const char *sym;
 };
 
-SCM gw_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p);
-SCM gw_enum_val2int(GWEnumPair enum_pairs[], SCM scm_val);
+void gw_guile_runtime_init (void);
+SCM gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val,
+                          SCM scm_show_all_p);
+SCM gw_guile_enum_val2int(GWEnumPair enum_pairs[], SCM scm_val);
 
 #ifdef __cplusplus
 }

@@ -53,18 +53,17 @@ struct _GWError
 
 struct _GWLangSupport
 {
-    void  (*init) (void);
     void  (*register_wrapset) (GWWrapSet *ws);
     
     void *(*malloc) (size_t size);
     void *(*realloc) (void *mem, size_t size);
-    void  (*raise_error) (const char *func_name, char *error);
+    void  (*raise_error) (const char *func_name, const char *error);
     void  (*handle_wrapper_error) (GWError *error,
                                    const char *func_name,
                                    unsigned int arg_pos);
 };
 
-void       gw_runtime_init (const GWLangSupport *lang);
+int        gw_runtime_init (GWLangSupport *lang);
 void *     gw_malloc (size_t size);
 void *     gw_realloc (void *mem, size_t size);
 void       gw_raise_error (const char *proc, const char *fmt, ...);
@@ -121,9 +120,7 @@ struct _GWFunctionInfo
     
     void *proc;            /* Wrapper function (if !dynamic) or real C
                             * function */
-    int n_required_args;
-    int n_optional_args;
-    int use_extra_args;
+    int n_args;
 
     GWTypeInfo *ret_type;
     GWTypeSpec ret_typespec;
@@ -170,11 +167,8 @@ void       gw_wrapset_add_type(GWWrapSet *ws,
 GWTypeInfo *gw_wrapset_lookup_type(GWWrapSet *ws, const char *name);
 
 void 	   gw_wrapset_add_function(GWWrapSet *ws,
-                                   int dynamic,
                                    void *proc,
-                                   int n_req_args,
-                                   int n_opt_args,
-                                   int use_extra_args,
+                                   int n_args,
                                    const char *ret_type,
                                    GWTypeSpec ret_typespec,
                                    const char **arg_types,

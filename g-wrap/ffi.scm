@@ -36,14 +36,14 @@
 
 
 (define-method (add-type-rti-cg (wrapset <gw-ffi-wrapset>)
-                                (name <symbol>)
                                 (type <gw-ffi-type>))
-  (let ((class-name (class-name type))
+  (let (;;(class-name (class-name type))
         (ws-info (c-info-sym wrapset)))
     (list
      "gw_wrapset_add_type(" ws-info ", \""
-     name "\", "
-     (if class-name (list "\"" class-name "\"") "NULL") ", "
+     (name type) "\", "
+     ;;(if class-name (list "\"" class-name "\"") "NULL") ", "
+     "NULL, " ;; FIXME
      "&ffi_type_" (ffspec type) ", NULL, "
      (wrap-value-function-name type) ", "
      (unwrap-value-function-name type) ", "

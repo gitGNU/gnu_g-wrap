@@ -71,7 +71,7 @@ gw_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
 
   if (SCM_SYMBOLP (scm_val))
   {
-    SCM scm_int_value = gw_enum_val2int (enum_pairs, scm_val);
+    SCM scm_int_value = gw_guile_enum_val2int (enum_pairs, scm_val);
     if (SCM_FALSEP (scm_int_value))
       return SCM_EOL;
     if (!return_all_syms)
@@ -98,7 +98,7 @@ gw_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
 }
 
 SCM
-gw_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
+gw_guile_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
 {
   char *symstr = NULL;
   GWEnumPair *epair;
@@ -123,7 +123,7 @@ gw_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
       if (!SCM_CONSP (tail) || !SCM_SYMBOLP (SCM_CAR (tail)))
         scm_wrong_type_arg("gw:enum-val->int", 1, scm_val);
       
-      s_val = gw_enum_val2int (enum_pairs, SCM_CAR (tail));
+      s_val = gw_guile_enum_val2int (enum_pairs, SCM_CAR (tail));
       if (SCM_FALSEP (s_val))
         return s_val;
       
@@ -330,45 +330,6 @@ dynproc_smob_print (SCM smob, SCM port, scm_print_state *pstate)
   return 1;
 }
 
-static void
-gw_guile_runtime_init (void)
-{
-  static int initialized = 0;
-  
-  if (!initialized)
-  {
-    scm_load_goops();
-
-    scm_sym_make = scm_permanent_object (
-            SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
-                                                   "make")));
-    is_a_p_proc = scm_permanent_object (
-            SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
-                                                   "is-a?")));
-    the_root_module = scm_permanent_object (
-            SCM_VARIABLE_REF ( scm_c_lookup ("the-root-module")));
-    module_add_x = scm_permanent_object (
-            SCM_VARIABLE_REF (scm_c_lookup ("module-add!")));
-    k_specializers = scm_permanent_object (
-            scm_c_make_keyword ("specializers"));
-    k_procedure = scm_permanent_object(
-            scm_c_make_keyword ("procedure"));
-    k_name = scm_permanent_object( scm_c_make_keyword ("name"));
-    k_default = scm_permanent_object (scm_c_make_keyword ("default"));
-    sym_object = scm_permanent_object (scm_str2symbol("object"));
-    sym_args = scm_permanent_object (scm_str2symbol("args"));
-    
-    dynproc_smob_tag = scm_make_smob_type("%gw:dynamic-procedure",
-                                          sizeof(GWFunctionInfo *));
-    scm_set_smob_free (dynproc_smob_tag, NULL);
-    scm_set_smob_apply (dynproc_smob_tag,
-                        (SCM (*)())dynproc_smob_apply, 0, 0, 1);
-    scm_set_smob_print (dynproc_smob_tag, dynproc_smob_print);
-    
-    initialized = 1;
-  }
-}
-
 /* Performance Note: blocking GC improves performance considerably, at
  * the cost of increased memory usage.
  *
@@ -441,6 +402,12 @@ gw_guile_handle_wrapper_error(GWError *error,
 }
 
 static void
+gw_guile_raise_error (const char *proc, const char *error)
+{
+  scm_misc_error (proc, error, SCM_EOL);
+}
+
+static void
 gw_guile_register_wrapset (GWWrapSet *ws)
 {
   int i;
@@ -456,11 +423,18 @@ gw_guile_register_wrapset (GWWrapSet *ws)
       scm_c_define (fi->proc_name, subr);
     }
     else
-      subr = scm_c_define_gsubr (fi->proc_name, 
-                                 fi->n_required_args,
-                                 fi->n_optional_args,
-                                 fi->use_extra_args,
+    {
+      int n_req_args = fi->n_args;
+      int use_extra_args = 0;
+      
+      if (n_req_args > SCM_GSUBR_MAX)
+      {
+        n_req_args = SCM_GSUBR_MAX - 1;
+        use_extra_args = 1;
+      }
+      subr = scm_c_define_gsubr (fi->proc_name, n_req_args, 0, use_extra_args,
                                  (SCM (*)())fi->proc);
+    }
     
     if (fi->generic_name)
     {
@@ -488,3 +462,48 @@ gw_guile_register_wrapset (GWWrapSet *ws)
     }
   }
 }
+
+void
+gw_guile_runtime_init (void)
+{
+  static GWLangSupport guile_support = {
+    .register_wrapset = gw_guile_register_wrapset,
+    .malloc = scm_malloc,
+    .realloc = scm_realloc,
+    .raise_error = gw_guile_raise_error,
+    .handle_wrapper_error = gw_guile_handle_wrapper_error
+  };
+  
+  if (gw_runtime_init (&guile_support))
+  {
+    scm_load_goops();
+
+    scm_sym_make = scm_permanent_object (
+            SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
+                                                   "make")));
+    is_a_p_proc = scm_permanent_object (
+            SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
+                                                   "is-a?")));
+    the_root_module = scm_permanent_object (
+            SCM_VARIABLE_REF ( scm_c_lookup ("the-root-module")));
+    module_add_x = scm_permanent_object (
+            SCM_VARIABLE_REF (scm_c_lookup ("module-add!")));
+    k_specializers = scm_permanent_object (
+            scm_c_make_keyword ("specializers"));
+    k_procedure = scm_permanent_object(
+            scm_c_make_keyword ("procedure"));
+    k_name = scm_permanent_object( scm_c_make_keyword ("name"));
+    k_default = scm_permanent_object (scm_c_make_keyword ("default"));
+    sym_object = scm_permanent_object (scm_str2symbol("object"));
+    sym_args = scm_permanent_object (scm_str2symbol("args"));
+    
+    dynproc_smob_tag = scm_make_smob_type("%gw:dynamic-procedure",
+                                          sizeof(GWFunctionInfo *));
+    scm_set_smob_free (dynproc_smob_tag, NULL);
+    scm_set_smob_apply (dynproc_smob_tag,
+                        (SCM (*)())dynproc_smob_apply, 0, 0, 1);
+    scm_set_smob_print (dynproc_smob_tag, dynproc_smob_print);
+    
+  }
+}
+

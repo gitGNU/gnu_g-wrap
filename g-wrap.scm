@@ -15,6 +15,10 @@
    value typespec 
 
    <gw-function>
+   c-name
+   argument-count
+   return-type return-typespec
+   generic-name 
    
    <gw-type>
    class-name
@@ -38,12 +42,14 @@
    render
    
    <gw-wrapset>
-   name wrapsets-depended-on functions
-   fold-types for-each-type lookup-type
+   name wrapsets-depended-on
+   fold-types for-each-type lookup-type fold-functions
+   arguments
    depends-on!
    add-type! add-constant! add-function!
    add-cs-before-includes! add-cs-global-declarator! add-cs-definer!
    add-cs-declarator! add-cs-initializer!
+   wrap-function! wrap-constant!
    generate-wrapset
    ))
 
@@ -63,8 +69,7 @@
                #:init-value #f))
 
 (define-class <gw-type> (<gw-item>)
-  (class-name #:getter class-name #:init-keyword #:class-name
-              #:init-value #f))
+  (name #:getter name #:init-keyword #:name))
 
 (define-method (gen-c-tmp-name (type <gw-type>) (name <string>))
   (gen-c-tmp (string-append (any-str->c-sym-str (c-type-name type)) "_" name)))
@@ -89,12 +94,25 @@
 
 (define-class <gw-function> (<gw-item>)
   (name #:getter name #:init-keyword #:name)
-  (c-name #:init-keyword #:c-name)
-  (returns #:init-keyword #:returns)
-  (arguments #:init-keyword #:arguments)
+  (c-name #:getter c-name #:init-keyword #:c-name)
+  (returns #:getter return-typespec #:init-keyword #:returns)
+  (arguments #:getter arguments #:init-keyword #:arguments)
   (generic-name #:getter generic-name
                 #:init-keyword #:generic-name
                 #:init-value #f))
+
+(define-method (return-type (function <gw-function>))
+  (type (return-typespec function)))
+
+(define-class <gw-argument> ()
+  (name #:getter name #:init-keyword #:name)
+  (typespec #:init-keyword #:typespec #:getter typespec))
+
+(define-method (type (arg <gw-argument>))
+  (type (typespec arg)))
+  
+(define-method (argument-count (func <gw-function>))
+  (length (slot-ref func 'arguments)))
 
 (define-class <gw-constant> (<gw-item>)
   (name #:getter name #:init-keyword #:name)
@@ -132,6 +150,7 @@
   (dependencies #:getter wrapsets-depended-on #:init-value '())
   (items #:init-value '())
   (types #:init-value '())
+  (functions #:init-value '())
 
   (cs-before-includes #:init-value '())
   (cs-global-declarators #:init-value '())
@@ -142,23 +161,26 @@
 (define-method (depends-on! (ws <gw-wrapset>) (dependency <gw-wrapset>))
   (slot-set! ws 'dependencies (cons dependency (slot-ref ws 'dependencies))))
 
-(define-method (add-type! (ws <gw-wrapset>) (name <symbol>) (type <gw-type>))
-  (slot-set! ws 'types (acons name type (slot-ref ws 'types)))
+(define-method (add-type! (ws <gw-wrapset>) (type <gw-type>))
+  (slot-set! ws 'types (acons (name type) type (slot-ref ws 'types)))
   (slot-set! ws 'items (cons type (slot-ref ws 'items))))
+
+(define-method (add-function! (ws <gw-wrapset>) (function <gw-function>))
+  (slot-set! ws 'items (cons function (slot-ref ws 'items)))
+  (slot-set! ws 'functions (cons function (slot-ref ws 'functions))))
 
 (define-method (add-constant! (ws <gw-wrapset>) (constant <gw-constant>))
   (slot-set! ws 'items (cons constant (slot-ref ws 'items))))
 
 (define-method (fold-types kons knil (ws <gw-wrapset>))
-  (fold (lambda (pr rest)
-          (kons (car pr) (cdr pr) rest))
-        knil
-        (reverse (slot-ref ws 'types))))
+  (fold-right (lambda (pr result) (kons (cdr pr) result))
+              knil
+              (slot-ref ws 'types)))
 
 (define-method (for-each-type proc (ws <gw-wrapset>))
-  (for-each (lambda (pr)
-              (proc (car pr) (cdr pr)))
-          (reverse (slot-ref ws 'types))))
+  (fold-right (lambda (pr knil) (proc (cdr pr)))
+              knil
+              (slot-ref ws 'types)))
   
 (define-method (lookup-type (wrapset <gw-wrapset>) (type-name <symbol>))
   (let* ((types-alist (slot-ref wrapset 'types))
@@ -175,6 +197,12 @@
             (wrapsets-depended-on wrapset))
            #f)))))
 
+(define-method (fold-functions kons knil (ws <gw-wrapset>))
+  (fold kons knil(reverse (slot-ref ws 'functions))))
+
+(define-method (for-each-function proc (ws <gw-wrapset>))
+  (for-each proc (reverse (slot-ref ws 'functions))))
+
 (define-method (typespec (wrapset <gw-wrapset>) (type-sym <symbol>) . options)
   (let ((type (lookup-type wrapset type-sym)))
     (if type
@@ -183,14 +211,30 @@
          'gw:bad-typespec
          (format #f "no type ~S in wrapset ~S" type-sym (name wrapset))))))
 
-(define-method (arguments (wrapset <gw-wrapset>) . argspecs)
+(define-method (argspec (wrapset <gw-wrapset>) (spec <list>))
+  (if (not (and (list? spec) (= (length spec) 2)))
+      (throw 'gw:bad-typespec
+             (format #f "argument spec must be a two-element list (got ~S)"
+                     spec)))
+  (let ((ts (car spec)))
+    (make <gw-argument>
+        #:name (cadr spec)
+        #:typespec 
+        (cond
+         ((symbol? ts)
+          (typespec wrapset ts))
+         ((and (list? ts) (symbol? (car ts)))
+          (apply typespec wrapset (car ts) (cdr ts)))
+         (else
+          (throw 'gw:bad-typespec
+                 (format #f "first element of an argument spec must either a symbol or a symbol followed by a list (got ~S)" ts)))))))
+  
+(define-method (arguments (wrapset <gw-wrapset>) (argspecs <list>))
   (let loop ((specs argspecs) (args '()))
     (if (null? specs)
         (reverse args)
-        (loop (cdr specs) (cons (apply typespec wrapset (car specs)) args)))))
-
-(define-method (add-function! (ws <gw-wrapset>) (function <gw-function>))
-  (slot-set! ws 'items (cons function (slot-ref ws 'items))))
+          (loop (cdr specs)
+                (cons (argspec wrapset (car specs)) args)))))
 
 (define-method (add-cs-before-includes! (ws <gw-wrapset>) (cg <procedure>))
   (slot-set! ws 'cs-before-includes
@@ -209,6 +253,17 @@
   (slot-set! ws 'cs-global-declarators
              (cons cg (slot-ref ws 'cs-global-declarators))))
 
+;; High-level interface -- should move low-level stuff to core and
+;; only offer this as API
+(define-method (wrap-function! (wrapset <gw-wrapset>) . args)
+  (add-function! wrapset (apply make <gw-function> args)))
+
+(define-method (wrap-constant! (wrapset <gw-wrapset>) . args)
+  (add-constant! wrapset (apply make <gw-constant> args)))
+
+;;
+;; Generation stuff
+;;
 (define (output-initializer-cgs wrapset lang cgs port)
   (let* ((error-var (gen-c-tmp "error_var"))
          (wrapset-name (name wrapset))
@@ -219,15 +274,17 @@
     (define (output-initializer-cg cg)
       (let ((code (cg lang error-var)))
         (if (not (null? code))
-            (render (expand-special-forms code #f '(type range memory misc))
-                    port)
-            (flatten-display
-             (list
-              "if ((" error-var ").status != GW_ERR_NONE)"
-              "  gw_handle_wrapper_error (&" error-var ",\n"
-              "                            \"" wrapset-init-func "\",\n"
-              "                            0);\n")
-             port))))
+            (begin
+              (render (expand-special-forms code #f '(type range memory misc))
+                      port)
+              (flatten-display
+               (list
+                "if ((" error-var ").status != GW_ERR_NONE)\n"
+                "  gw_handle_wrapper_error (&" error-var ",\n"
+                "                            \"" wrapset-init-func "\",\n"
+                "                            0);\n")
+               port)))))
+    
     (flatten-display
      (list "{\n"
            "  GWError " error-var ";\n"

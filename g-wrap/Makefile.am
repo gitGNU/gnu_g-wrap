@@ -29,7 +29,8 @@ gwrapinclude_HEADERS += guile-runtime.h guile-compatibility.h guile-wct.h
 libgwrap_guile_runtime_la_SOURCES = guile-runtime.c guile-wct.c guile-compatibility.c
 libgwrap_guile_runtime_la_LDFLAGS = -rpath $(libdir) \
 				    -version-info $(GW_GUILE_RUNTIME_VINFO)
-libgwrap_guile_runtime_la_LIBADD = $(GUILE_LDFLAGS) $(LIBFFI_LIBS) @ALLOCA@
+libgwrap_guile_runtime_la_LIBADD = libgwrap-core-runtime.la \
+				   $(GUILE_LDFLAGS) $(LIBFFI_LIBS) @ALLOCA@
 
 
 EXTRA_DIST = $(gwrapmodule_DATA)

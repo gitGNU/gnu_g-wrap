@@ -12,8 +12,8 @@
 	     (number? lst)
 	     (symbol? lst))
 	 (display lst port))
-	((procedure? lst)
-	 (flatten-display ((lst 'output)) port))
+;;	((procedure? lst)
+;;	 (flatten-display ((lst 'output)) port))
 	(else
 	 (error "flatten-display: bad element found in the tree " lst))))
 
@@ -28,8 +28,8 @@
 	 (number->string lst))
 	((symbol? lst)
 	 (symbol->string lst))
-	((procedure? lst)
-	 (flatten-string ((lst 'output))))
+;;	((procedure? lst)
+;;	 (flatten-string ((lst 'output))))
 	(else
 	 (error "flatten-string: bad element found in the tree " lst))))
 

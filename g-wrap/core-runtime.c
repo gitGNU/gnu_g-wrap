@@ -4,6 +4,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "g-wrap/core-runtime.h"
 
@@ -11,7 +12,42 @@ static int nregistered_wrapsets = 0;
 static int nallocated_wrapsets = 0;
 static GWWrapSet **registered_wrapsets = NULL;
 
-static GWLangSupport gw_lang;
+static GWLangSupport *gw_lang = NULL;
+
+void *
+gw_malloc (size_t size)
+{
+  return gw_lang->malloc (size);
+}
+
+void *
+gw_realloc (void *mem, size_t size)
+{
+  return gw_lang->realloc (mem, size);
+}
+
+void
+gw_raise_error (const char *proc, const char *fmt, ...)
+{
+  char *message = NULL;
+  va_list args;
+
+  va_start (args, fmt);
+  vasprintf (&message, fmt, args);
+  va_end (args);
+  
+  gw_lang->raise_error (proc, message);
+  
+  free (message);
+}
+
+void
+gw_handle_wrapper_error (GWError *error,
+                         const char *func_name,
+                         unsigned int arg_pos)
+{
+  gw_lang->handle_wrapper_error (error, func_name, arg_pos);
+}
 
 GWWrapSet *
 gw_wrapset_new (const char *name, const char *dependency, ...)
@@ -163,11 +199,8 @@ gw_wrapset_lookup_type (GWWrapSet *ws, const char *name)
 
 void
 gw_wrapset_add_function (GWWrapSet *ws,
-                         int dynamic,
                          void *proc,
-                         int n_req_args,
-                         int n_opt_args,
-                         int use_extra_args,
+                         int n_args,
                          const char *ret_type,
                          GWTypeSpec ret_typespec,
                          const char **arg_types,
@@ -187,15 +220,10 @@ gw_wrapset_add_function (GWWrapSet *ws,
                                  sizeof (GWFunctionInfo));
   }
   fi = &ws->functions[ws->nfunctions];
-  fi->dynamic = dynamic;
   fi->proc = proc;
-  fi->n_required_args = n_req_args;
-  fi->n_optional_args = n_opt_args;
-  fi->use_extra_args = use_extra_args;
+  fi->nargs = n_args;
   fi->proc_name = proc_name;
   fi->generic_name = generic_name;
-  
-  assert ((arg_types && ret_type) || !dynamic);
   
   if (arg_types != NULL && fi->dynamic)
   {
@@ -263,7 +291,7 @@ gw_wrapset_add_function (GWWrapSet *ws,
 void
 gw_wrapset_register (GWWrapSet *ws)
 {
-  gw_lang.register_wrapset (ws);
+  gw_lang->register_wrapset (ws);
   
   if (nallocated_wrapsets <= nregistered_wrapsets)
   {
@@ -278,18 +306,16 @@ gw_wrapset_register (GWWrapSet *ws)
   registered_wrapsets[nregistered_wrapsets++] = ws;
 }
 
-void
-gw_runtime_init (const GWLangSupport *lang)
+int
+gw_runtime_init (GWLangSupport *lang)
 {
   static int initialized = 0;
   
-  if (!initialized)
-  {
-    gw_lang = *lang;
+  if (initialized)
+    return 0;
 
-    if (gw_lang.init)
-      gw_lang.init ();
-    
-    initialized = 1;
-  }
+  gw_lang = lang;
+  
+  initialized = 1;
+  return 1;
 }

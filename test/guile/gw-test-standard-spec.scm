@@ -18,31 +18,24 @@
 (add-cs-global-declarator! ws (lambda (wrapset)
                                 (list "#include \"g-wrap-test-c-code.h\"\n")))
 
-(add-constant!
- ws
- (make <gw-constant>
-   #:name 'gw-test-gw-standard-foo-value
-   #:typespec (typespec ws 'int)
-   #:value "GW_TEST_GW_STANDARD_FOO_VALUE"
-   #:description "The foo value."))
+(wrap-constant! ws
+                #:name 'gw-test-gw-standard-foo-value
+                #:typespec (typespec ws 'int)
+                #:value "GW_TEST_GW_STANDARD_FOO_VALUE"
+                #:description "The foo value.")
 
-(add-constant!
- ws
- (make <gw-constant>
-   #:name 'gw-test-gw-standard-bar-value
-   #:typespec (typespec ws 'mchars 'const 'callee-owned)
-   #:value "GW_TEST_GW_STANDARD_BAR_VALUE"
-   #:description "The bar value."))
+(wrap-constant! ws
+                #:name 'gw-test-gw-standard-bar-value
+                #:typespec (typespec ws 'mchars 'const 'callee-owned)
+                #:value "GW_TEST_GW_STANDARD_BAR_VALUE"
+                #:description "The bar value.")
 
-(add-function!
- ws
- (make <gw-function>
-   #:name 'gw-test-gw-standard-no-op
-   #:returns (typespec ws 'void)
-   #:c-name "gw_test_gw_standard_no_op"
-   #:arguments '()
-   #:description "Do nothing."))
-
+(wrap-function! ws
+                #:name 'gw-test-gw-standard-no-op
+                #:returns (typespec ws 'void)
+                #:c-name "gw_test_gw_standard_no_op"
+                #:arguments '()
+                #:description "Do nothing.")
 
 ;   (gw:wrap-function
 ;    ws
