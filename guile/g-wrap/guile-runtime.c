@@ -54,6 +54,13 @@ static SCM sym_object = SCM_UNSPECIFIED;
 static SCM sym_args = SCM_UNSPECIFIED;
 static scm_t_bits dynproc_smob_tag = 0;
 
+static void gw_guile_handle_wrapper_error(GWLangArena arena,
+                                          GWError *error,
+                                          const char *func_name,
+                                          unsigned int arg_pos) GW_NORETURN;
+static void gw_guile_raise_error (GWLangArena arena, const char *proc,
+                                  const char *error) GW_NORETURN;
+
 #if 0 // not used ATM
 void
 gw_guile_runtime_get_version_info(int *major, int *revision, int *age)

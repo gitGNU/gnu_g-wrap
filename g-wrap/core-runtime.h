@@ -26,6 +26,12 @@ USA.
 extern "C" {
 #endif
 
+#if defined(__GNUC__)
+#  define GW_NORETURN __attribute__ ((noreturn))
+#else
+#  define GW_NORETURN
+#endif
+
 typedef void *GWLangLocative;
 typedef void *GWLangArena;
 typedef enum _GWErrorStatus GWErrorStatus;
@@ -60,22 +66,22 @@ struct _GWLangSupport
     void *(*realloc) (GWLangArena arena, void *mem, size_t size);
     void  (*raise_error) (GWLangArena arena,
                           const char *func_name,
-                          const char *error);
+                          const char *error) GW_NORETURN;
     void  (*handle_wrapper_error) (GWLangArena arena,
                                    GWError *error,
                                    const char *func_name,
-                                   unsigned int arg_pos);
+                                   unsigned int arg_pos) GW_NORETURN;
 };
 
 int        gw_runtime_init (GWLangSupport *lang);
 void *     gw_malloc (GWLangArena arena, size_t size);
 void *     gw_realloc (GWLangArena arena, void *mem, size_t size);
 void       gw_raise_error (GWLangArena arena,
-                           const char *proc, const char *fmt, ...);
+                           const char *proc, const char *fmt, ...) GW_NORETURN;
 void       gw_handle_wrapper_error (GWLangArena arena,
                                     GWError *error,
                                     const char *func_name,
-                                    unsigned int arg_pos);
+                                    unsigned int arg_pos) GW_NORETURN;
 
 /*
  * Runtime information (RTI) section

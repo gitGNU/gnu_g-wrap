@@ -57,6 +57,7 @@ gw_raise_error (GWLangArena arena, const char *proc, const char *fmt, ...)
   
   gw_lang->raise_error (arena, proc, message);
   
+  /* FIXME: we leak 'message' here, since this line won't be reached */
   free (message);
 }
 
