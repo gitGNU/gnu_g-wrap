@@ -1,5 +1,5 @@
 ;;;; File: guile.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004-2005 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -287,8 +287,6 @@
          (fn-c-wrapper (slot-ref function 'wrapper-name))
          (fn-c-string (slot-ref function 'wrapper-namestr))
          (nargs (length scm-params))
-         (opt-args-start (- (argument-count function)
-                            (optional-argument-count function)))
          (error-var "gw__error")
          (labels (make <gw-cs-labels>))
          (out-params (filter (lambda (param)
@@ -345,7 +343,7 @@
                (if (>= (number param) *max-fixed-params*)
                    (list
                     "if (SCM_NULLP (gw__restargs))\n"
-                    (if (>= (number param) opt-args-start)
+                    (if (default-value arg)
                         (list
                          "  " (scm-var param) "= SCM_UNDEFINED;\n")
                         (list
@@ -372,7 +370,7 @@
                       param
                       '(memory misc type range arg-type arg-range)
                       #:labels labels)))
-                (if (>= (number param) opt-args-start)
+                (if (default-value arg)
                     (list
                      "if (SCM_EQ_P(" (scm-var param) ", SCM_UNDEFINED))\n"
                      "  " (set-value-cg (type arg) param

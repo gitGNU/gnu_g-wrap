@@ -4,7 +4,7 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
 
 (use-modules (gw-test-standard)
              (unit-test)
-             (srfi srfi-11))
+             (srfi srfi-8))
 
 (define-class <test-standard> (<test-case>))
 
@@ -13,11 +13,17 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
   (assert-equal 7 (gw-test-strtol "111" 2)))
 
 (define-method (test-output-arguments (self <test-standard>))
-  (let-values (((a b c) (gw-test-out-args 123)))
+  (receive (a b c) (gw-test-out-args 123)
     (assert-equal 123 a)
     (assert-equal 15129 b)
-    (assert-equal "foobar" c)))
-
+    (assert-equal "foobar" c))
+  (receive (a b) (gw-test-out+default-args 7)
+    (assert-equal 35 a)
+    (assert-equal "foo" b))
+  (receive (a b) (gw-test-out+default-args 7 9)
+    (assert-equal 63 a)
+    (assert-equal "foo" b)))
+    
 (define-method (test-void-type (self <test-standard>))
   (assert-true (unspecified? (gw-test-gw-standard-no-op))))
 

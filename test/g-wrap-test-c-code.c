@@ -24,6 +24,12 @@ long gw_test_out_args(int arg1, int *arg2, char **arg3)
   return arg1;
 }
 
+long gw_test_out_plus_default_args(int arg1, int arg2, char **arg3)
+{
+  *arg3 = "foo";
+  return arg1 * arg2;
+}
+
 /*======================================================================*/
 /* Generics */
 

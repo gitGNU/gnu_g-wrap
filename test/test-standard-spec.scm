@@ -206,6 +206,14 @@
    #:c-name "gw_test_out_args"
    #:arguments '((int arg1) ((int out) arg2) ((mchars out callee-owned) arg3)))
 
+  ;; out+default arguments
+  (wrap-function!
+   ws
+   #:name 'gw-test-out+default-args
+   #:returns 'long
+   #:c-name "gw_test_out_plus_default_args"
+   #:arguments '((int arg1) (int arg2 (default "5")) ((mchars out callee-owned) arg3)))
+  
   ;; generics
   (wrap-function! ws
                   #:generic-name 'gw-test-generic
