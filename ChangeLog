@@ -1,3 +1,22 @@
+2004-01-22  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap.pc.in (Cflags, Libs): Added libffi stuff.
+
+2004-01-20  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* autogen.sh (ACLOCAL_FLAGS): Don't ignore $ACLOCAL_FLAGS, if set
+	by user.
+
+	* g-wrap/g-wrap-runtime.c (gw_function_to_method_public): Removed
+	C99ism.
+
+2004-01-18  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* configure.in: Use generated check for libffi. This adds a
+	--with-libffi-prefix argument.
+	* autogen.sh: Generate m4/libchecks.m4.
+	* m4/libchecks.m4-in, m4/libcheck.m4-in: New files.
+
 2004-01-16  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* g-wrap/g-wrap-compatibility.c (scm_gc_free): Syntax typo fix.
@@ -58,11 +77,6 @@
 
 	* g-wrap/g-wrap-wct.c, g-wrap/g-wrap-wct.h: Replace deprecated
 	scm_sizet with size_t.
-
-2004-01-16  Andreas Rottmann  <a.rottmann@gmx.at>
-
-	* configure.in, g-wrap/g-wrap-runtime.h, g-wrap-runtime.c: Revert
-	ffi support (not scheduled for 1.3).
 
 2003-11-11  Andreas Rottmann  <a.rottmann@gmx.at>
 
