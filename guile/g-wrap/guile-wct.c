@@ -292,6 +292,11 @@ wct_data_print(SCM wct, SCM port, scm_print_state *pstate)
 
 */
 
+/* FIXME FIXME: This is ridiculous. The generated type should be a class, so
+   that it can have methods. SMOB types have classes created for them
+   automatically by GOOPS. This procedure should create a new SMOB type,
+   returning that class, and instances of the wct should be instances of that
+   class. */
 SCM
 gw_wct_create (const char *type_name,
                SCM (*equal_p)(SCM wcp_a, SCM wcp_b),

@@ -13,6 +13,7 @@ AM_CONFIG_HEADER(config.h)
 
 AM_MAINTAINER_MODE
 
+AC_SUBST(ACLOCAL_FLAGS,$ACLOCAL_FLAGS)
 
 dnl Shared library versions
 GW_RUNTIME_VINFO(CORE, 0, 0, 0)
@@ -35,7 +36,6 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
-
 
 dnl Checks for header files.
 

@@ -123,8 +123,9 @@ example (gw:wcp-is-a? <gw:void*> foo)")
   (wrap-function! wrapset
                   #:name '%gw:procedure->method-public
                   #:returns 'void
-                  #:arguments '((scm proc) (scm specializers)
-                                (scm generic-name))
+                  #:arguments '((scm proc) (scm class_name)
+                                (scm generic-name) (scm n_req_args)
+                                (scm use_optional_args))
                   #:c-name "gw_guile_procedure_to_method_public"))
 
 (define-method (add-type! (wrapset <standard-wrapset>)

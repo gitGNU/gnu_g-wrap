@@ -49,6 +49,25 @@ char *alloca ();
 
 #define ARENA NULL /* Guile has no concept of an arena */
 
+static SCM the_scm_module = SCM_UNSPECIFIED;
+static SCM is_a_p_proc = SCM_UNSPECIFIED;
+static SCM module_add_x = SCM_UNSPECIFIED;
+static SCM scm_sym_make = SCM_UNSPECIFIED;
+
+static SCM latent_variables_hash_hash = SCM_BOOL_F;
+
+static SCM latent_generics_hash = SCM_BOOL_F;
+static SCM old_binder_proc = SCM_BOOL_F;
+
+/* TODO: Use snarfer for kewords & symbols */
+static SCM k_specializers = SCM_UNSPECIFIED;
+static SCM k_procedure = SCM_UNSPECIFIED;
+static SCM k_name = SCM_UNSPECIFIED;
+static SCM k_default = SCM_UNSPECIFIED;
+static SCM sym_object = SCM_UNSPECIFIED;
+static SCM sym_args = SCM_UNSPECIFIED;
+static scm_t_bits dynproc_smob_tag = 0;
+
 #if 0 // not useed ATM
 void
 gw_guile_runtime_get_version_info(int *major, int *revision, int *age)
@@ -153,19 +172,55 @@ gw_guile_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
   return SCM_BOOL_F;
 }
 
-static SCM the_root_module = SCM_UNSPECIFIED;
-static SCM is_a_p_proc = SCM_UNSPECIFIED;
-static SCM module_add_x = SCM_UNSPECIFIED;
-static SCM scm_sym_make = SCM_UNSPECIFIED;
+static SCM gw_user_module_binder_proc (SCM module, SCM sym, SCM definep)
+{
+  SCM latent_variables_hash, pair, val, var;
 
-/* TODO: Use snarfer for kewords & symbols */
-static SCM k_specializers = SCM_UNSPECIFIED;
-static SCM k_procedure = SCM_UNSPECIFIED;
-static SCM k_name = SCM_UNSPECIFIED;
-static SCM k_default = SCM_UNSPECIFIED;
-static SCM sym_object = SCM_UNSPECIFIED;
-static SCM sym_args = SCM_UNSPECIFIED;
-static scm_t_bits dynproc_smob_tag = 0;
+  latent_variables_hash =
+    scm_hashq_ref (latent_variables_hash_hash, module, SCM_BOOL_F);
+  if (SCM_FALSEP (latent_variables_hash))
+    abort ();
+    
+  pair = scm_hashq_ref (latent_variables_hash, sym, SCM_BOOL_F);
+  if (SCM_FALSEP (pair))
+    return SCM_BOOL_F;
+  
+  val = scm_call_1 (SCM_CAR (pair), SCM_CDR (pair));
+  var = scm_make_variable (val);
+  scm_call_3 (module_add_x, module, sym, var);
+  return var;
+}
+
+void gw_guile_make_latent_variable (SCM sym, SCM proc, SCM arg)
+{
+  SCM latent_variables_hash;
+  SCM module = scm_current_module ();
+  
+  /* Unlike generics, variables are hashed per-module. */
+  if (SCM_FALSEP (latent_variables_hash_hash))
+    latent_variables_hash_hash = scm_permanent_object (scm_c_make_hash_table (31));
+
+  latent_variables_hash =
+    scm_hashq_ref (latent_variables_hash_hash, module, SCM_BOOL_F);
+  if (SCM_FALSEP (latent_variables_hash)) {
+    latent_variables_hash = scm_c_make_hash_table (31);
+    scm_hashq_create_handle_x (latent_variables_hash_hash, module,
+                               latent_variables_hash);
+    /* Also need to hack the module: */
+    if (SCM_FALSEP (SCM_MODULE_BINDER (module)))
+      scm_struct_set_x (module, SCM_MAKINUM (scm_module_index_binder),
+                        scm_c_make_gsubr ("%gw-user-module-binder", 3, 0, 0,
+                                          gw_user_module_binder_proc));
+  }
+  
+  if (SCM_NFALSEP (scm_hashq_ref (latent_variables_hash, sym, SCM_BOOL_F))) {
+    gw_raise_error (NULL, "Latent var already registered: %s", SCM_SYMBOL_CHARS (sym));
+    return;
+  }
+
+  scm_hashq_create_handle_x (latent_variables_hash, sym,
+                             scm_cons (proc, arg));
+}
 
 /* 1. methods of generic functions can come from any module.
  *    eg gst_props_entry_get and g_object_get.
@@ -176,91 +231,165 @@ static scm_t_bits dynproc_smob_tag = 0;
  *
  * 3. therefore, we export the bindings for generics to the root module */
 
-void
-gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
-                                     SCM generic_name)
-#define FUNC_NAME "%gw:guile-procedure->method-public"
+/* Making generics takes a lot of time. Our strategy is to offload generic
+   creation until they are needed. First, check if the root module already has a
+   definition for generic_name. In that case, we need to make the generic.
+   Otherwise, add the proc and specializers to a hash table for the module
+   binder proc to instantiate as needed. */
+
+/* Grr. Seems subrs can't be methods. */
+static void 
+gw_guile_add_subr_method (SCM generic, SCM subr, SCM class_name, SCM module,
+                          int n_req_args, int use_optional_args)
 {
-  SCM method_formals, method_args;
-  SCM default_val = SCM_BOOL_F;
-  SCM generic;
-  SCM procm;
-  SCM meth;
   int i;
   char buffer[32];
-  int is_generic = 0;
-  int nargs = scm_ilength (specializers);
-
-  SCM_VALIDATE_PROC (1, proc);
-  SCM_VALIDATE_LIST (2, specializers);
-  SCM_VALIDATE_SYMBOL (3, generic_name);
+  SCM specializers, formals, method_args, procm, meth;
   
-  generic =
-    scm_sym2var (generic_name, scm_module_lookup_closure (the_root_module),
-                 SCM_BOOL_F);
-
-    
-  if (SCM_NFALSEP (generic))
-  {
-    generic = SCM_VARIABLE_REF (generic);
-    is_generic = SCM_NFALSEP (scm_call_2 (is_a_p_proc, generic,
-                                          scm_class_generic));
-  }
-  
-  if (!is_generic && SCM_NFALSEP (scm_procedure_p (generic))
-      && (nargs > 0 && !SCM_EQ_P (SCM_CAR (specializers), scm_class_top)))
-  {
-    default_val = generic;
-    generic = SCM_BOOL_F;
-  }
-  
-  /* try not to shadow other bindings */
-  if (!is_generic && SCM_NFALSEP (generic))
-  {
-    int old_len = SCM_SYMBOL_LENGTH (generic_name);
-    char *new_name = (char *) scm_malloc (old_len + 2);
-    new_name[0] = '.';
-    memcpy (new_name + 1, SCM_SYMBOL_CHARS (generic_name), old_len);
-    new_name[old_len + 1] = '\0';
-    generic_name = scm_str2symbol (new_name);
-    free (new_name);
-    generic = SCM_BOOL_F;
-  }
-
-  if (SCM_FALSEP (generic))
-  {
-    /* Note that scm_make is *not* the same as calling "make". */
-    if (SCM_FALSEP (default_val))
-      generic = scm_call_3 (scm_sym_make, scm_class_generic,
-                            k_name, generic_name);
-    else
-      generic = scm_apply_0 (scm_sym_make,
-                             scm_list_5 (scm_class_generic,
-                                         k_name, generic_name,
-                                         k_default, default_val));
-    
-    scm_call_3 (module_add_x, the_root_module, generic_name,
-                scm_make_variable (generic));
-  }
-
-  method_formals = SCM_EOL;
-  for (i = nargs; i > 0; i--)
-  {
+  formals = specializers = SCM_EOL;
+  for (i = n_req_args; i > 0; i--) {
     sprintf (buffer, "arg%d", i);
-    method_formals = scm_cons (scm_str2symbol (buffer), method_formals);
+    formals = scm_cons (scm_str2symbol (buffer), formals);
+    if (i == 1)
+      specializers =
+        scm_cons (SCM_VARIABLE_REF (scm_module_lookup (module, class_name)),
+                  specializers);
+    else
+      specializers = scm_cons (scm_class_top, specializers);
   }
-  
-  method_args = scm_cons (proc, method_formals);
 
-  procm = scm_closure (scm_list_2 (method_formals, method_args),
-                           scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
-  
+  method_args = scm_cons (subr, formals);
+  procm = scm_closure (scm_list_2 (formals, method_args),
+                       scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
   meth = scm_apply_0 (scm_sym_make,
                       scm_list_5 (scm_class_method,
                                   k_specializers, specializers,
                                   k_procedure, procm));
-  
   scm_add_method (generic, meth);
+} 
+
+
+static SCM gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
+{
+  SCM proc_list, generic, var;
+
+  /* We hack the scm module because it's the interface to the root module. The
+   * scm module and the root module share the same obarray. */
+
+  proc_list = scm_hashq_ref (latent_generics_hash, sym, SCM_BOOL_F);
+
+  if (SCM_FALSEP (proc_list)) {
+    if (SCM_FALSEP (old_binder_proc))
+      return SCM_BOOL_F;
+    else
+      return scm_call_3 (old_binder_proc, module, sym, definep);
+  }
+  
+  /* We need to make the generic now. Because the binder proc is called, we know
+   * there's nothing else in the root module to collide with our name. */
+  generic = scm_apply_0 (scm_sym_make,
+                         scm_list_3 (scm_class_generic, k_name, sym));
+
+  while (!SCM_NULLP (proc_list)) {
+    SCM entry, *velts;
+    entry = SCM_CAR (proc_list);
+    /* entry := #(proc class_name module n_req_args use_optional_args) */
+    velts = SCM_VELTS (entry);
+
+    gw_guile_add_subr_method (generic,
+                              velts[0], velts[1], velts[2],
+                              SCM_INUM (velts[3]), SCM_NFALSEP (velts[4]));
+
+    proc_list = SCM_CDR (proc_list);
+  }
+
+  var = scm_make_variable (generic);
+  scm_call_3 (module_add_x, module, sym, var);
+
+  return var;
+}
+
+void
+gw_guile_procedure_to_method_public (SCM proc, SCM class_name, SCM generic_name,
+                                     SCM n_req_args, SCM use_optional_args)
+#define FUNC_NAME "%gw:guile-procedure-to-method-public!"
+{
+  static int scm_module_hacked = 0;
+  SCM generic = SCM_BOOL_F;
+
+  SCM_VALIDATE_PROC (1, proc);
+  SCM_VALIDATE_SYMBOL (2, class_name);
+  SCM_VALIDATE_SYMBOL (3, generic_name);
+  SCM_VALIDATE_INUM (4, n_req_args);
+  /* the fifth is a bool */
+  
+  if (!scm_module_hacked) {
+    scm_module_hacked = 1;
+    old_binder_proc = scm_permanent_object (SCM_MODULE_BINDER (the_scm_module));
+    scm_struct_set_x (the_scm_module, SCM_MAKINUM (scm_module_index_binder),
+                      scm_c_make_gsubr ("%gw-scm-module-binder", 3, 0, 0, gw_scm_module_binder_proc));
+  }
+
+  if (SCM_FALSEP (latent_generics_hash))
+    latent_generics_hash = scm_permanent_object (scm_c_make_hash_table (53));
+
+  if (SCM_FALSEP (scm_hashq_ref (latent_generics_hash, generic_name, SCM_BOOL_F)))
+    generic = scm_sym2var (generic_name,
+                           scm_module_lookup_closure (the_scm_module),
+                           SCM_BOOL_F);
+
+  if (SCM_FALSEP (generic)) {
+    /* Handle the common case when there's not already a symbol in the
+     * root. */
+    SCM entry, *velts;
+    SCM handle = scm_hashq_create_handle_x (latent_generics_hash, generic_name, SCM_EOL);
+    entry = scm_c_make_vector (5, SCM_BOOL_F);
+    /* entry := #(proc class_name module n_req_args use_optional_args) */
+    velts = SCM_VELTS (entry);
+    velts[0] = proc;
+    velts[1] = class_name;
+    velts[2] = scm_current_module ();
+    velts[3] = n_req_args;
+    velts[4] = use_optional_args;
+    SCM_SETCDR (handle, scm_cons (entry, SCM_CDR (handle)));
+    return;
+  } else {
+    int is_generic = 0;
+    /* Otherwise, we have to make the generic. */
+
+    generic = SCM_VARIABLE_REF (generic);
+    /* I seem to remember this is_a_p thing is a hack around GOOPS's deficient
+       macros, but I don't remember */
+    is_generic = SCM_NFALSEP (scm_call_2 (is_a_p_proc, generic, scm_class_generic));
+
+    if (!is_generic) {
+      if (SCM_NFALSEP (scm_procedure_p (generic))) {
+        /* We need to fall back on the original binding. */
+        SCM default_val = generic;
+        generic = scm_apply_0 (scm_sym_make,
+                               scm_list_5 (scm_class_generic,
+                                           k_name, generic_name,
+                                           k_default, default_val));
+      } else {
+        /* We can't extend the binding, have to use a different name. */
+        int old_len = SCM_SYMBOL_LENGTH (generic_name);
+        char *new_name = (char *) scm_malloc (old_len + 2);
+        new_name[0] = '.';
+        memcpy (new_name + 1, SCM_SYMBOL_CHARS (generic_name), old_len);
+        new_name[old_len + 1] = '\0';
+        generic_name = scm_str2symbol (new_name);
+        free (new_name);
+        generic = scm_call_3 (scm_sym_make, scm_class_generic,
+                              k_name, generic_name);
+      }
+      /* a rash and uncalled-for act */
+      scm_call_3 (module_add_x, the_scm_module, generic_name,
+                  scm_make_variable (generic));
+    }
+  }
+
+  gw_guile_add_subr_method (generic, proc, class_name, scm_current_module(),
+                            SCM_INUM (n_req_args), SCM_NFALSEP (use_optional_args));
 }
 #undef FUNC_NAME
 
@@ -284,8 +413,8 @@ dynproc_smob_apply (SCM smob, SCM args)
 
   error.status = GW_ERR_NONE;
 
-  offset = fi->n_args * sizeof (void *);
-  for (i = 0; i < fi->n_args; i++)
+  offset = fi->n_req_args * sizeof (void *);
+  for (i = 0; i < fi->n_req_args; i++)
   {
     SCM arg;
     values[i] = (void *) ((unsigned char *) data + offset);
@@ -313,7 +442,7 @@ dynproc_smob_apply (SCM smob, SCM args)
 
   /* call the destructors in the reverse orders, as done by the
    * traditional glue. */
-  for (i = fi->n_args - 1; i >= 0; i--)
+  for (i = fi->n_req_args - 1; i >= 0; i--)
   {
     fi->arg_types[i]->destruct_value (ARENA, values[i], &fi->arg_typespecs[i],
                                       &error);
@@ -332,7 +461,7 @@ dynproc_smob_print (SCM smob, SCM port, scm_print_state *pstate)
   scm_display (scm_makfrom0str ("#<gw:dynproc "), port);
   scm_display (scm_makfrom0str (fi->proc_name), port);
   scm_display (scm_makfrom0str (" ("), port);
-  scm_display (SCM_MAKINUM (fi->n_args), port);
+  scm_display (SCM_MAKINUM (fi->n_req_args), port);
   scm_display (scm_makfrom0str (")>"), port);
   
   return 1;
@@ -433,7 +562,8 @@ gw_guile_register_wrapset (GWWrapSet *ws)
     }
     else
     {
-      int n_req_args = fi->n_args;
+      int n_req_args = fi->n_req_args;
+      int n_optional_args = fi->n_optional_args;
       int use_extra_args = 0;
       
       if (n_req_args > SCM_GSUBR_MAX)
@@ -441,33 +571,21 @@ gw_guile_register_wrapset (GWWrapSet *ws)
         n_req_args = SCM_GSUBR_MAX - 1;
         use_extra_args = 1;
       }
-      subr = scm_c_define_gsubr (fi->proc_name, n_req_args, 0, use_extra_args,
-                                 (SCM (*)())fi->proc);
+      if (!use_extra_args && n_optional_args + n_req_args > SCM_GSUBR_MAX)
+      {
+        n_optional_args = SCM_GSUBR_MAX - 1 - n_req_args;
+        use_extra_args = 1;
+      }
+      subr = scm_c_define_gsubr (fi->proc_name, n_req_args, n_optional_args,
+                                 use_extra_args, (SCM (*)())fi->proc);
     }
     
     if (fi->generic_name)
     {
-      SCM specializers = SCM_EOL;
-      int j;
-
-      for (j = fi->n_args - 1; j >= 0; j--)
-      {
-        SCM klass = scm_class_top;
-        const char *class_name = fi->arg_types[j]->class_name;
-
-        /* we specialize only on the first parameter, since its class
-         * is guaranteed to be defined in this module */
-        if (j == 0 && class_name)
-          klass = SCM_VARIABLE_REF (scm_c_lookup (class_name));
-        
-        if (SCM_FALSEP (scm_call_2 (is_a_p_proc, klass, scm_class_class)))
-          scm_misc_error ("%gw:wrapset-init", "specializer is not a class: ~A",
-                          scm_list_1 (klass));
-        specializers = scm_cons (klass, specializers);
-      }
-      
-      gw_guile_procedure_to_method_public (subr, specializers,
-                                           scm_str2symbol (fi->generic_name));
+      gw_guile_procedure_to_method_public (subr, scm_str2symbol (fi->class_name),
+                                           scm_str2symbol (fi->generic_name),
+                                           SCM_MAKINUM (fi->n_req_args),
+                                           (fi->n_optional_args ? SCM_BOOL_T : SCM_BOOL_F));
     }
   }
 }
@@ -505,8 +623,8 @@ gw_guile_runtime_init (void)
     is_a_p_proc = scm_permanent_object (
             SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
                                                    "is-a?")));
-    the_root_module = scm_permanent_object (
-            SCM_VARIABLE_REF (scm_c_lookup ("the-root-module")));
+    the_scm_module = scm_permanent_object (
+            SCM_VARIABLE_REF (scm_c_lookup ("the-scm-module")));
     module_add_x = scm_permanent_object (
             SCM_VARIABLE_REF (scm_c_lookup ("module-add!")));
     k_specializers = scm_permanent_object (

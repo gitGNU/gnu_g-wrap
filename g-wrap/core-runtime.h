@@ -127,16 +127,22 @@ struct _GWFunctionInfo
 {
     void *proc;            /* Wrapper function or, if arg_types is
                             * non-NULL, real C function */
-    int n_args;
+    int n_req_args;
+    int n_optional_args;
 
+    /* The GWTypeInfo fields are only valid if the function uses RTI, and only
+     * for required args */
     GWTypeInfo *ret_type;
     GWTypeSpec ret_typespec;
-    
     GWTypeInfo **arg_types; /* array */
     GWTypeSpec *arg_typespecs;
     
     const char *proc_name;
     const char *generic_name;
+    /* if generic-name is non-null, we will specialize a method on generic-name
+     * whereby the first argument is of a certain class. we get the name of the
+     * class from this member. */
+    const char *class_name;
 
     ffi_cif cif;
     unsigned int data_area_size; /* Size needed for the dynamic-call info */
@@ -178,13 +184,15 @@ GWTypeInfo *gw_wrapset_lookup_type(GWWrapSet *ws, const char *name);
 
 void 	   gw_wrapset_add_function(GWWrapSet *ws,
                                    void *proc,
-                                   int n_args,
+                                   int n_req_args,
+                                   int n_optional_args,
                                    const char *ret_type,
                                    GWTypeSpec ret_typespec,
                                    const char **arg_types,
                                    GWTypeSpec *arg_typespecs,
                                    const char *proc_name,
-                                   const char *generic_name);
+                                   const char *generic_name,
+                                   const char *class_name);
 
 void 	   gw_wrapset_register(GWWrapSet *ws);
 

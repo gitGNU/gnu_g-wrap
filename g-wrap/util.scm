@@ -80,7 +80,11 @@
     (if had-errors?
         (begin
           (cleanup)
-          (exit 1)))))
+          (exit 1)))
+
+    (if (eq? (car (reverse (string->list file-name))) #\c) ;; lame test if it's a c file
+        (false-if-exception
+         (system (format #f "indent ~S" file-name))))))
 
 ;;; Support for C labels - declare them only when needed
 

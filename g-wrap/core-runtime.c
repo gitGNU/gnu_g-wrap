@@ -232,13 +232,15 @@ gw_wrapset_lookup_type (GWWrapSet *ws, const char *name)
 void
 gw_wrapset_add_function (GWWrapSet *ws,
                          void *proc,
-                         int n_args,
+                         int n_req_args,
+                         int n_optional_args,
                          const char *ret_type,
                          GWTypeSpec ret_typespec,
                          const char **arg_types,
                          GWTypeSpec *arg_typespecs,
                          const char *proc_name,
-                         const char *generic_name)
+                         const char *generic_name,
+                         const char *class_name)
 {
   GWFunctionInfo *fi;
   ffi_type **arg_ffi = NULL;
@@ -256,65 +258,75 @@ gw_wrapset_add_function (GWWrapSet *ws,
   }
   fi = &ws->functions[ws->nfunctions];
   fi->proc = proc;
-  fi->n_args = n_args;
+  fi->n_req_args = n_req_args;
+  fi->n_optional_args = n_optional_args;
   fi->proc_name = proc_name;
   fi->generic_name = generic_name;
+  fi->class_name = class_name;
+
+  /* FIXME: FFI should be able to handle optional args */
+  assert (!arg_types || !n_optional_args);
 
   assert ((!arg_types && !ret_type)
-          || ((n_args == 0 || arg_types) && ret_type));
+          || ((n_req_args == 0 || arg_types) && ret_type));
+
+  assert (!generic_name || class_name);
   
-  if (arg_types != NULL)
+  if (arg_types || ret_type) /* i.e., if we are using rti */
   {
-    if (fi->n_args > 0)
-      fi->arg_types = gw_malloc (ws->arena,
-                                 fi->n_args * sizeof (GWTypeInfo *));
+    if (arg_types != NULL)
+      {
+        if (fi->n_req_args > 0)
+          fi->arg_types = gw_malloc (ws->arena,
+                                     fi->n_req_args * sizeof (GWTypeInfo *));
+        else
+          fi->arg_types = NULL;
+
+        for (i = 0; i < fi->n_req_args; i++)
+          {
+            fi->arg_types[i] = gw_wrapset_lookup_type (ws, arg_types[i]);
+            if (fi->arg_types[i] == NULL)
+              gw_raise_error (ws->arena, "%gw:wrapset-add-function",
+                              "invalid argument type reference %s "
+                              "in argument list of %s",
+                              arg_types[i], fi->proc_name);
+          }
+      }
     else
       fi->arg_types = NULL;
+  
+    /* argument must be static */
+    fi->arg_typespecs = arg_typespecs;
 
-    for (i = 0; i < fi->n_args; i++)
-    {
-      fi->arg_types[i] = gw_wrapset_lookup_type (ws, arg_types[i]);
-      if (fi->arg_types[i] == NULL)
-        gw_raise_error (ws->arena, "%gw:wrapset-add-function",
-                        "invalid argument type reference %s "
-                        "in argument list of %s",
-                        arg_types[i], fi->proc_name);
-    }
-  }
-  else
-    fi->arg_types = NULL;
+    fi->ret_type = ret_type ? gw_wrapset_lookup_type (ws, ret_type) : NULL;
+    fi->ret_typespec = ret_typespec;
   
-  /* argument must be static */
-  fi->arg_typespecs = arg_typespecs;
+    fi->data_area_size = fi->n_req_args * sizeof (void *);
+  
+    if (fi->n_req_args > 0)
+      {
+        /* Data is used by ffi_call, so don't free it */
+        arg_ffi = (ffi_type **) gw_malloc (ws->arena,
+                                           sizeof (ffi_type *) * fi->n_req_args);
+        for (i = 0; i < fi->n_req_args; i++)
+          {
+            arg_ffi[i] = fi->arg_types[i]->type;
+            assert (arg_ffi[i] != NULL);
+          }
+      }
 
-  fi->ret_type = ret_type ? gw_wrapset_lookup_type (ws, ret_type) : NULL;
-  fi->ret_typespec = ret_typespec;
+    if (fi->ret_type)
+      {
+        status = ffi_prep_cif (&fi->cif, FFI_DEFAULT_ABI, fi->n_req_args,
+                               fi->ret_type->type, arg_ffi);
+        assert (status == FFI_OK);
   
-  fi->data_area_size = fi->n_args * sizeof (void *);
-  
-  if (fi->n_args > 0)
-  {
-    /* Data is used by ffi_call, so don't free it */
-    arg_ffi = (ffi_type **) gw_malloc (ws->arena,
-                                       sizeof (ffi_type *) * fi->n_args);
-    for (i = 0; i < fi->n_args; i++)
-    {
-      arg_ffi[i] = fi->arg_types[i]->type;
-      assert (arg_ffi[i] != NULL);
-    }
-  }
-
-  if (fi->ret_type)
-  {
-    status = ffi_prep_cif (&fi->cif, FFI_DEFAULT_ABI, fi->n_args,
-                           fi->ret_type->type, arg_ffi);
-    assert (status == FFI_OK);
-  
-    /* now we know the sizes of the types and calculate the data
-     * area size where we store the arguments' values */
-    for (i = 0; i < fi->n_args; i++)
-      fi->data_area_size += arg_ffi[i]->size;
-    fi->data_area_size += fi->ret_type->type->size;
+        /* now we know the sizes of the types and calculate the data
+         * area size where we store the arguments' values */
+        for (i = 0; i < fi->n_req_args; i++)
+          fi->data_area_size += arg_ffi[i]->size;
+        fi->data_area_size += fi->ret_type->type->size;
+      }
   }
   
   ws->nfunctions++;

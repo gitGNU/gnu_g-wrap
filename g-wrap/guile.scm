@@ -411,28 +411,25 @@
            "SCM_UNDEFINED));\n"))
       "}\n")))
 
+;; RTI functions override this method
 (define-method (initializations-cg (wrapset <gw-wrapset>)
                                    (function <gw-guile-function>)
                                    status-var)
   
-  (let* ((nargs (input-argument-count function))
-         (opt-args-start (- nargs (optional-argument-count function)))
-         (use-extra-params? (> nargs *max-fixed-params*))
+  (let* ((n-args (input-argument-count function))
+         (n-optional-args (optional-argument-count function))
+         (n-req-args (- n-args n-optional-args))
          (fn-c-wrapper (slot-ref function 'wrapper-name))
          (fn-c-string  (slot-ref function 'wrapper-namestr)))
     (list
-     "    scm_c_define_gsubr(" fn-c-string ", "
-     (if (and use-extra-params?
-              (> opt-args-start *max-fixed-params*))
-         *max-fixed-params*
-         opt-args-start) ", "
-     (if use-extra-params?
-         (if (< opt-args-start *max-fixed-params*)
-             (- *max-fixed-params* opt-args-start)
-             "0")
-         (optional-argument-count function)) ", "
-     (if use-extra-params? "1" "0") ",\n"
-     "                       (SCM (*) ()) " fn-c-wrapper ");\n")))
+     "   gw_wrapset_add_function(" (c-info-sym wrapset) ", "
+     fn-c-wrapper ", " n-req-args ", " n-optional-args ", "
+     "NULL, 0, NULL, NULL, " fn-c-string ", "
+     (if (generic-name function)
+         (list "\"" (symbol->string (generic-name function)) "\", "
+               "\"" (symbol->string (name (type (car (arguments function))))) "\"")
+         "NULL, NULL")
+     ");\n")))
 
 
 ;;;
@@ -720,14 +717,17 @@
                   clauses))
             '()
             (wrapsets-depended-on wrapset))
-      "  #:export (" (map
-                      (lambda (sym)
-                        (list "    " sym "\n"))
-                      (module-exports wrapset))
-      "))\n"
+;;      "  #:export (" (map
+;;                      (lambda (sym)
+;;                        (list "    " sym "\n"))
+;;                      (module-exports wrapset))
+;;     "))\n"
+      ")\n"
       "\n"
       "(dynamic-call \"gw_guile_init_wrapset_" wrapset-name-c-sym "\"\n"
-      "              (dynamic-link \"libgw-guile-" wrapset-name "\"))\n")
+      "              (dynamic-link \"libgw-guile-" wrapset-name "\"))\n"
+
+      "(module-use! (module-public-interface (current-module)) (current-module))\n")
      port)
     (let ((gf-hash (make-hash-table 67)))
       (fold-functions
@@ -745,12 +745,10 @@
                 (write
                  `(%gw:procedure->method-public
                    ,(name func) 
-                   (list ,@(map
-                            (lambda (type i)
-                              (or (and (= i 0) (class-name type)) '<top>))
-                            (argument-types func)
-                            (iota (argument-count func))))
-                   ',gf)
+                   ',(class-name type)
+                   ',gf
+                   ,(- (argument-count func) (optional-argument-count func))
+                   ,(not (zero? (optional-argument-count func))))
                  port)
                 (newline port))
               funcs)

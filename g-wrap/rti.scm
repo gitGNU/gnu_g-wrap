@@ -214,14 +214,15 @@
                    (cons 0 '())
                    (arguments function)))))
      "   gw_wrapset_add_function(" (c-info-sym wrapset) ", "
-       (c-name function) ", " nargs ", \"" (name (return-type function)) "\", "
-       (typespec-cg (return-type function) (return-typespec function)) ", "
-       arg-types ", " arg-typespecs ", \"" (name function) "\", "
-       (if (generic-name function)
-           (list "\"" (symbol->string (generic-name function)) "\"")
-           "NULL")
-       ");\n"
-       "}\n")))
+     (c-name function) ", " nargs ", 0, \"" (name (return-type function)) "\", "
+     (typespec-cg (return-type function) (return-typespec function)) ", "
+     arg-types ", " arg-typespecs ", \"" (name function) "\", "
+     (if (generic-name function)
+         (list "\"" (symbol->string (generic-name function)) "\", "
+               "\"" (symbol->string (name (type (car (arguments function))))) "\"")
+         "NULL, NULL")
+     ");\n"
+     "}\n")))
 
 ;; Returns #t if we can support RTI for the function and it is enabled
 (define-method (uses-rti-for-function? (wrapset <gw-rti-wrapset>)

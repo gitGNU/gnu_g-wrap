@@ -47,7 +47,8 @@
    generic-name 
    
    <gw-type>
-   class-name needs-result-var?
+   class-name
+   needs-result-var?
    wrap-value-cg unwrap-value-cg destruct-value-cg
    pre-call-arg-cg pre-call-result-cg call-arg-cg post-call-result-cg
    post-call-arg-cg call-cg set-value-cg
@@ -791,6 +792,7 @@
      (list
       "  if(gw_wrapset_initialized)\n"
       "   return;\n"
+      ;"   scm_block_gc++;\n"
       "\n"))
 
     ;; TODO: deobfuscate
@@ -821,6 +823,7 @@
     
     (dsp-list
      (list
+      ;"    scm_block_gc--;\n"
       "    gw_wrapset_initialized = 1;\n"
       "}\n"))))
 
