@@ -25,7 +25,7 @@ USA.
 #include "g-wrap/guile-compatibility.h"
 
 #ifdef HAVE_CONFIG_H
-# include "../config.h"
+# include "config.h"
 #endif
 
 #ifndef SCM_SMOB_DATA

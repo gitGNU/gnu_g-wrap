@@ -29,34 +29,37 @@
 
 (define-method (add-function-rti-cg (wrapset <gw-rti-wrapset>)
                                     (function <gw-function>))
-  (let ((arg-types-sym (gen-c-tmp "arg_types"))
-        (arg-typespecs-sym (gen-c-tmp "arg_typespecs"))
-        (nargs (argument-count function)))
+  (let* ((nargs (argument-count function))
+         (arg-types (if (> nargs 0) (gen-c-tmp "arg_types") "NULL"))
+         (arg-typespecs (if (> nargs 0) (gen-c-tmp "arg_typespecs") "NULL")))
     (list
      "{\n"
-     "  const char *" arg-types-sym "[" (number->string nargs) "];\n"
-     "  static GWTypeSpec " arg-typespecs-sym "[] = { "
-     (map (lambda (arg)
-            (list (typespec-cg (type arg) (typespec arg)) ", "))
-          (arguments function))
-     " };\n"
-     (cdr
-      (fold (lambda (arg state)
-              (let ((idx (car state))
-                    (result (cdr state)))
-                (cons
-                 idx
-                 (cons
-                 (list
-                  "  " arg-types-sym "[" (number->string idx) "] = \""
-                  (name (type arg)) "\";\n")
-                 result))))
-            (cons 0 '())
-            (arguments function)))
+     (if (= nargs 0)
+         '()
+         (list 
+          "  const char *" arg-types "[" (number->string nargs) "];\n"
+          "  static GWTypeSpec " arg-typespecs "[] = { "
+          (map (lambda (arg)
+                 (list (typespec-cg (type arg) (typespec arg)) ", "))
+               (arguments function))
+          " };\n"
+          (cdr
+           (fold (lambda (arg state)
+                   (let ((idx (car state))
+                         (result (cdr state)))
+                     (cons
+                      idx
+                      (cons
+                       (list
+                        "  " arg-types "[" (number->string idx) "] = \""
+                        (name (type arg)) "\";\n")
+                       result))))
+                 (cons 0 '())
+                 (arguments function)))))
      "   gw_wrapset_add_function(" (c-info-sym wrapset) ", "
      (c-name function) ", " nargs ", \"" (name (return-type function)) "\", "
      (typespec-cg (return-type function) (return-typespec function)) ", "
-     arg-types-sym ", " arg-typespecs-sym ", \"" (name function) "\", "
+     arg-types ", " arg-typespecs ", \"" (name function) "\", "
      (if (generic-name function)
          (list "\"" (symbol->string (generic-name function) "\""))
          "NULL")

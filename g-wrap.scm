@@ -1,6 +1,7 @@
 ;; Copyright (C) 2004 Andreas Rottmann
 
 (define-module (g-wrap)
+  #:use-module (ice-9 optargs)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
   #:use-module (g-wrap util)
@@ -203,13 +204,16 @@
 (define-method (for-each-function proc (ws <gw-wrapset>))
   (for-each proc (reverse (slot-ref ws 'functions))))
 
-(define-method (typespec (wrapset <gw-wrapset>) (type-sym <symbol>) . options)
-  (let ((type (lookup-type wrapset type-sym)))
+(define-method (resolve-typespec (wrapset <gw-wrapset>) (form <list>))
+  (let ((type (lookup-type wrapset (car form))))
     (if type
-        (make-typespec type options)
+        (make-typespec type (cdr form))
         (throw
          'gw:bad-typespec
-         (format #f "no type ~S in wrapset ~S" type-sym (name wrapset))))))
+         (format #f "no type ~S in wrapset ~S" (car form) (name wrapset))))))
+
+(define-method (resolve-typespec (wrapset <gw-wrapset>) (sym <symbol>))
+  (resolve-typespec wrapset (list sym)))
 
 (define-method (argspec (wrapset <gw-wrapset>) (spec <list>))
   (if (not (and (list? spec) (= (length spec) 2)))
@@ -220,16 +224,9 @@
     (make <gw-argument>
         #:name (cadr spec)
         #:typespec 
-        (cond
-         ((symbol? ts)
-          (typespec wrapset ts))
-         ((and (list? ts) (symbol? (car ts)))
-          (apply typespec wrapset (car ts) (cdr ts)))
-         (else
-          (throw 'gw:bad-typespec
-                 (format #f "first element of an argument spec must either a symbol or a symbol followed by a list (got ~S)" ts)))))))
+        (resolve-typespec wrapset ts))))
   
-(define-method (arguments (wrapset <gw-wrapset>) (argspecs <list>))
+(define-method (resolve-arguments (wrapset <gw-wrapset>) (argspecs <list>))
   (let loop ((specs argspecs) (args '()))
     (if (null? specs)
         (reverse args)
@@ -256,10 +253,24 @@
 ;; High-level interface -- should move low-level stuff to core and
 ;; only offer this as API
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)
-  (add-function! wrapset (apply make <gw-function> args)))
+  (let-keywords
+      args #f (name returns c-name arguments description)
+      (add-function!
+       wrapset (make <gw-function>
+                 #:name name
+                 #:returns (resolve-typespec wrapset returns)
+                 #:c-name c-name
+                 #:arguments (resolve-arguments wrapset arguments)
+                 #:description description))))
 
 (define-method (wrap-constant! (wrapset <gw-wrapset>) . args)
-  (add-constant! wrapset (apply make <gw-constant> args)))
+  (let-keywords
+      args #f (name type value description)
+      (add-constant! wrapset (make <gw-constant>
+                               #:name name
+                               #:typespec (resolve-typespec wrapset type)
+                               #:value value
+                               #:description description))))
 
 ;;
 ;; Generation stuff

@@ -276,8 +276,8 @@ dynproc_smob_apply (SCM smob, SCM args)
 
   error.status = GW_ERR_NONE;
 
-  offset = fi->nargs * sizeof (void *);
-  for (i = 0; i < fi->nargs; i++)
+  offset = fi->n_args * sizeof (void *);
+  for (i = 0; i < fi->n_args; i++)
   {
     SCM arg;
     values[i] = (void *) ((unsigned char *) data + offset);
@@ -305,7 +305,7 @@ dynproc_smob_apply (SCM smob, SCM args)
 
   /* call the destructors in the reverse orders, as done by the
    * traditional glue. */
-  for (i = fi->nargs - 1; i >= 0; i--)
+  for (i = fi->n_args - 1; i >= 0; i--)
   {
     fi->arg_types[i]->destruct_value (values[i], &fi->arg_typespecs[i],
                                       &error);
@@ -324,7 +324,7 @@ dynproc_smob_print (SCM smob, SCM port, scm_print_state *pstate)
   scm_display (scm_makfrom0str ("#<gw:dynproc "), port);
   scm_display (scm_makfrom0str (fi->proc_name), port);
   scm_display (scm_makfrom0str (" ("), port);
-  scm_display (SCM_MAKINUM (fi->nargs), port);
+  scm_display (SCM_MAKINUM (fi->n_args), port);
   scm_display (scm_makfrom0str (")>"), port);
   
   return 1;
@@ -417,9 +417,9 @@ gw_guile_register_wrapset (GWWrapSet *ws)
     SCM subr;
     GWFunctionInfo *fi = &ws->functions[i];
     
-    if (fi->dynamic)
+    if (fi->ret_type)
     {
-      SCM_NEWSMOB(subr, dynproc_smob_tag, fi);
+      SCM_NEWSMOB (subr, dynproc_smob_tag, fi);
       scm_c_define (fi->proc_name, subr);
     }
     else
@@ -441,7 +441,7 @@ gw_guile_register_wrapset (GWWrapSet *ws)
       SCM specializers = SCM_EOL;
       int j;
       
-      for (j = fi->nargs - 1; j >= 0; j--)
+      for (j = fi->n_args - 1; j >= 0; j--)
       {
         SCM klass = scm_class_top;
         const char *class_name = fi->arg_types[j]->class_name;
@@ -457,7 +457,7 @@ gw_guile_register_wrapset (GWWrapSet *ws)
         specializers = scm_cons (klass, specializers);
       }
       
-      gw_function_to_method_public (subr, fi->nargs, specializers,
+      gw_function_to_method_public (subr, fi->n_args, specializers,
                                     scm_str2symbol (fi->generic_name));
     }
   }

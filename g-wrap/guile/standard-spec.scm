@@ -1,13 +1,13 @@
 ;; Copyright (C) 2004 Andreas Rottmann
 
-(define-module (g-wrap guile gw-standard-spec)
+(define-module (g-wrap guile standard-spec)
   #:use-module (oop goops)
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
   #:use-module (g-wrap ffi)
   #:use-module (g-wrap guile)
   
-  #:export (wrapset-gw-standard))
+  #:export (standard-wrapset))
 
 (define-class <gw-standard-wrapset> (<gw-guile-wrapset>)
   (use-limits? #:init-value #f))
@@ -30,10 +30,10 @@
       "#include <string.h>\n"))))
 
 (define wrapset (make <gw-standard-wrapset>
-                  #:name "gw-standard"
-                  #:module '(g-wrap gw-standard)))
+                  #:name "standard"
+                  #:module '(g-wrap gw standard)))
 
-(define wrapset-gw-standard wrapset)
+(define standard-wrapset wrapset)
 
 ;;
 ;; <simple-ranged-integer-type>
@@ -71,14 +71,13 @@
                               (type <simple-ranged-integer-type>)
                               (value <gw-value>)
                               error-var)
-  (list (wrapped-var value) " = "
-        (slot-ref type 'wrap) "(" (var value) ");\n"))
+  (list (scm-var value) " = " (slot-ref type 'wrap) "(" (var value) ");\n"))
 
 (define-method (unwrap-value-cg (lang <gw-guile>)
                                 (type <simple-ranged-integer-type>)
                                 (value <gw-value>)
                                 error-var)
-  (let ((scm-var (wrapped-var value))
+  (let ((scm-var (scm-var value))
         (c-var (var value))
         (minvar (slot-ref type 'min-var))
         (maxvar (slot-ref type 'max-var)))
@@ -91,7 +90,7 @@
               (list
                "else if(SCM_NFALSEP(scm_negative_p(" scm-var "))"
                "        || SCM_FALSEP(scm_leq_p(" scm-var ", " maxvar ")))"))
-          `(gw:error ,error-var range ,scm-var)
+          `(gw:error ,error-var range ,(wrapped-var value))
           "else {\n"
           ;; here we pass NULL and 0 as the callers because we've already
           ;; checked the bounds on the argument
@@ -142,7 +141,7 @@
 (define-method (wrap-value-cg (lang <gw-language>)
                               (type <void>)
                               (value <gw-value>) error-var)
-  '()) 
+  (list (scm-var value) " = SCM_UNSPECIFIED;\n"))
 
 (define-method (unwrap-value-cg (lang <gw-language>)
                                 (type <void>)
@@ -284,10 +283,10 @@
 (add-type! wrapset
            (make <simple-ranged-integer-type>
              #:name 'unsigned-long
-             #:c-type-name "long"
-             #:min "LONG_MIN" #:max "LONG_MAX"
-             #:wrap "scm_long2num" #:unwrap "scm_num2long"
-             #:ffspec 'slong))
+             #:c-type-name "unsigned long"
+             #:max "ULONG_MAX"
+             #:wrap "scm_ulong2num" #:unwrap "scm_num2ulong"
+             #:ffspec 'ulong))
 
 (add-type! wrapset
            (make <simple-ranged-integer-type>
@@ -312,19 +311,17 @@
                               (type <mchars>)
                               (value <gw-value>)
                               error-var)
-  (let ((c-var (var value))
-        (scm-var (wrapped-var value)))
     (list
-     "if(" c-var " == NULL) " scm-var " = SCM_BOOL_F;\n"
+     "if(" (var value) " == NULL) " (scm-var value) " = SCM_BOOL_F;\n"
      "else "
-     scm-var " = scm_makfrom0str( " c-var ");\n")))
+     (scm-var  value) " = scm_makfrom0str( " (var value) ");\n"))
 
 (define-method (unwrap-value-cg (lang <gw-guile>)
                                 (type <mchars>)
                                 (value <gw-value>)
                                 error-var)
   (let ((c-var (var value))
-        (scm-var (wrapped-var value)))
+        (scm-var (scm-var value)))
     (list
      c-var " = NULL;\n"
      "\n"

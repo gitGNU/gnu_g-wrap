@@ -11,7 +11,8 @@
   
   #:export (<gw-guile> guile
             <gw-guile-wrapset>
-            <gw-guile-simple-type>))
+            <gw-guile-simple-type>
+            scm-var))
 
 
 
@@ -25,6 +26,9 @@
    (map (lambda (s) (gw:any-str->c-sym-str (symbol->string s)))
         name-symlist)
    "_"))
+
+(define-method (scm-var (value <gw-value>))
+  (string-append "*(SCM *)" (wrapped-var value)))
 
 (define-class <gw-guile> (<gw-language>))
 
@@ -155,13 +159,13 @@
                                 (enum <gw-guile-enum>)
                                 (value <gw-value>)
                                 status-var)
-  (let ((scm-var (wrapped-var value))
+  (let ((scm-var (scm-var value))
         (c-var (var value))
         (val-sym-array-name (val-array-name enum)))
     (list
      scm-var " = gw_guile_enum_val2int(" val-sym-array-name ", " scm-var ");\n"
      "if(SCM_FALSEP(scm_integer_p(" scm-var ")))"
-     `(gw:error ,status-var type ,scm-var)
+     `(gw:error ,status-var type ,(wrapped-var value))
      "else " c-var " = scm_num2long(" scm-var
      ", 0, \"%gw:enum->scm->c-ccg\");\n")))
   
@@ -194,11 +198,17 @@
             "while processing  ~S\n.") expansion))))
    (else tree)))
 
+(define-method (make-typespec (type <simple-type>) (options <list>))
+  (if (null? options)
+      (make <gw-typespec> #:type type)
+      (throw 'gw:bad-typespec
+             "Bad <simple-type> options - spurious options: " options)))
+
 (define-method (unwrap-value-cg (lang <gw-language>)
                                 (type <simple-type>)
                                 (value <gw-value>)
                                 status-var)
-  (let* ((scm-var (string-append "*((SCM *)" (wrapped-var value) ")"))
+  (let* ((scm-var (scm-var value))
          (c-var (var value))
          (type-check-code (replace-syms (slot-ref type 'type-check)
                                         `((scm-var . ,scm-var))))
@@ -213,10 +223,9 @@
                               (type <simple-type>)
                               (value <gw-value>)
                               status-var)
-  (replace-syms (slot-ref type 'unwrap)
+  (replace-syms (slot-ref type 'wrap)
                 `((c-var . ,(var value))
-                  (scm-var . ,(string-append
-                               "*((SCM *)" (wrapped-var value) ")")))))
+                  (scm-var . ,(scm-var value)))))
 
 (define-method (add-constant! (wrapset <gw-guile-wrapset>)
                               (constant <gw-constant>))
@@ -227,7 +236,7 @@
             (wrap-value-cg lang (type constant)
                            (make <gw-value>
                              #:var (value constant)
-                              #:wrapped-var scm-var)
+                             #:wrapped-var (string-append "&" scm-var))
                            error-var)))
       (list
        "{\n"
@@ -277,7 +286,7 @@
   (if (module wrapset)
       (let* ((wrapset-name (name wrapset))
              (wrapset-name-c-sym (any-str->c-sym-str wrapset-name))
-             (wrapset-scm-file-name (string-append wrapset-name ".scm"))
+             (wrapset-scm-file-name (string-append basename ".scm"))
              (guile-module (module wrapset))
              (guile-module-exports (module-exports wrapset)))
     
@@ -306,7 +315,7 @@
           "))\n"
           "\n"
           "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
-          "              (dynamic-link \"lib" wrapset-name "\"))\n")
+          "              (dynamic-link \"libgw-guile-" wrapset-name "\"))\n")
          port))))))
 
       

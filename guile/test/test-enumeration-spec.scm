@@ -3,17 +3,17 @@
   #:use-module (g-wrap)
   #:use-module (g-wrap guile)
   #:use-module (g-wrap enumeration)
-  #:use-module (g-wrap guile gw-standard-spec)
+  #:use-module (g-wrap guile standard-spec)
 
-  #:export (wrapset-gw-test-enumeration))
+  #:export (test-enumeration-wrapset))
 
 (define ws (make <gw-guile-wrapset>
              #:name "gw-test-enumeration"
              #:module '(gw-test-enumeration)))
 
-(define wrapset-gw-test-enumeration ws)
+(define test-enumeration-wrapset ws)
 
-(depends-on! ws wrapset-gw-standard)
+(depends-on! ws standard-wrapset)
 
 (add-cs-global-declarator!
    ws
@@ -32,7 +32,7 @@
 
 (wrap-function! ws
                 #:name 'gw-test-gw-enumeration-echo
-                #:returns (typespec ws 'gw-test-enum)
+                #:returns 'gw-test-enum
                 #:c-name "gw_test_gw_enumeration_echo"
-                #:arguments (arguments ws '((gw-test-enum arg)))
+                #:arguments '((gw-test-enum arg))
                 #:description "Echo arg.")

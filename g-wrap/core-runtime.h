@@ -115,17 +115,13 @@ struct _GWTypeInfo
 
 struct _GWFunctionInfo
 {
-    int dynamic; /* set if all arg types are dynamic and we should
-                  * create the function dynamically. */
-    
-    void *proc;            /* Wrapper function (if !dynamic) or real C
-                            * function */
+    void *proc;            /* Wrapper function or, if arg_types is
+                            * non-NULL, real C function */
     int n_args;
 
     GWTypeInfo *ret_type;
     GWTypeSpec ret_typespec;
     
-    int nargs;
     GWTypeInfo **arg_types; /* array */
     GWTypeSpec *arg_typespecs;
     

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export LTDL_LIBRARY_PATH=".:../g-wrap:${LTDL_LIBRARY_PATH}"
+export LTDL_LIBRARY_PATH=".:../../g-wrap:../g-wrap:../g-wrap/gw:${LTDL_LIBRARY_PATH}"
 export GUILE_LOAD_PATH=".:${srcdir:-.}/..:..:${GUILE_LOAD_PATH}"
 
 CMD=$1
