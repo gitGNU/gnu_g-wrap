@@ -1,3 +1,27 @@
+2003-11-08  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* autogen.sh, autogen-support.sh: Stolen from guile-gobject and
+	adapted.
+	
+	* Makefile.am, doc/Makefile.am, rpm/Makefile.am, bin/Makefile.am,
+	* example/Makefile.am, test/Makefile.am (EXTRA_DIST): Don't
+	distribute .cvsignore.
+
+	* test/Makefile.am (GUILE_FLAGS): New variable. Use $(GUILE_FLAGS)
+	for enabling the debugging evaluator.
+
+	* configure.in: Comment out check for Guile long_long, as it's
+	deprecated.
+
+	* Makefile.am (guilemoduledir): Install into $(datadir)/guile/site
+	instead of fixed configure-time location, so $(DESTDIR) is honored.
+	
+	* test/guile-test-env: VPATH build fixes.
+	
+	* configure.in, rpm/Makefile.am, test/Makefile.am, bin/Makefile.am,
+	* test/test-enumeration, test/test-gw-wct, test/test-gtkobj,
+	* test/test-gw-glib, test/test-gw-standard: VPATH build fixes.
+	
 2002-11-07  Rob Browning  <rlb@defaultvalue.org>
 
 	* release 1.3.4.

@@ -7,7 +7,6 @@ EXTRA_DIST =
 bin_SCRIPTS += g-wrap-config
 CLEANFILES += g-wrap-config
 EXTRA_DIST += g-wrap-config.in g-wrap.in
-EXTRA_DIST += .cvsignore
 
 ## We borrow guile's convention and use @-...-@ as the substitution
 ## brackets here, instead of the usual @...@.  This prevents autoconf
@@ -17,7 +16,7 @@ EXTRA_DIST += .cvsignore
 # Depend on Makefile so that we pick up changes to ../configure
 g-wrap: g-wrap.in Makefile
 	rm -f $@.tmp
-	sed < $@.in > $@.tmp \
+	sed < $< > $@.tmp \
             -e 's:@-GUILE-@:${GUILE}:' \
             -e 's:@-VERSION-@:${VERSION}:' \
 	    -e 's:@-GUILE_MODULE_DIR-@:${GUILEMODDIR}:'
@@ -31,7 +30,7 @@ g-wrap: g-wrap.in Makefile
 
 g-wrap-config: g-wrap-config.in
 	rm -f $@.tmp
-	sed < $@.in > $@.tmp \
+	sed < $< > $@.tmp \
 	    -e 's:@-GUILE-@:${GUILE}:' \
 	    -e 's:@-VERSION-@:${VERSION}:' \
 	    -e 's:@-libdir-@:${libdir}:' \
