@@ -437,7 +437,10 @@
       (if (null? out-params)
           "  return gw__scm_result;\n"
           (list
-           "  return scm_values (scm_list_n (gw__scm_result, "
+           "  return scm_values (scm_list_n ("
+           (if (needs-result-var? return-type)
+               "gw__scm_result, "
+               '())
            (map (lambda (n)
                   (string-append (out-param-name n) ", "))
                 (iota (length out-params)))
@@ -797,12 +800,18 @@
                 (write
                  `(%gw:procedure->method-public
                    ,(name func)
-                   ',(map (lambda (typespec)
-                            (and (not (memq 'unspecialized (options typespec)))
-                                 (class-name (type typespec))))
-                          (argument-typespecs func))
+                   ;; Specializers
+                   ',(map (lambda (arg)
+                            (let ((typespec (typespec arg)))
+                              (and (not (memq 'unspecialized
+                                              (options typespec)))
+                                   (class-name (type typespec)))))
+                          (filter visible? (arguments func)))
                    ',gf
-                   ,(- (argument-count func) (optional-argument-count func))
+                   ;; Required argument count
+                   ,(- (input-argument-count func)
+                       (optional-argument-count func))
+                   ;; Optional arguments?
                    ,(not (zero? (optional-argument-count func))))
                  port)
                 (newline port))

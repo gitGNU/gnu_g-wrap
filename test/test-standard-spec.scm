@@ -226,4 +226,10 @@
                   #:returns '(mchars callee-owned null-ok)
                   #:c-name "gw_test_generic__str_null_ok"
                   #:arguments '(((mchars const caller-owned null-ok) str)))
+  (wrap-function! ws
+                  #:generic-name 'gw-test-generic
+                  #:name 'gw-test-generic/double-double*
+                  #:returns 'void
+                  #:c-name "gw_test_generic__double_double_ptr"
+                  #:arguments '((double d) ((double out) d-out)))
   )

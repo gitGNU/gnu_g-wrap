@@ -54,6 +54,11 @@ const char *gw_test_generic__str_null_ok (const char *str)
   return str;
 }
 
+void gw_test_generic__double_double_ptr (double d, double *pd)
+{
+  *pd = d;
+}
+
 /*======================================================================*/
 /* For test-gw-enumeration */
 

@@ -378,14 +378,17 @@
          (slot-ref func 'arguments)))
 
 ;; Returns the number of optional argument (number of consecutive
-;; arguments with default values at the end of the argument list).  We
-;; count invisible arguments at the argument tail as optional, too.
+;; arguments with default values at the end of the argument list).
 (define-method (optional-argument-count (func <gw-function>))
   (let loop ((args (reverse (slot-ref func 'arguments))) (count 0))
-    (if (or (null? args) (and (visible? (car args)) 
-                              (not (default-value (car args)))))
-        count
-        (loop (cdr args) (+ count 1)))))
+    (cond ((or (null? args) (and (visible? (car args)) 
+                                 (not (default-value (car args)))))
+           count)
+          ((and (visible? (car args))
+                (not (memq 'out (options (typespec (car args))))))
+           (loop (cdr args) (+ count 1)))
+          (else
+           (loop (cdr args) count)))))
 
 (define-method (argument-types (func <gw-function>))
   (map type (slot-ref func 'arguments)))
