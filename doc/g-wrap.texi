@@ -472,8 +472,11 @@ wrapper module possible would look something like this:
     #:id 'miscutils)
 
   (define-method (initialize (ws <miscutils-wrapset>) initargs)
-    (next-method))
+    (next-method ws (append '(#:module (miscutils)) initargs)))
 @end lisp
+
+Note how the Guile module that the wrapset should reside in is passed
+to the @code{next-method} of @code{initialize} as a keyword argument.
 
 However, this wrapset won't let you do much.  In particular, a newly
 created wrapset doesn't know about any wrapped types.  In general
@@ -483,7 +486,7 @@ so, then you need to add a call to @code{depends-on!} like this:
 
 @example
   (define-method (initialize (ws <miscutils-wrapset>) initargs)
-    (next-method)
+    (next-method ws (append '(#:module (miscutils)) initargs))
     (depends-on! ws 'standard))
 @end example
 
@@ -494,7 +497,7 @@ want to say something like this:
 
 @example
   (define-method (initialize (ws <miscutils-wrapset>) initargs)
-    (next-method)
+    (next-method ws (append '(#:module (miscutils)) initargs))
 
     (depends-on! ws 'standard)
 
@@ -570,28 +573,25 @@ way to wrap this function would be:
       #:description "Return a string consisting of a followed by b.")
 @end example
 
-At this point, we have a wrapset named "miscutils" that wraps our
-two C functions so that when the wrapper module's C code is generated,
+At this point, we have a wrapset named "miscutils" that wraps our two
+C functions so that when the wrapper module's C code is generated,
 compiled, and then loaded back into Guile, we should be able to call
-these C functions normally.  Presuming you set miscutils up as a g-wrap
-module of that name, you could use it like this:
+these C functions normally.  You could use it like this:
 
 @example
-
   guile> (use-modules (miscutils))
   guile> (join-strings "out" "let")
   "outlet"
   guile> (seconds-since-dow 1)
   3099.232
   guile>
-
 @end example
 
 @node Defining New Wrapped Types, Wrapping C Functions, Creating a Wrapper Module, Usage
 @section Defining New Wrapped Types
 
 Though g-wrap already provides a number of wrapped types in the
-gw-runtime library, there will be many cases where you will need to
+standard wrapset, there will be many cases where you will need to
 define your own wrapped types.
 
 As an example, let's presume someone has added a fine-grained, wide
@@ -626,7 +626,7 @@ translate from the C representation of the type to the C representation
 and vice-versa.
 
 The way you do this, is by declaring your new wrapped type and
-specifying a set of C-code generator functions (or "ccodegens") that
+specifying a set of C-code generator functions (or "codegens") that
 will handle producing the C code inside your function wrappers that will
 handle the translations.
 
@@ -635,168 +635,85 @@ example, we'll use @code{<miscutils:timespec-64>}.  Note that whatever
 name you pick here will actually be bound to a value at runtime.  The
 reason for this will become clear later.
 
-To begin, you have to add your new type to your module.  Presume that
-the following code is inside the body of the "let" defined in our
-previous examples.  i.e. @code{mod} is bound to the miscutils g-wrap
-module you're creating.
+To begin, you have to define a new class for your type. We derive it
+from @code{<gw-rti-type>}, which can (and should) be used instead of
+the more generic @code{<gw-type>} in most cases.
 
 @lisp
-
-  (let ((wt (gw:wrap-type mod
-                          '<miscutils:timespec-64>
-                          "Timespec64"
-                          "const Timespec64")))
-    #t)
-    
+  (define-class <timespec64-type> (<gw-rti-type>))
 @end lisp
 
-The above bit of code does nothing more than create a new (empty)
-wrapped type.  In order to make this type useful, you have to define
-some relevant ccodegens.  Let's start with one that will tell g-wrap how
-to check instances of this type that are passed in as arguments from the
-Scheme side.  Presume this code is placed where the @code{#t} is in the
-"let" above.
+Then you can add your new type to your wrapset.  Presume that the
+following code is inside the body of the @code{initialize} method of
+our previous examples;  i.e. @code{ws} is bound to the miscutils
+wrapset you're creating.
 
 @lisp
-
-    (gw:type-set-scm-arg-type-test-ccodegen!
-     wt
-     (lambda (param)
-       (list
-        "msu_scm_timespec_64_p(" (gw:param-get-scm-name param) ")")))
-
+    (add-type! ws (make <timespec64-type>
+                        #:name '<miscutils:timespec-64>
+                        #:c-type-name "Timespec64"
+                        #:c-const-type-name "const Timespec64"))
 @end lisp
 
-A ccodegen is just a lambda that generates a list where each element in
-the list may either be a sub-list or a string, basically a tree of
-strings.  In the end, this list will be flattened into one long string
-and inserted into the C code being generated for the wrapper module.
-
-The scm-arg-type-test-ccodegen is always called with just one argument,
-a representation of the function parameter whose type should be checked.
-@code{gw:param-get-scm-name} is an accessor for these parameter
-representations that will return the name of the C variable that will be
-holding the Scheme value passed as an argument to any function with a
-parameter of this wrapped type.  The C code returned by your
-scm-arg-type-test-ccodegen should check this Scheme value, and return a
-non-zero value if the argument is of the correct type.  The above
-ccodegen presumes that the C function @code{msu_scm_timesepec_64_p} has
-been defined and returns non-zero if the given SCM is a pair and both
-elements are integers.
-
-At this point g-wrap knows how to check the type of incoming SCM
-arguments, but it doesn't know how to convert between the C and Scheme
-representations of your Timespec64 values.  To teach it, you need to
-define a @code{pre-call-arg-ccodegen}.  This ccodegen is used to
-generate C code in the wrapper functions that will be executed after all
-of the Scheme values passed as arguments to the wrapped function have
-been checked by their respective test code (generated by their
-respective @code{scm-arg-type-test-ccodegen} functions), but before the
-call to the C function being wrapped.
-
-When you specify a @code{pre-call-arg-ccodegen}, it will be called with
-one argument.  As with your @code{scm-arg-type-test-ccodegen}, this
-argument will be a representation of the function parameter that's being
-processed, and the code you generate with this ccodegen will, in most
-cases, just be responsible for converting from the Scheme representation
-for the argument into a C representation that can be passed to the C
-function that's being wrapped.  In addition to the function used above,
-@code{gw:param-get-scm-name}, you can also ask the param for the name of
-the C variable that will be used in the call to the C function that's
-being wrapped by calling @code{gw:param-get-c-name}.
-
-So in our Timespec64 example, we might defined our pre-call ccodegen
-like this:
+In order to make this type useful, you have to define some relevant
+codegen methods.  Let's start with one that will tell g-wrap how to
+``unwrap'' instances of this type that are passed in as arguments from
+the Scheme side.
 
 @lisp
-    
-    (gw:type-set-pre-call-arg-ccodegen!
-     wt
-     (lambda (param)
-       (let* ((scm-name (gw:param-get-scm-name param))
-              (c-name (gw:param-get-c-name param)))
-         (list
-          c-name
-          " = msu_scm_timespec64_to_c_timespec64(" scm-name ");\n"))))
-
+  (define-method (unwrap-value-cg (type <gw-ctype-void>)
+                                    (value <gw-value>) error-var)
+    (list
+      "if (!msu_scm_timespec_64_p(" (scm-var value) "))"
+      `(gw:error ,error-var type ,(wrapped-var value))
+      "else\n"  
+      "  " (var value) " = msu_timespec64_to_c(" (scm-var value) ");\n"))
 @end lisp
 
-@noindent
-As you can see this ccodegen grabs the Scheme name and the C names of
-the param and then assignes the C value to be the result of converting
-the scheme value with the hypothetical
-@code{msu_scm_timespec64_to_c_timespec64} function.  You can do other
-things in your pre-call ccodegen, but making sure that a C
-representation of the Scheme value ends up in the variable named
-"c-name" is usually the critical thing.
+A codegen returns a list where each element in the list may either be
+a sub-list or a string, basically a tree of strings.  In the end, this
+list will be flattened into one long string and inserted into the C
+code being generated for the wrapper module.
 
-Note too that if you don't like the "tree of strings" approach to
-generating the C code, you can always rewrite the code like
-this:@footnote{This could result in a loss in portability across Scheme
-implementations, though right now g-wrap only works with Guile, and may
-never be ported anywhere else.}
+The @code{unwrap-value-cg} is called with the type that should be
+``unwrapped'', the actual value, which consists of a Scheme and a C
+variable. As you can see this ccodegen grabs the Scheme name and the C
+names of the value and then assignes the C value to be the result of
+converting the scheme value with the hypothetical
+@code{msu_timespec64_to_scm} function.
+
+The list produced by @code{unwrap-value-cg} contains a special
+sublist, starting with @code{gw:error}. This indicates a failure
+condition, which is checked in the generated code and acted upon
+properly (i.e. raising an ``argument type'' error).
+
+The above codegen presumes that the C function
+@code{msu_scm_timespec_64_p} has been defined and returns non-zero if
+the given SCM is a pair and both elements are integers.
+
+At this point g-wrap knows how to convert and incoming Scheme
+arguments, but it doesn't know how to convert from C values to Scheme,
+which is needed if you return a Timespec64. To teach it, you need to
+define the @code{wrap-value-cg} for @code{<timespec64-type>}, which
+has the duty to ``wrap'' the C value for Scheme.
+
+So in our Timespec64 example, we might define our unwrap codegen like
+this:
 
 @lisp
-    
-    (gw:type-set-pre-call-arg-ccodegen!
-     wt
-     (lambda (param)
-       (simple-format #f
-                      "~A = ~A;\n"
-                      (gw:param-get-scm-name param)
-                      (gw:param-get-c-name param))))
-
+  (define-method (unwrap-value-cg (type <gw-ctype-void>)
+                                    (value <gw-value>) error-var)
+    (list
+      (scm-var value) " = "msu_timespec64_to_scm(" (scm-var value) ");\n"))
 @end lisp
 
+There are a bunch of codegens you can define for a type but if you do
+nothing overly fancy, you can get away with just @code{wrap-value-cg},
+@code{unwrap-value-cg}. For C values that need deconstruction, there
+is also @code{destruct-value-cg}.
 
-STOPPED HERE
-BELOW UNFINISHED...
-
-
-@lisp
-
-    (gw:type-set-call-ccodegen!
-     wt
-     (lambda (standard-c-call-gen result func-call-code)
-       (list (gw:result-get-c-name result) " = " func-call-code ";\n")))
-   
-  (define (add-standard-result-handlers! type c->scm-converter)
-    (define (standard-pre-handler result)
-      (let* ((ret-type-name (gw:result-get-proper-c-type-name result))
-             (ret-var-name (gw:result-get-c-name result)))
-        (list "@{\n"
-              "    " ret-type-name " " ret-var-name ";\n")))
-    
-    (gw:type-set-pre-call-result-ccodegen! type standard-pre-handler)
-    
-    (gw:type-set-post-call-result-ccodegen!
-     type
-     (lambda (result)
-       (let* ((scm-name (gw:result-get-scm-name result))
-              (c-name (gw:result-get-c-name result)))
-         (list
-          (c->scm-converter scm-name c-name)
-          "  @}\n")))))
-
-    (add-standard-result-handlers!
-     wt
-     (lambda (scm-name c-name)
-       (let ((old-func
-              (lambda (x)
-                (list "gnc_timespec2timepair(" x ")"))))
-         (list scm-name
-               " = "
-               (old-func c-name)
-               ";\n")))))
-
-@end lisp
-
-Also, note that although there are a bunch of ccodegens you can define
-for a type, many are optional.
-
-Note that though the code here is C-code, you can also in-line scheme
-code in many cases with a special construct...
-
+@c Note that though the code here is C-code, you can also in-line scheme
+@c code in many cases with a special construct...
 
 @node Wrapping C Functions, Generating the Wrapper Code, Defining New Wrapped Types, Usage
 @section Wrapping C Functions
