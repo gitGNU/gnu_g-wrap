@@ -21,6 +21,12 @@
 ;;;; MA 02139, USA.
 ;;;;
 
+;;; Commentary:
+;;
+; The language-independent part of the standard wrapset.
+;;
+;;; Code:
+
 (define-module (g-wrap ws standard)
   #:use-module (oop goops)
   #:use-module (g-wrap)
@@ -49,6 +55,9 @@
     (if (slot-ref wrapset 'use-limits?)
         (list "#include <limits.h>\n")
         '()))
+
+(define-method (global-declarations-cg (wrapset <gw-standard-wrapset>))
+  (list "#include <stdint.h>\n"))
 
 (define-method (initialize (wrapset <gw-standard-wrapset>) initargs)
 

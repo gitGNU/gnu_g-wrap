@@ -1,0 +1,18 @@
+#!/bin/sh
+exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
+!#
+
+(use-modules (gw-test-compat)
+             (unit-test)
+             (srfi srfi-11))
+
+(define-class <test-compat> (<test-case>))
+
+(define-method (test-void-type (self <test-compat>))
+  (assert-true (unspecified? (gw-test-gw-standard-no-op))))
+
+(exit-with-summary (run-all-defined-test-cases))
+
+;; Local Variables:
+;; mode: scheme
+;; End:

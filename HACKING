@@ -1,0 +1,41 @@
+Hacking on G-Wrap
+=================
+
+What to do (in general)
+-----------------------
+
+Bug and portability fixes will be always accepted. If you are
+interested in doing something more major, please write to
+g-wrap-dev@nongnu.org first, so we know what people are doing and can
+offer advice.  Also see the TODO file for items to hack on and ideas
+about the direction we want to take G-Wrap.  
+
+We _strongly_ recommend, if you are contributing a feature, that you
+write test cases for the feature and include them in your changeset
+(patch). Also make sure that the complete test suite suceeds after
+your modifications.
+
+Please try to follow the C coding style used in code. For Scheme,
+there is no definite coding style, but try to make new code match the
+existing one loosely in style.
+
+GNU Arch
+--------
+
+The G-Wrap developers use GNU Arch for development, and you are
+encouraged to use it if you hack on G-Wrap, as it will make
+integrating your work much easier. You are also encauraged to do
+"micro-branching", i.e. using a separate branch for each G-Wrap
+feature you work on, so each feature can be reviewed and integrated on
+its own. Also, please try to use "clean changesets", as described in
+the Arch Tutorial (chapter "Exploring Changesets"):
+
+    When you commit a set of changes, it is generally "best practice"
+    to make sure you are creating a clean changeset .
+
+    A clean changeset is one that contains only changes that are all
+    related and for a single purpose. For example, if you have several
+    bugs to fix, or several features to add, try not to mix those
+    changes up in a single commit.
+
+Clean changesets make it easier to review and merge your work.

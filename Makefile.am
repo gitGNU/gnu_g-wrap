@@ -1,16 +1,16 @@
 include $(top_srcdir)/common.mk
 
-SUBDIRS = g-wrap test guile examples doc
+SUBDIRS = 
+if !HAVE_LIBFFI
+SUBDIRS += libffi
+endif
+SUBDIRS += lib g-wrap test guile examples doc
 
 nobase_guilemodule_DATA = g-wrap.scm
 
-EXTRA_DIST = g-wrap.scm srfi/srfi-34.scm srfi/srfi-35.scm
+dist_bin_SCRIPTS = g-wrap-config
+
+EXTRA_DIST = g-wrap.scm
 
 ACLOCAL_AMFLAGS = -I m4 @ACLOCAL_FLAGS@
 
-if !HAVE_SRFI_34
-nobase_guilemodule_DATA += srfi/srfi-34.scm
-endif
-if !HAVE_SRFI_35
-nobase_guilemodule_DATA += srfi/srfi-35.scm
-endif

@@ -27,7 +27,8 @@
 
   #:export (<test-standard-wrapset>))
 
-(define-class <test-standard-wrapset> (<gw-wrapset>))
+(define-class <test-standard-wrapset> (<gw-wrapset>)
+  #:dependencies '(standard))
 
 (define-method (global-declarations-cg (ws <test-standard-wrapset>))
   (list
@@ -36,8 +37,6 @@
 
 (define-method (initialize (ws <test-standard-wrapset>) initargs)
   (next-method)
-  
-  (depends-on! ws 'standard)
   
   (wrap-constant! ws
                   #:name 'gw-test-gw-standard-foo-value
@@ -206,4 +205,25 @@
    #:returns 'long
    #:c-name "gw_test_out_args"
    #:arguments '((int arg1) ((int out) arg2) ((mchars out callee-owned) arg3)))
+
+  ;; generics
+  (wrap-function! ws
+                  #:generic-name 'gw-test-generic
+                  #:name 'gw-test-generic/int
+                  #:returns 'int
+                  #:c-name "gw_test_generic__int"
+                  #:arguments '((int n)))
+  (wrap-function! ws
+                  #:generic-name 'gw-test-generic
+                  #:name 'gw-test-generic/str-int
+                  #:returns '(mchars caller-owned)
+                  #:c-name "gw_test_generic__str_int"
+                  #:arguments '(((mchars const caller-owned) str)
+                                (int n)))
+  (wrap-function! ws
+                  #:generic-name 'gw-test-generic
+                  #:name 'gw-test-generic/str-null-ok
+                  #:returns '(mchars callee-owned null-ok)
+                  #:c-name "gw_test_generic__str_null_ok"
+                  #:arguments '(((mchars const caller-owned null-ok) str)))
   )

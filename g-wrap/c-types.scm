@@ -21,8 +21,19 @@
 ;;;; MA 02139, USA.
 ;;;;
 
+;;; Commentary:
+;;
+; This modules defines an interface to the basic C types (char, int,
+; long, double, ... and C strings). Also supported are opaque, typed
+; pointers called WCP (wrapped C pointer).
+;;
+;;; Code:
+
 (define-module (g-wrap c-types)
   #:use-module (oop goops)
+  #:use-module (srfi srfi-34)
+  #:use-module (srfi srfi-35)
+  
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
   #:use-module (g-wrap rti)
@@ -89,7 +100,7 @@
 (define-class <gw-ctype-mchars> (<gw-rti-type>)
   #:allowed-options '(null-ok))
 
-(define-method (destruct-value-cg (type <gw-ctype-mchars>)
+(define-method (destroy-value-cg (type <gw-ctype-mchars>)
                                   (value <gw-value>)
                                   error-var)
   (next-method)) ;; no need, we already strdup'd it if necessary

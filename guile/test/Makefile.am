@@ -1,6 +1,8 @@
+include $(top_srcdir)/common.mk
+
 # Initializations.
 
-CLEANFILES = $(wildcard gw-test-*.c gw-test-*.scm)
+CLEANFILES = $(wildcard gw-test-*.c gw-test-*.h gw-test-*.scm)
 noinst_HEADERS =
 noinst_LTLIBRARIES =
 EXTRA_DIST = 
@@ -8,7 +10,8 @@ EXTRA_DIST =
 TESTS = \
  test-standard \
  test-enumeration \
- test-wct 
+ test-wct \
+ test-compat
 
 check_SCRIPTS = guile-test-env $(TESTS)
 
@@ -16,8 +19,7 @@ EXTRA_DIST += ${check_SCRIPTS}
 
 GUILE_FLAGS = 
 
-LOCALPWD=$(shell pwd)
-SETGWPATH = "(set! %load-path (cons \"$(top_builddir)/guile\" (cons \"$(top_srcdir)\" %load-path)))"
+LOCALPWD = $(shell pwd)
 
 EXTRA_DIST += $(wildcard $(srcdir)/*-spec.scm)
 
@@ -29,6 +31,7 @@ std_libs = $(top_builddir)/test/libg-wrap-test-c-code.la \
 # ===========================================================================
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile
+AM_CFLAGS = $(GUILE_CFLAGS) $(LIBFFI_CFLAGS)
 
 noinst_LTLIBRARIES += libg-wrap-guile-test-c-code.la
 libg_wrap_guile_test_c_code_la_SOURCES = guile-test-c-code.c guile-test-c-code.h
@@ -69,6 +72,14 @@ libgw_guile_test_child_la_LIBADD = $(std_libs)
 
 
 # # ======================================================================
+# # gw-test-compat
+
+noinst_LTLIBRARIES += libgw-test-compat.la
+nodist_libgw_test_compat_la_SOURCES = gw-test-compat.c
+libgw_test_compat_la_LDFLAGS = -rpath @libdir@ -module
+libgw_test_compat_la_LIBADD = $(std_libs)
+
+# # ======================================================================
 # # Additional rules
 
 gw-test-%.c gw-test-%.scm: guile-test-%-spec.scm $(top_srcdir)/test/test-%-spec.scm
@@ -78,5 +89,13 @@ gw-test-%.c gw-test-%.scm: guile-test-%-spec.scm $(top_srcdir)/test/test-%-spec.
 	  (use-modules (g-wrap)) \
 	  (use-modules (guile test guile-test-$*-spec)) \
 	  (generate-wrapset 'guile 'test-$* \"gw-test-$*\")"
+
+gw-test-compat.c gw-test-compat.scm: guile-test-compat-spec.scm
+	LD_LIBRARY_PATH=${LOCALPWD}/..:${LD_LIBRARY_PATH} \
+	guile $(GUILE_FLAGS) -c  \
+	  ${SETGWPATH}" \
+	  (use-modules (g-wrap compat)) \
+	  (use-modules (guile test guile-test-compat-spec)) \
+	  (gw:generate-wrapset \"gw-test-compat\")"
 
 .PHONY: ${TESTS}

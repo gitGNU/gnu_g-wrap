@@ -88,11 +88,12 @@ typedef unsigned long GWTypeSpec;
 
 enum
 {
-  GW_TYPESPEC_CALLER_OWNED = 0x01,
-  GW_TYPESPEC_CALLEE_OWNED = 0x02,
-  GW_TYPESPEC_NULL_OK      = 0x04,
-  GW_TYPESPEC_CONST        = 0x08,
-  GW_TYPESPEC_OUT          = 0x10
+  GW_TYPESPEC_CALLER_OWNED  = 0x01,
+  GW_TYPESPEC_CALLEE_OWNED  = 0x02,
+  GW_TYPESPEC_NULL_OK       = 0x04,
+  GW_TYPESPEC_CONST         = 0x08,
+  GW_TYPESPEC_OUT           = 0x10,
+  GW_TYPESPEC_UNSPECIALIZED = 0x20
 };
 
 #define GW_TYPESPEC_USER_SHIFT 8
@@ -116,7 +117,7 @@ struct _GWTypeInfo
 {
     const char *name;
     const char *class_name;
-
+  
     ffi_type *type; /* if non-NULL, this type may passed dynamically */
 
     GWWrapValueFunc wrap_value;
@@ -169,28 +170,28 @@ struct _GWWrapSet
 
 GWWrapSet *gw_wrapset_new (GWLangArena arena,
                            const char *name, const char *dependency, ...);
-void       gw_wrapset_add_type(GWWrapSet *ws,
-                               const char *name,        /* static */
-                               const char *class_name,  /* static */
-                               ffi_type *type,
-                               const char **subtypes,
-                               GWWrapValueFunc wrap_value,
-                               GWUnWrapValueFunc unwrap_value,
-                               GWDestructValueFunc destruct_value);
-GWTypeInfo *gw_wrapset_lookup_type(GWWrapSet *ws, const char *name);
+void       gw_wrapset_add_type (GWWrapSet *ws,
+                                const char *name,        /* static */
+                                const char *class_name,  /* static */
+                                ffi_type *type,
+                                const char **subtypes,
+                                GWWrapValueFunc wrap_value,
+                                GWUnWrapValueFunc unwrap_value,
+                                GWDestructValueFunc destruct_value);
+GWTypeInfo *gw_wrapset_lookup_type (GWWrapSet *ws, const char *name);
 
-void 	   gw_wrapset_add_function(GWWrapSet *ws,
-                                   void *proc,
-                                   int n_req_args,
-                                   int n_optional_args,
-                                   const char *ret_type,
-                                   GWTypeSpec ret_typespec,
-                                   const char **arg_types,
-                                   GWTypeSpec *arg_typespecs,
-                                   const char *proc_name,
-                                   const char *generic_name);
+void 	   gw_wrapset_add_function (GWWrapSet *ws,
+                                    void *proc,
+                                    int n_req_args,
+                                    int n_optional_args,
+                                    const char *ret_type,
+                                    GWTypeSpec ret_typespec,
+                                    const char **arg_types,
+                                    GWTypeSpec *arg_typespecs,
+                                    const char *proc_name,
+                                    const char *generic_name);
 
-void 	   gw_wrapset_register(GWWrapSet *ws);
+void 	   gw_wrapset_register (GWWrapSet *ws);
 
 #ifdef __cplusplus
 }

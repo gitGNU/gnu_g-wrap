@@ -3,12 +3,12 @@
 
 DIE=0
 package=g-wrap-tng
-srcfile=g-wrap/guile.scm
+srcfile=g-wrap/core-runtime.c
 
 . ./autogen-support.sh
 
 CONFIGURE_DEF_OPT='--enable-maintainer-mode'
-ACLOCAL_FLAGS="-I m4 $ACLOCAL_FLAGS"
+GW_ACLOCAL_FLAGS="-I m4 $ACLOCAL_FLAGS"
 
 autogen_options $@
 
@@ -45,12 +45,25 @@ echo "+ creating m4/libchecks.m4"
 if test -f acinclude.m4; then rm acinclude.m4; fi
 
 tool_run "$libtoolize" "--copy --force"
-tool_run "$aclocal" "$ACLOCAL_FLAGS"
+tool_run "$aclocal" "$GW_ACLOCAL_FLAGS"
 tool_run "$autoheader"
 
 tool_run "$autoconf"
 debug "automake: $automake"
 tool_run "$automake" "-a -c"
+
+if [ -d libffi ]; then
+(
+    cd libffi
+    echo "+ autogenerating in libffi"
+    tool_run "$aclocal" "$ACLOCAL_FLAGS"
+    tool_run "$autoheader"
+
+    tool_run "$autoconf"
+    debug "automake: $automake"
+    tool_run "$automake" "-a -c"
+)
+fi
 
 test -n "$NOCONFIGURE" && {
   echo "skipping configure stage for package $package, as requested."

@@ -21,11 +21,19 @@
 ;;;; MA 02139, USA.
 ;;;;
 
+;;; Commentary:
+;;
+; This module extends the G-Wrap core with support for Guile Scheme.
+;;
+;;; Code:
+
 (define-module (g-wrap guile)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-13)
   
   #:use-module (oop goops)
+  #:use-module (ice-9 optargs)
+  
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
   #:use-module (g-wrap rti)
@@ -39,10 +47,9 @@
             add-module-export!
             
             <gw-guile-simple-type>
+            <gw-guile-simple-rti-type>
             <gw-guile-rti-type>
             scm-var))
-
-
 
 
 ;; Utility stuff
@@ -77,9 +84,10 @@
 ;;;
 
 (define-class <gw-guile-wrapset> (<gw-rti-wrapset>)
-  (module #:init-keyword #:module #:accessor module)
+  (module #:init-keyword #:module #:accessor module #:init-value #f)
   (module-exports #:getter module-exports #:init-value '())
-
+  (shlib-path #:init-keyword #:shlib-path)
+  
   #:language 'guile)
 
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>))
@@ -87,10 +95,10 @@
                              (symbol->string (name wrapset)))))
     (list
      (next-method)
-     "void gw_guile_init_wrapset_" wrapset-name-c-sym "(void);\n"
-     "void gw_guile_init_wrapset_" wrapset-name-c-sym "(void)\n"
+     "void gw_init_wrapset_" wrapset-name-c-sym "(void);\n"
+     "void gw_init_wrapset_" wrapset-name-c-sym "(void)\n"
      "{\n"
-     "  gw_init_wrapset_" wrapset-name-c-sym "(NULL);\n"
+     "  gw_initialize_wrapset_" wrapset-name-c-sym "(NULL);\n"
      "}\n")))
 
 (define-method (global-declarations-cg (wrapset <gw-guile-wrapset>))
@@ -101,11 +109,24 @@
 (define-method (initializations-cg (wrapset <gw-guile-wrapset>) err)
   (list
    "gw_guile_runtime_init ();\n"
-   (next-method)))
-    
+   (let ((modules (fold (lambda (ws clauses)
+                          (if (module ws)
+                              (cons (module ws) clauses)
+                              clauses))
+                        '()
+                        (wrapsets-depended-on wrapset))))
+     (if (null? modules)
+         '()
+         (inline-scheme wrapset `(use-modules ,@modules))))
+    (next-method)))
+  
 (define-method (initialize (wrapset <gw-guile-wrapset>) initargs)
   (next-method wrapset (append (list #:function-class <gw-guile-function>)
-                               initargs)))
+                               initargs))
+  (if (not (slot-bound? wrapset 'shlib-path))
+      (slot-set! wrapset 'shlib-path
+                 (string-append "libgw-guile-"
+                                (symbol->string (name wrapset))))))
 
 ;;; Additional methods
 
@@ -481,7 +502,7 @@
                                 #f '(type arg-type range memory misc))
      "}\n")))
 
-(define-method (destruct-value-function-cg (type <gw-guile-rti-type>))
+(define-method (destroy-value-function-cg (type <gw-guile-rti-type>))
   
   (let* ((type-name (c-type-name type))
          (value (make <gw-rti-value>
@@ -489,10 +510,10 @@
                   #:typespec #f ;; the typespec is passed in the function
                   #:wrapped-var "value")))
     (list
-     "static void " (destruct-value-function-name type)
+     "static void " (destroy-value-function-name type)
      "(GWLangArena arena, void *instance, const GWTypeSpec *typespec, GWError *error) {\n"
      "  " (expand-special-forms
-           (destruct-value-cg type value "*error")
+           (destroy-value-cg type value "*error")
            #f '(type arg-type range memory misc))
      "}\n")))
 
@@ -507,16 +528,21 @@
   val->sym-scm-func)
 
 (define-method (initialize (enum <gw-guile-enum>) initargs)
-  (define (gen-name action) (gen-c-tmp-name enum action)) ;; Just lazy
   (next-method)
-
-  (slot-set! enum 'val->int-c-func (gen-name "val_to_int"))
-  (slot-set! enum 'val->int-scm-func
-             (string-append "enum-" (symbol->string (name enum)) "-val->int"))
+  (let-keywords
+   initargs #t ((prefix "enum-"))
+   
+   (define (gen-name action) (gen-c-tmp-name enum action)) ;; Just lazy
+   (define (enum-prefix)
+     (string-append prefix (symbol->string (name enum))))
+   
+   (slot-set! enum 'val->int-c-func (gen-name "val_to_int"))
+   (slot-set! enum 'val->int-scm-func
+              (string-append (enum-prefix) "-val->int"))
   
-  (slot-set! enum 'val->sym-c-func (gen-name "val_to_sym"))
-  (slot-set! enum 'val->sym-scm-func 
-             (string-append "enum-" (symbol->string (name enum)) "-val->sym")))
+   (slot-set! enum 'val->sym-c-func (gen-name "val_to_sym"))
+   (slot-set! enum 'val->sym-scm-func
+              (string-append (enum-prefix) "-val->sym"))))
 
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>)
                                       (enum <gw-enumeration-type>))
@@ -579,7 +605,7 @@
 ;;; Simple Types
 ;;;
 
-(define-class <gw-guile-simple-type> (<gw-simple-rti-type> <gw-guile-rti-type>)
+(define-class <gw-guile-simple-type-base> ()
   (type-check #:init-keyword #:type-check)
   (wrap #:init-keyword #:wrap)
   (unwrap #:init-keyword #:unwrap))
@@ -599,7 +625,7 @@
             "while processing  ~S\n.") expansion))))
    (else tree)))
 
-(define-method (unwrap-value-cg (type <gw-guile-simple-type>)
+(define-method (unwrap-value-cg (type <gw-guile-simple-type-base>)
                                 (value <gw-value>)
                                 status-var)
   (let* ((scm-var (scm-var value))
@@ -614,17 +640,36 @@
               "else {" unwrap-code "}")
         unwrap-code)))
 
-(define-method (wrap-value-cg (type <gw-guile-simple-type>)
+(define-method (wrap-value-cg (type <gw-guile-simple-type-base>)
                               (value <gw-value>)
                               status-var)
   (replace-syms (slot-ref type 'wrap)
                 `((c-var . ,(var value))
                   (scm-var . ,(scm-var value)))))
 
+(define-class <gw-guile-simple-rti-type> (<gw-simple-rti-type>
+                                          <gw-guile-simple-type-base>
+                                          <gw-guile-rti-type>))
+
+;; This class is mainly for compatibility: it's like
+;; <gw-guile-simple-rti-type>, but doesn't require an ffspec
+(define-class <gw-guile-simple-type> (<gw-type> <gw-guile-simple-type-base>)
+  (c-type-name #:getter c-type-name #:init-keyword #:c-type-name)
+  (c-const-type-name #:init-keyword #:c-const-type-name))
+
+(define-method (c-type-name (type <gw-guile-simple-type>)
+                            (typespec <gw-typespec>))
+  (slot-ref type (if (memq 'const (options typespec))
+                     'c-const-type-name
+                     'c-type-name)))
+
 (define-method (wrap-simple-type! (wrapset <gw-guile-wrapset>) . args)
-  (let ((type (apply make <gw-guile-simple-type> args)))
-    (add-type! wrapset type)))
-                                  
+  (let* ((class (if (member #:ffspec args)
+                   <gw-guile-simple-rti-type>
+                   <gw-guile-simple-type>))
+         (type (apply make class args)))
+    (add-type! wrapset type)
+    type))
 
 
 ;;;
@@ -670,7 +715,7 @@
      "else if (gw_wcp_is_of_type_p(" wct-var ", " sv "))\n"
      "  " c-var " = gw_wcp_get_ptr(" sv ");\n"
      "else\n"
-     `(gw:error ,status-var type ,sv))))
+     `(gw:error ,status-var type ,(wrapped-var value)))))
 
 (define-method (initializations-cg (wrapset <gw-wrapset>)
                                    (wct <gw-guile-wct>)
@@ -707,15 +752,14 @@
 ;;; Generation
 ;;;
 
-(define (generate-wrapset-scm lang wrapset port)
+(define (generate-wrapset-scm wrapset port)
   (define (dsp-list lst)
     (for-each (lambda (s) (display s port)) lst))
   
   (let* ((wrapset-name (name wrapset))
          (wrapset-name-c-sym (any-str->c-sym-str
                               (symbol->string wrapset-name)))
-         (guile-module (module wrapset))
-         (guile-module-exports (module-exports wrapset)))
+         (guile-module (module wrapset)))
     
     (flatten-display
      (list
@@ -723,13 +767,6 @@
       "\n"
       (format #f "(define-module ~S\n" guile-module)
       (format #f "  #:use-module (oop goops)\n")
-      (fold (lambda (ws clauses)
-              (if (module ws)
-                  (cons (format #f "  #:use-module ~S\n" (module ws))
-                        clauses)
-                  clauses))
-            '()
-            (wrapsets-depended-on wrapset))
 ;;      "  #:export (" (map
 ;;                      (lambda (sym)
 ;;                        (list "    " sym "\n"))
@@ -737,9 +774,8 @@
 ;;     "))\n"
       ")\n"
       "\n"
-      "(dynamic-call \"gw_guile_init_wrapset_" wrapset-name-c-sym "\"\n"
-      "              (dynamic-link \"libgw-guile-" wrapset-name "\"))\n"
-
+      "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
+      "              (dynamic-link \"" (slot-ref wrapset 'shlib-path) "\"))\n"
       "(module-use! (module-public-interface (current-module)) (current-module))\n")
      port)
     (let ((gf-hash (make-hash-table 67)))
@@ -761,7 +797,10 @@
                 (write
                  `(%gw:procedure->method-public
                    ,(name func)
-                   ',(class-name (first (argument-types func)))
+                   ',(map (lambda (typespec)
+                            (and (not (memq 'unspecialized (options typespec)))
+                                 (class-name type)))
+                          (argument-typespecs func))
                    ',gf
                    ,(- (argument-count func) (optional-argument-count func))
                    ,(not (zero? (optional-argument-count func))))
@@ -770,15 +809,53 @@
               funcs)
              (newline port))
            #f gf-hash))))
-  
+
+(define (make-header-def-sym filename)
+  (string-append "__"
+                 (string-map
+                  (lambda (ch)
+                    (case ch
+                      ((#\space #\. #\-) #\_)
+                      (else ch)))
+                  (string-upcase filename))
+                 "__"))
+
+(define (generate-wrapset-h wrapset port)
+  (let* ((wrapset-name (symbol->string (name wrapset)))
+         (wrapset-header-name (string-append wrapset-name ".h"))
+         (wrapset-name-c-sym (any-str->c-sym-str wrapset-name))
+         (wrapset-header-def-sym (make-header-def-sym wrapset-header-name)))
+    (flatten-display
+     (list
+      "/* Generated by G-Wrap: an experimental C->Guile wrapper engine */\n"
+      "\n"
+      "#ifndef " wrapset-header-def-sym "\n"
+      "#define " wrapset-header-def-sym "\n"
+      "\n"
+      "#ifdef __cplusplus\n"
+      "extern \"C\" {\n"
+      "#endif\n"
+      "\n"
+      "void gw_init_wrapset_" wrapset-name-c-sym "(void);\n"
+      "\n"
+      "#ifdef __cplusplus\n"
+      "}\n"
+      "#endif\n"
+      "#endif\n")
+     port)))
+    
 (define-method (generate-wrapset (lang <symbol>)
                                  (wrapset <gw-guile-wrapset>)
                                  (basename <string>))
   (next-method)
 
+  (call-with-output-file/cleanup
+   (string-append basename ".h")
+   (lambda (port)
+     (generate-wrapset-h wrapset port)))
+  
   (if (module wrapset)
-      (let ((wrapset-scm-file-name (string-append basename ".scm")))
-        (call-with-output-file/cleanup        
-         wrapset-scm-file-name
-         (lambda (port)
-           (generate-wrapset-scm lang wrapset port))))))
+      (call-with-output-file/cleanup        
+       (string-append basename ".scm")
+       (lambda (port)
+           (generate-wrapset-scm wrapset port)))))

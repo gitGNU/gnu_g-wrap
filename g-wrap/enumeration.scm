@@ -21,6 +21,13 @@
 ;;;; MA 02139, USA.
 ;;;;
 
+;;; Commentary:
+;;
+; This module provides support for enumeration types, which are
+; presented as symbols on the Scheme side.
+;;
+;;; Code:
+
 (define-module (g-wrap enumeration)
   #:use-module (oop goops)
   

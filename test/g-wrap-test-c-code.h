@@ -11,6 +11,10 @@
 long gw_test_strtol(const char *str, int base);
 long gw_test_out_args(int arg1, int *arg2, char **arg3);
 
+int gw_test_generic__int (int n);
+char *gw_test_generic__str_int (const char *str, int n);
+const char *gw_test_generic__str_null_ok (const char *str);
+
 /* For test-enumeration */
 
 enum GWTestEnum

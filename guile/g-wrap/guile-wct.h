@@ -21,7 +21,8 @@ USA.
 #define __G_WRAP_WCT_H__
 
 #include <g-wrap/core-runtime.h>
-  
+#include <libguile.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -6,10 +6,11 @@ dnl Program version
 
 GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
 AC_SUBST(GW_BRANCH)
-GW_VERSION=1.9.0
+GW_VERSION=1.9.4
 
 AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
 AM_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER(g-wrap/ffi-support.h)
 
 AM_MAINTAINER_MODE
 
@@ -26,7 +27,7 @@ dnl
 AC_ARG_WITH(modules-dir,
 [  --with-modules-dir=<dir>  Base directory for contributed Guile modules ],
   GUILEMODDIR=$withval,
-  GUILEMODDIR=${datadir}/guile)
+  GUILEMODDIR=${datadir}/guile/site)
 AC_SUBST(GUILEMODDIR)
 
 dnl
@@ -42,6 +43,53 @@ dnl Checks for header files.
 dnl Checks for typedefs, structures, and compiler characteristics.
 STD_CFLAGS=""
 
+dnl Checks for types
+AC_CHECK_SIZEOF(long)
+
+dnl Checks for standard functions
+gl_FUNC_ALLOCA
+
+
+dnl
+dnl Checks for required libraries
+dnl
+
+dnl libffi
+ar_WITH_LIB_LIBFFI([have_libffi=yes], [have_libffi=no])
+LIBFFI_CFLAGS_INSTALLED="$LIBFFI_CFLAGS"
+LIBFFI_LIBS_INSTALLED="$LIBFFI_LIBS"
+if test "$have_libffi" = no; then
+  if ! test -d $srcdir/libffi; then
+    AC_MSG_ERROR([G-Wrap needs libffi installed])
+  else
+    AC_CONFIG_SUBDIRS(libffi)
+    LIBFFI_CFLAGS='-I$(top_builddir)/libffi/include'
+    LIBFFI_LIBS='$(top_builddir)/libffi/libffi.la'
+    LIBFFI_CFLAGS_INSTALLED=""
+    LIBFFI_LIBS_INSTALLED="-lffi"
+  fi
+fi
+AM_CONDITIONAL(HAVE_LIBFFI, test "$have_libffi" = yes)
+AC_SUBST(LIBFFI_CFLAGS)
+AC_SUBST(LIBFFI_LIBS)
+AC_SUBST(LIBFFI_CFLAGS_INSTALLED)
+AC_SUBST(LIBFFI_LIBS_INSTALLED)
+
+dnl Guile
+GUILE_FLAGS
+
+GUILE_MODULE_AVAILABLE(HAVE_SRFI_34, [(srfi srfi-34)])
+GUILE_MODULE_AVAILABLE(HAVE_SRFI_35, [(srfi srfi-35)])
+
+AM_CONDITIONAL(HAVE_SRFI_34, test "$HAVE_SRFI_34" = yes)
+AM_CONDITIONAL(HAVE_SRFI_35, test "$HAVE_SRFI_35" = yes)
+
+dnl Check for optional libraries
+PKG_CHECK_MODULES(GLIB, glib, [have_glib=yes], [have_glib=no])
+AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = yes)
+
+dnl Check for compiler flags and warnings. This should be last, since
+dnl it can infere with other checks due to changed CFLAGS.
 if test "$GCC" = yes; then
   dnl Add the warnings we want
   CFLAGS="$CFLAGS -Wall -Wmissing-prototypes"
@@ -66,30 +114,8 @@ fi
 
 AC_SUBST(STD_CFLAGS)
 
-dnl Checks for standard functions
-AC_FUNC_ALLOCA
-
-
-dnl
-dnl Checks for required libraries
-dnl
-
-dnl libffi
-ar_WITH_LIB_LIBFFI([], [AC_MSG_ERROR(G-Wrap needs libffi installed)])
-AC_SUBST(LIBFFI_CFLAGS)
-AC_SUBST(LIBFFI_LIBS)
-
-dnl Guile
-GUILE_FLAGS
-
-GUILE_MODULE_AVAILABLE(HAVE_SRFI_34, [(srfi srfi-34)])
-GUILE_MODULE_AVAILABLE(HAVE_SRFI_35, [(srfi srfi-35)])
-
-AM_CONDITIONAL(HAVE_SRFI_34, test "$HAVE_SRFI_34" = yes)
-AM_CONDITIONAL(HAVE_SRFI_35, test "$HAVE_SRFI_35" = yes)
-
-
 AC_OUTPUT([Makefile
+	   lib/Makefile
            g-wrap/Makefile
 	   test/Makefile
            guile/Makefile
@@ -99,4 +125,5 @@ AC_OUTPUT([Makefile
 	   guile/test/Makefile
 	   examples/Makefile
 	   doc/Makefile
+	   g-wrap-config
 ])

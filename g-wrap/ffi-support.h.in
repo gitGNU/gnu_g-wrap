@@ -30,8 +30,13 @@ extern "C" {
  * http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12782 */
 #if !defined(ffi_type_ulong_long)
 
-#undef ffi_type_ulong
-#undef ffi_type_slong
+/* noconfig */ #undef ffi_type_ulong
+/* noconfig */ #undef ffi_type_slong
+
+#ifndef SIZEOF_LONG
+/* The size of a `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+#endif
 
 #if SIZEOF_LONG == 4
 

@@ -21,6 +21,13 @@
 ;;;; MA 02139, USA.
 ;;;;
 
+;;; Commentary:
+;;
+; This is the core module of G-Wrap, containing language-independent
+; code.
+;;
+;;; Code:
+
 (define-module (g-wrap)
   #:use-module (ice-9 optargs)
   #:use-module (oop goops)
@@ -32,9 +39,11 @@
   
   #:export
   (&gw-bad-typespec
+   raise-bad-typespec
    
    <gw-item>
    description
+   all-types-referenced
    
    <gw-constant>
    value typespec 
@@ -49,7 +58,7 @@
    <gw-type>
    class-name
    needs-result-var?
-   wrap-value-cg unwrap-value-cg destruct-value-cg
+   wrap-value-cg unwrap-value-cg destroy-value-cg
    pre-call-arg-cg pre-call-result-cg call-arg-cg post-call-result-cg
    post-call-arg-cg call-cg set-value-cg
    
@@ -81,8 +90,8 @@
    <gw-wrapset>
    name language wrapsets-depended-on
    fold-types for-each-type lookup-type fold-functions
-   depends-on!
-
+   consider-types?
+   
    add-item! add-type! add-constant! add-function!
    add-client-item!
    
@@ -97,12 +106,15 @@
 ;;; Conditions
 
 (define-class &gw-bad-typespec (&error &message)
-  (spec #:accessor typespec-form #:init-value #f)
-  (type #:accessor type #:init-value #f)
-  (options #:accessor typespec-options #:init-value #f))
+  (spec #:getter typespec-form #:init-value #f)
+  (type #:getter type #:init-value #f)
+  (options #:getter typespec-options #:init-value #f))
+
+(define-class &gw-bad-typespec-option (&error &message)
+  (option #:getter typespec-option))
 
 (define-class &gw-stacked (&message)
-  (next #:accessor next-condition))
+  (next #:getter next-condition))
 
 (define-method (format-error msg . args)
   (display "g-wrap: " (current-error-port))
@@ -127,9 +139,6 @@
 
 ;;;
 
-(define-class <gw-language> ()
-  (description #:getter description #:init-keyword #:description))
-
 ;; An <gw-item> is "something" that shows up in the generated
 ;; wrapper. The following generics are invoked on all items:
 ;;
@@ -142,20 +151,20 @@
                #:init-keyword #:description
                #:init-value #f))
 
+(define-method (all-types-referenced (sel <gw-item>))
+  '())
+
 ;; Upgrade the GOOPS class-name procedure
-(define class-name (ensure-accessor class-name))
+;; barfs with GUILE CVS: class-name not defined -- jcn
+(if (defined? 'class-name)
+    (define class-name (ensure-accessor class-name))
+    (define class-name (ensure-accessor (module-ref
+					 (resolve-module '(oop goops))
+					 'class-name))))
 
 ;;;
 ;;; Types
 ;;;
-
-(define-class <gw-value> ()
-  (typespec #:getter typespec #:init-keyword #:typespec)
-  (var #:getter var #:init-keyword #:var)
-  (wrapped-var #:getter wrapped-var #:init-keyword #:wrapped-var))
-
-(define-class <gw-param> (<gw-value>)
-  (number #:getter number #:init-keyword #:number))
 
 (define-class <gw-type> (<gw-item>)
   (name #:getter name #:init-keyword #:name)
@@ -182,9 +191,39 @@
                              (symbol->string
                               (name type))) "_" suffix)))
 
+;; Here because needs <gw-type>
+(define-method (raise-bad-typespec type (options <list>) (msg <string>) . args)
+  (raise (condition
+          (&gw-bad-typespec
+           (type type) (options options)
+           (message (apply format #f msg args))))))
+
+(define-method (raise-bad-typespec spec (msg <string>) . args)
+  (raise (condition
+          (&gw-bad-typespec
+           (spec spec)
+           (message (apply format #f msg args))))))
+
+(define-method (raise-bad-typespec-option option (msg <string>) . args)
+  (raise (condition
+          (&gw-bad-typespec-option
+           (option option)
+           (message (apply format #f msg args))))))
+
+(define-method (raise-stacked (next &condition) (msg <string>) . args)
+  (raise (condition
+          (&gw-stacked
+           (next next)
+           (message (apply format #f msg args))))))
+  
 ;;;
 ;;; Values
 ;;;
+
+(define-class <gw-value> ()
+  (typespec #:getter typespec #:init-keyword #:typespec)
+  (var #:getter var #:init-keyword #:var)
+  (wrapped-var #:getter wrapped-var #:init-keyword #:wrapped-var))
 
 (define-method (type (value <gw-value>))
   (type (typespec value)))
@@ -201,9 +240,9 @@
 
 (define-generic wrap-value-cg)
 (define-generic unwrap-value-cg)
-(define-generic destruct-value-cg)
+(define-generic destroy-value-cg)
 
-(define-method (destruct-value-cg (type <gw-type>) (value <gw-value>) err)
+(define-method (destroy-value-cg (type <gw-type>) (value <gw-value>) err)
   '())
 
 (define-method (pre-call-arg-cg (type <gw-type>) (param <gw-value>) err)
@@ -232,20 +271,24 @@
                                     status-var)
   (list
    (wrap-value-cg type result status-var)
-   (destruct-value-cg type result status-var)))
+   (destroy-value-cg type result status-var)))
 
 
-(define-method (post-call-arg-cg (type <gw-type>) (param <gw-param>) err)
+(define-method (post-call-arg-cg (type <gw-type>) (param <gw-value>) err)
   (list
    (if (memq 'out (options (typespec param)))
        (wrap-value-cg type param err)
        '())
-  (destruct-value-cg type param err)))
+  (destroy-value-cg type param err)))
 
 (define-method (set-value-cg (type <gw-type>) (lvalue <gw-value>) rvalue)
   (list (var lvalue) " = " rvalue ";\n"))
 
-;;;
+
+;;; Parameters
+
+(define-class <gw-param> (<gw-value>)
+  (number #:getter number #:init-keyword #:number))
 
 (define-method (visible? (self <gw-param>))
   (>= (number self) 0))
@@ -271,21 +314,25 @@
   (list (type typespec)))
 
 (define-method (add-option! (self <gw-typespec>) (option <symbol>))
-  (slot-set! self 'options (cons option (slot-ref self 'options))))
+  (slot-push! self 'options option))
 
 (define-method (make-typespec (type <gw-type>) (options <list>))
   (check-typespec-options type options)
-  (let ((typespec (make <gw-typespec> #:type type)))
-    (for-each (lambda (opt) (parse-typespec-option! typespec type opt))
-              options)
-    typespec))
+  (guard
+   (c
+    ((is-a? c &gw-bad-typespec-option)
+     (raise-bad-typespec type options "bad typespec option ~S: ~A"
+                         (typespec-option c)
+                         (condition-message c))))
+   (let ((typespec (make <gw-typespec> #:type type)))
+     (for-each (lambda (opt) (parse-typespec-option! typespec type opt))
+               options)
+     typespec)))
 
 (define-method (check-typespec-options (type <gw-type>) (options <list>))
   (if (not (null? options))
-      (raise (condition
-              (&gw-bad-typespec
-               (type type) (options options)
-               (message "typespec may not have options by default"))))))
+      (raise-bad-typespec type options
+                          "typespec may not have options by default")))
 
 (define-method (parse-typespec-option! (typespec <gw-typespec>)
                                        (type <gw-type>)
@@ -295,10 +342,7 @@
 (define-method (parse-typespec-option! (typespec <gw-typespec>)
                                        (type <gw-type>)
                                        option)
-  (raise (condition
-          (&gw-bad-typespec
-           (type type) (options options)
-           (message "typespec options must be symbols")))))
+  (raise-bad-typespec-option option "typespec options must be symbols"))
 
 (define-generic c-type-name)
 
@@ -381,6 +425,9 @@
 (define-method (type (constant <gw-constant>))
   (type (typespec constant)))
 
+(define-method (all-types-referenced (self <gw-constant>))
+  (all-types (typespec self)))
+
 ;;;
 ;;; Code (currently nested string lists)
 ;;;
@@ -388,6 +435,9 @@
 
 (define-method (render (code <list>) (port <port>))
   (flatten-display code port))
+
+(define-method (render (code <string>) (port <port>))
+  (render (list code) port))
 
 (define-method (no-op? (code <list>)) (null? list))
 
@@ -401,9 +451,9 @@
 
 (define-method (initialize (class <gw-wrapset-class>) initargs)
   (next-method)
-  
+
   (let-keywords
-   initargs #t (language id types)
+   initargs #t (language id types (dependencies '()))
    (if (not language)
        (set! language
              (any (lambda (c) (class-slot-ref c 'language))
@@ -418,23 +468,26 @@
    (if id
        (class-slot-set! class 'name id))
 
+   (class-slot-set-supers-union! class 'dependency-ids dependencies)
+   
    (class-slot-set! class 'type-classes (make-hash-table 7))
-   (if types
-       (begin
-         (if (not (list? types))
-             (error "invalid #:types option (must be list)"))
-         (for-each (lambda (elt)
-                    (hashq-set! (class-slot-ref class 'type-classes) (first elt)
-                                (second elt)))
-                   types)
-       )
-   )))
+   (cond
+    (types
+     (if (not (list? types))
+         (error "invalid #:types option (must be list)"))
+     (for-each
+      (lambda (elt)
+        (hashq-set! (class-slot-ref class 'type-classes) (first elt)
+                    (second elt)))
+      types)))
+   ))
 
 (define-class <gw-wrapset> ()
   (name #:getter name #:init-keyword #:name #:allocation #:each-subclass)
   (language #:getter language #:init-keyword #:language
             #:allocation #:each-subclass)
   (type-classes #:allocation #:each-subclass)
+  (dependency-ids #:allocation #:each-subclass)
   
   (dependencies #:getter wrapsets-depended-on #:init-value '())
   (items #:init-value '())
@@ -450,37 +503,38 @@
   #:metaclass <gw-wrapset-class>)
 
 ;;; Methods
-(define-method (depends-on! (ws <gw-wrapset>) (dep-name <symbol>) . deps)
-  (slot-set! ws 'dependencies
-             (append!
-              (map (lambda (name)
-                     (get-wrapset (language ws) name))
-                   (cons dep-name deps))
-              (slot-ref ws 'dependencies))))
+
+(define-method (initialize (self <gw-wrapset>) initargs)
+  (next-method)
+  
+  (slot-set! self 'dependencies
+             (map (lambda (name)
+                    (get-wrapset (language self) name))
+                  (slot-ref self 'dependency-ids))))
 
 (define-method (add-item! (self <gw-wrapset>) (item <gw-item>))
-  (slot-set! self 'items (cons item (slot-ref self 'items))))
+  (slot-push! self 'items item))
 
 (define-method (add-client-item! (self <gw-wrapset>) (item <gw-item>))
-  (slot-set! self 'client-items (cons item (slot-ref self 'client-items))))
+  (slot-push! self 'client-items item))
 
 (define-method (add-type! (ws <gw-wrapset>) (type <gw-type>))
-  (slot-set! ws 'types (cons type (slot-ref ws 'types)))
-  (slot-set! ws 'items (cons type (slot-ref ws 'items)))
+  (slot-push! ws 'types type)
+  (slot-push! ws 'items type)
   (if (hashq-ref (slot-ref ws 'type-hash) (name type))
       (error "trying to double-register type ~S in ~S" type ws))
   (hashq-set! (slot-ref ws 'type-hash) (name type) type))
 
 (define-method (add-function! (ws <gw-wrapset>) (function <gw-function>))
-  (slot-set! ws 'items (cons function (slot-ref ws 'items)))
-  (slot-set! ws 'functions (cons function (slot-ref ws 'functions)))
+  (slot-push! ws 'items function)
+  (slot-push! ws 'functions function)
   (if (generic-name function)
       (let ((handle (hashq-create-handle! (slot-ref ws 'generic-hash)
                                           (generic-name function) '())))
         (set-cdr! handle (cons function (cdr handle))))))
 
 (define-method (add-constant! (ws <gw-wrapset>) (constant <gw-constant>))
-  (slot-set! ws 'items (cons constant (slot-ref ws 'items))))
+  (slot-push! ws 'items constant))
 
 (define-method (fold-types kons knil (ws <gw-wrapset>))
   (fold-right kons knil (slot-ref ws 'types)))
@@ -511,14 +565,14 @@
 (define-method (for-each-function proc (ws <gw-wrapset>))
   (for-each proc (reverse (slot-ref ws 'functions))))
 
+(define-method (consider-types? (wrapset <gw-wrapset>) (item <gw-item>))
+  #t)
+
 (define (resolve-typespec wrapset spec)
   (let* ((form (cond
                 ((symbol? spec) (list spec))
                 ((list? spec) spec)
-                (else (raise (condition
-                              (&gw-bad-typespec
-                               (spec spec)
-                               (message "neither list nor symbol")))))))
+                (else (raise-bad-typespec spec "neither list nor symbol"))))
          (type (lookup-type wrapset (car form))))
     (if type
         (make-typespec
@@ -530,56 +584,36 @@
                  ((symbol? elt)
                   elt)
                  (else
-                  (raise (condition
-                          (&gw-bad-typespec
-                           (type type) (options (cdr form))
-                           (message (format #f "bad option ~S" elt))))))))
+                  (raise-bad-typespec type (cdr form) "bad option ~S" elt))))
               (cdr form)))
-        (raise (condition
-                (&gw-bad-typespec
-                 (type (car form)) (options (cdr form))
-                 (message (format #f "no such type in wrapset `~S'"
-                                  (name wrapset)))))))))
+        (raise-bad-typespec (car form) (cdr form)
+                            "no such type in wrapset `~S'"
+                            (name wrapset)))))
 
 (define (resolve-arguments wrapset argspecs)
   (define (argument i spec)
     (if (not (and (list? spec) (>= (length spec) 2)))
-        (raise (condition
-                (&gw-bad-typespec
-                 (spec spec)
-                 (message
-                  "argument spec must be a (at least) two-element list")))))
+        (raise-bad-typespec
+         spec
+         "argument spec must be a (at least) two-element list"))
     (let ((ts (car spec)))
       (guard
        (c
-        (#t (raise (condition
-                    (&gw-stacked
-                     (next c)
-                     (message (format #f "while processing argument `~S'"
-                                      (second spec))))))))
-       (apply make <gw-argument>
-              #:number i
-              #:name (second spec)
-              #:typespec (resolve-typespec wrapset ts)
-              (fold
-               (lambda (opt rest)
-                 (if (not (and (list? opt) (= (length opt) 2)))
-                     (raise
-                      (condition
-                       (&gw-bad-typespec
-                        (spec spec)
-                        (message
-                         (format #f "invalid argument option ~S" opt))))))
-                 (case (first opt)
-                   ((default) (cons #:default (cons (second opt) rest)))
-                   (else
-                    (raise
-                     (condition
-                      (&gw-bad-typespec
-                       (spec spec)
-                       (message
-                        (format #f "unknown argument option ~S" opt))))))))
-               '() (cddr spec))))))
+        (#t (raise-stacked c "while processing argument `~S'" (second spec))))
+       (apply
+        make <gw-argument>
+        #:number i
+        #:name (second spec)
+        #:typespec (resolve-typespec wrapset ts)
+        (fold
+         (lambda (opt rest)
+           (if (not (and (list? opt) (= (length opt) 2)))
+               (raise-bad-typespec spec "invalid argument option ~S" opt))
+           (case (first opt)
+             ((default) (cons #:default (cons (second opt) rest)))
+             (else
+              (raise-bad-typespec spec "unknown argument option ~S" opt))))
+         '() (cddr spec))))))
   
   (let loop ((i 0) (specs argspecs) (args '()))
     (if (null? specs)
@@ -602,11 +636,7 @@
    args #f (name returns c-name arguments description generic-name)
    (guard
     (c
-     (#t (raise
-          (condition
-           (&gw-stacked
-            (next c)
-            (message (format #f "while processing function `~S'" name)))))
+     (#t (raise-stacked c "while processing function `~S'" name)
          ;; TODO: Find a way how go on and exit with failure at the end
          (exit 1)))
     
@@ -627,6 +657,12 @@
                             #:typespec (resolve-typespec wrapset type)
                             #:value value
                             #:description description))))
+
+(define-method (all-types-referenced (self <gw-wrapset>))
+  (append-map all-types-referenced
+              (filter (lambda (item) (consider-types? self item))
+                      (slot-ref self 'items))))
+
 
 ;;;
 ;;; Wrapset registry
@@ -662,7 +698,7 @@
          (wrapset-name (name wrapset))
          (wrapset-name-c-sym (any-str->c-sym-str
                               (symbol->string wrapset-name)))
-         (wrapset-init-func (string-append "gw_init_wrapset_"
+         (wrapset-init-func (string-append "gw_initialize_wrapset_"
                                            wrapset-name-c-sym)))
 
     (define (output-initializer-cg cg)
@@ -693,6 +729,7 @@
 
     (display "}\n" port)))
 
+;; Entry main point for wrapset generation
 (define-method (generate-wrapset (lang <symbol>)
                                  (name <symbol>)
                                  (basename <string>))
@@ -709,15 +746,12 @@
   (let ((client-type-hash (make-hash-table 13))
         (my-types (slot-ref ws 'type-hash)))
     (for-each
-     (lambda (func)
-       (for-each
-        (lambda (type)
-          (let ((type-name (name type)))
-            ;;(format #t "considering ~S as client type\n" type)
-            (if (not (hashq-ref my-types type-name))
-                (hashq-set! client-type-hash type-name type))))
-        (all-types-referenced func)))
-     (slot-ref ws 'functions))
+     (lambda (type)
+       (let ((type-name (name type)))
+         ;;(format #t "considering ~S as client type\n" type)
+         (if (not (hashq-ref my-types type-name))
+             (hashq-set! client-type-hash type-name type))))
+     (all-types-referenced ws))
     (hash-fold (lambda (key val rest) (cons val rest)) '() client-type-hash)))
 
 (define (generate-wrapset-cs wrapset port)
@@ -768,7 +802,8 @@
     (render-client-types client-global-declarations-cg)
 
     (dsp-list
-     (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
+     (list
+      "void gw_initialize_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
     
     (render (global-definitions-cg wrapset) port)
     (render-items global-definitions-cg)
@@ -781,7 +816,7 @@
     (dsp-list
      (list
       "void\n"
-      "gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena gw__arena) {\n"
+      "gw_initialize_wrapset_" wrapset-name-c-sym "(GWLangArena gw__arena) {\n"
       "  static int gw_wrapset_initialized = 0;\n"
       "\n"))
 
@@ -1028,3 +1063,6 @@
   (expand-helper tree param allowed-errors tree))
 
 
+;; Hook in compat layer
+(module-use! (resolve-interface '(g-wrap))
+             (resolve-interface '(g-wrap compat)))

@@ -21,6 +21,12 @@
 ;;;; MA 02139, USA.
 ;;;;
 
+;;; Commentary:
+;;
+; Miscellaneous utilities.
+;;
+;; Code:
+
 (define-module (g-wrap util)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-34)
@@ -31,13 +37,17 @@
   (&gw-bad-element
    element tree
 
-   guard/handle call-with-output-file/cleanup
+   call-with-output-file/cleanup
+   slot-push!
    
    <gw-cs-labels>
    goto-cg label-cg
    
    flatten-display flatten-string separate-by any-str->c-sym-str
-   gen-c-tmp str-translate))
+   gen-c-tmp str-translate
+
+   class-slot-set-supers-union!)
+  #:export-syntax (guard/handle))
 
 ;;; Condition stuff
 
@@ -83,8 +93,14 @@
           (exit 1)))
 
     (if (eq? (car (reverse (string->list file-name))) #\c) ;; lame test if it's a c file
-        (false-if-exception
-         (system (format #f "indent ~S" file-name))))))
+        (begin
+          (false-if-exception
+           (system (format #f "indent ~S" file-name)))
+          (false-if-exception
+           (delete-file (string-append file-name "~")))))))
+
+(define (slot-push! obj slot value)
+  (slot-set! obj slot (cons value (slot-ref obj slot))))
 
 ;;; Support for C labels - declare them only when needed
 
@@ -208,3 +224,17 @@
 		 (buff-add-char (string-ref str i))
 		 (loop (+ 1 i)))))))))
 
+
+(define (class-slot-set-supers-union! class slot init)
+  (class-slot-set! class slot
+                   (apply append
+                          (cons
+                           init
+                           (map (lambda (c)
+                                  (class-slot-ref c slot))
+                                (filter
+                                 (lambda (c)
+                                   (member slot
+                                           (map slot-definition-name
+                                                (class-slots c))))
+                                 (class-direct-supers class)))))))

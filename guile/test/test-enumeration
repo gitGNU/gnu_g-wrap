@@ -2,58 +2,57 @@
 exec ${srcdir:-.}/guile-test-env guile -s "$0" "$@"
 !#
 
-(use-modules (gw-test-enumeration))
+(use-modules (gw-test-enumeration)
+             (unit-test))
 
-(display "checking that val->int works as advertized...")
-(if (and (procedure? enum-<gw-test-enum>-val->int)
-         (= 0 (enum-<gw-test-enum>-val->int 0))
-         (= 1 (enum-<gw-test-enum>-val->int 1))
-         (= 2 (enum-<gw-test-enum>-val->int 2))
-         (= 0 (enum-<gw-test-enum>-val->int 'gw-test-enum-zero))
-         (= 1 (enum-<gw-test-enum>-val->int 'gw-test-enum-one))
-         (= 2 (enum-<gw-test-enum>-val->int 'gw-test-enum-two))
-         (not (enum-<gw-test-enum>-val->int 'foo-foo))
-         (not (enum-<gw-test-enum>-val->int 32)))
-    (display "yes\n")
-    (begin (display "no\n") (exit 1)))
+(define-class <test-enumeration> (<test-case>))
 
-(display "checking that val->sym works as advertized...")
-(if (and (procedure? enum-<gw-test-enum>-val->sym)
-         (not (enum-<gw-test-enum>-val->sym 999 #f))
-         (null? (enum-<gw-test-enum>-val->sym 999 #t))
+(define-method (test-val->int (self <test-enumeration>))
+  (assert-true (and (procedure? enum-<gw-test-enum>-val->int)
+                     (= 0 (enum-<gw-test-enum>-val->int 0))
+                     (= 1 (enum-<gw-test-enum>-val->int 1))
+                     (= 2 (enum-<gw-test-enum>-val->int 2))
+                     (= 0 (enum-<gw-test-enum>-val->int 'gw-test-enum-zero))
+                     (= 1 (enum-<gw-test-enum>-val->int 'gw-test-enum-one))
+                     (= 2 (enum-<gw-test-enum>-val->int 'gw-test-enum-two))
+                     (not (enum-<gw-test-enum>-val->int 'foo-foo))
+                     (not (enum-<gw-test-enum>-val->int 32)))))
 
-         (eq? 'gw-test-enum-zero (enum-<gw-test-enum>-val->sym 0 #f))
-         (eq? 'gw-test-enum-one (enum-<gw-test-enum>-val->sym 1 #f))
-         (memq (enum-<gw-test-enum>-val->sym 2 #f)
-               '(gw-test-enum-two gw-test-enum-two-too gw-test-enum-two-many))
+(define-method (test-val->sym (self <test-enumeration>))
+  (assert-true
+   (and (procedure? enum-<gw-test-enum>-val->sym)
+        (not (enum-<gw-test-enum>-val->sym 999 #f))
+        (null? (enum-<gw-test-enum>-val->sym 999 #t))
+        
+        (eq? 'gw-test-enum-zero (enum-<gw-test-enum>-val->sym 0 #f))
+        (eq? 'gw-test-enum-one (enum-<gw-test-enum>-val->sym 1 #f))
+        (memq (enum-<gw-test-enum>-val->sym 2 #f)
+              '(gw-test-enum-two gw-test-enum-two-too gw-test-enum-two-many))
+        
+        (equal? '(gw-test-enum-zero) (enum-<gw-test-enum>-val->sym 0 #t))
+        (equal? '(gw-test-enum-one) (enum-<gw-test-enum>-val->sym 1 #t))
+        (let ((result (enum-<gw-test-enum>-val->sym 2 #t)))
+          (and (memq 'gw-test-enum-two result)
+               (memq 'gw-test-enum-two-too result)
+               (memq 'gw-test-enum-two-many result)
+               (null? 
+                (delq 'gw-test-enum-two
+                      (delq 'gw-test-enum-two-too
+                            (delq 'gw-test-enum-two-many result)))))))))
 
-         (equal? '(gw-test-enum-zero) (enum-<gw-test-enum>-val->sym 0 #t))
-         (equal? '(gw-test-enum-one) (enum-<gw-test-enum>-val->sym 1 #t))
-         (let ((result (enum-<gw-test-enum>-val->sym 2 #t)))
-           (and (memq 'gw-test-enum-two result)
-                (memq 'gw-test-enum-two-too result)
-                (memq 'gw-test-enum-two-many result)
-                (null? 
-                 (delq 'gw-test-enum-two
-                       (delq 'gw-test-enum-two-too
-                             (delq 'gw-test-enum-two-many result)))))))
-    (display "yes\n")
-    (begin (display "no\n") (exit 1)))
+(define-method (test-enumeration-echo (self <test-enumeration>))
+  (assert-true
+   (and (procedure? gw-test-gw-enumeration-echo)
+        (= 0 (gw-test-gw-enumeration-echo 0))
+        (= 1 (gw-test-gw-enumeration-echo 1))
+        (= 2 (gw-test-gw-enumeration-echo 2))
+        (= 0 (gw-test-gw-enumeration-echo 'gw-test-enum-zero))
+        (= 1 (gw-test-gw-enumeration-echo 'gw-test-enum-one))
+        (= 2 (gw-test-gw-enumeration-echo 'gw-test-enum-two))
+        (= 2 (gw-test-gw-enumeration-echo 'gw-test-enum-two-too))
+        (= 2 (gw-test-gw-enumeration-echo 'gw-test-enum-two-many)))))
 
-(display "checking that <gw-test-enum> works as advertized...")
-(if (and (procedure? gw-test-gw-enumeration-echo)
-         (= 0 (gw-test-gw-enumeration-echo 0))
-         (= 1 (gw-test-gw-enumeration-echo 1))
-         (= 2 (gw-test-gw-enumeration-echo 2))
-         (= 0 (gw-test-gw-enumeration-echo 'gw-test-enum-zero))
-         (= 1 (gw-test-gw-enumeration-echo 'gw-test-enum-one))
-         (= 2 (gw-test-gw-enumeration-echo 'gw-test-enum-two))
-         (= 2 (gw-test-gw-enumeration-echo 'gw-test-enum-two-too))
-         (= 2 (gw-test-gw-enumeration-echo 'gw-test-enum-two-many)))
-    (display "yes\n")
-    (begin (display "no\n") (exit 1)))
-
-(exit 0)
+(exit-with-summary (run-all-defined-test-cases))
 
 ;; Local Variables:
 ;; mode: scheme

@@ -19,9 +19,39 @@ gw_test_strtol(const char *str, int base)
 
 long gw_test_out_args(int arg1, int *arg2, char **arg3)
 {
-  *arg2 = 666;
+  *arg2 = arg1 * arg1;
   *arg3 = "foobar";
   return arg1;
+}
+
+/*======================================================================*/
+/* Generics */
+
+int gw_test_generic__int(int n)
+{
+  return n * n;
+}
+
+char *gw_test_generic__str_int (const char *str, int n)
+{
+  int i;
+  int len = strlen (str);
+  char *result;
+
+  result = malloc (n * len + 1);
+  if (!result)
+    return NULL;
+  
+  for (i = 0; i < n; i++)
+    memcpy (result + (i * len), str, len);
+  result[n * len] = '\0';
+
+  return result;
+}
+
+const char *gw_test_generic__str_null_ok (const char *str)
+{
+  return str;
 }
 
 /*======================================================================*/

@@ -29,7 +29,8 @@
 
   #:export (<test-enumeration-wrapset>))
 
-(define-class <test-enumeration-wrapset> (<gw-wrapset>))
+(define-class <test-enumeration-wrapset> (<gw-wrapset>)
+  #:dependencies '(standard))
 
 (define-method (global-declarations-cg (ws <test-enumeration-wrapset>))
   (list
@@ -38,8 +39,6 @@
 
 (define-method (initialize (ws <test-enumeration-wrapset>) initargs)
   (next-method ws (append '(#:module (gw-test-enumeration)) initargs))
-
-  (depends-on! ws 'standard)
 
   (wrap-enum! ws
               #:name '<gw-test-enum>

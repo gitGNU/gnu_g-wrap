@@ -17,6 +17,15 @@
 ;;;; MA 02139, USA.
 ;;;;
 
+;;; Commentary:
+;;
+; This module implements run-time information (RTI) for G-Wrap. This
+; information can be used to implement functions wrappers (via libffi)
+; without actually emitting a C wrapper function for each function
+; wrapped.
+;;
+;;; Code:
+
 (define-module (g-wrap rti)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-13)
@@ -37,8 +46,8 @@
    <gw-rti-type>
    ffspec
    wrap-value-function-name unwrap-value-function-name
-   destruct-value-function-name 
-   wrap-value-function-cg unwrap-value-function-cg destruct-value-function-cg
+   destroy-value-function-name 
+   wrap-value-function-cg unwrap-value-function-cg destroy-value-function-cg
    
    <gw-simple-rti-type>))
 
@@ -47,6 +56,9 @@
   (function-rti? #:getter function-rti?
                  #:init-keyword #:function-rti?
                  #:init-value #t))
+
+(define-method (consider-types? (self <gw-rti-wrapset>) (func <gw-function>))
+  (not (uses-rti-for-function? self func)))
 
 (define-class <gw-rti-value> (<gw-value>))
 
@@ -75,15 +87,8 @@
   ;; Inherit the allowed options
   (let-keywords
    initargs #t ((allowed-options '()))
-   (class-slot-set! class 'allowed-options
-                    (apply append
-                           (cons
-                            allowed-options
-                            (map (lambda (c)
-                                   (class-slot-ref c 'allowed-options))
-                                 (filter
-                                  (lambda (c) (not (eq? <gw-type> c)))
-                                  (class-direct-supers class))))))))
+   (class-slot-set-supers-union!
+    class 'allowed-options allowed-options)))
 
 (define-class <gw-rti-type> (<gw-type>)
   (allowed-options #:init-value '() #:allocation #:each-subclass)
@@ -93,7 +98,7 @@
   
   (wrap-value-function-name #:getter wrap-value-function-name)
   (unwrap-value-function-name  #:getter unwrap-value-function-name)
-  (destruct-value-function-name #:getter destruct-value-function-name)
+  (destroy-value-function-name #:getter destroy-value-function-name)
   
   #:metaclass <gw-rti-type-class>)
 
@@ -114,11 +119,11 @@
   
   (slot-set! type 'wrap-value-function-name (gen-name "wrap_value"))
   (slot-set! type 'unwrap-value-function-name (gen-name "unwrap_value"))
-  (slot-set! type 'destruct-value-function-name (gen-name "destruct_value")))
+  (slot-set! type 'destroy-value-function-name (gen-name "destruct_value")))
 
 (define-generic wrap-value-function-cg)
 (define-generic unwrap-value-function-cg)
-(define-generic destruct-value-function-cg)
+(define-generic destroy-value-function-cg)
 
 (define-method (global-definitions-cg (wrapset <gw-rti-wrapset>)
                                       (type <gw-rti-type>))
@@ -126,7 +131,7 @@
    (next-method)
    (wrap-value-function-cg type)
    (unwrap-value-function-cg type)
-   (destruct-value-function-cg type)))
+   (destroy-value-function-cg type)))
 
 (define-method (check-typespec-options (type <gw-rti-type>) (options <list>))
   (let ((remainder options))
@@ -185,7 +190,7 @@
      "&ffi_type_" (ffspec type) ", NULL, "
      (wrap-value-function-name type) ", "
      (unwrap-value-function-name type) ", "
-     (destruct-value-function-name type)
+     (destroy-value-function-name type)
      ");\n")))
 
 (define (add-function-rti-cg wrapset function)

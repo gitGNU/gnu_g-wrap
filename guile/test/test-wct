@@ -2,39 +2,38 @@
 exec ${srcdir:-.}/guile-test-env guile -s "$0" "$@"
 !#
 
-(use-modules (g-wrap gw standard))
-(use-modules (test gw-test-child))
-(use-modules (test gw-test-parent))
+(use-modules (g-wrap gw standard)
+             (test gw-test-child)
+             (test gw-test-parent)
+             (unit-test))
 
-(display "checking that 2 wcp's with the same pointer and wct are equal?...")
-(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
-       (same-obj (gw-test-parent-same-obj obj-1)))
-  (if (equal? obj-1 same-obj)
-      (display "yes\n")
-      (error "no")))
+(define-class <test-wct> (<test-case>))
 
-(display "checking that 2 wcp's with the different pointers are not equal?...")
-(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
-       (obj-2 (gw-test-parent-make-obj "object 2")))
-  (if (not (equal? obj-1 obj-2))
-      (display "yes\n")
-      (error "no")))
+(define-method (test-wcp-equal (self <test-wct>))
+  "checking that 2 wcp's with the same pointer and wct are equal?..."
+  (let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+         (same-obj (gw-test-parent-same-obj obj-1)))
+    (assert-equal obj-1 same-obj)))
 
-(display "checking that gw:wcp-coerce works for pass-thru...")
-(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
-       (coerced-obj (gw:wcp-coerce obj-1 <gw:TestParentObj*>)))
-  (if (equal? obj-1 coerced-obj)
-      (display "yes\n")
-      (error "no")))
+(define-method (test-wcp-not-equal (self <test-wct>))
+  "checking that 2 wcp's with the different pointers are not equal?..."
+  (let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+         (obj-2 (gw-test-parent-make-obj "object 2")))
+    (assert-true (not (equal? obj-1 obj-2)))))
 
-(display "checking that one module can use another module's types...")
-(let* ((obj-1 (gw-test-parent-make-obj "object 1"))
-       (passed-obj (gw-test-child-pass-back-parent-obj obj-1)))
-  (if (equal? obj-1 passed-obj)
-      (display "yes\n")
-      (error "no")))
+(define-method (test-coerce (self <test-wct>))
+  "checking that gw:wcp-coerce works for pass-thru..."
+  (let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+         (coerced-obj (gw:wcp-coerce obj-1 <gw:TestParentObj*>)))
+    (assert-equal obj-1 coerced-obj)))
 
-(exit 0)
+(define-method (test-x-module (self <test-wct>))
+  "checking that one module can use another module's types..."
+  (let* ((obj-1 (gw-test-parent-make-obj "object 1"))
+         (passed-obj (gw-test-child-pass-back-parent-obj obj-1)))
+    (assert-equal obj-1 passed-obj)))
+
+(exit-with-summary (run-all-defined-test-cases))
 
 ;; Local Variables:
 ;; mode: scheme

@@ -1,7 +1,54 @@
-g-wrap NEWS -- history of user-visible changes.
+G-Wrap NEWS -- history of user-visible changes.
+Copyright (C) 2003-2004 Andreas Rottmann
 Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Initially created by Christopher Lee.
 See the end for copying conditions.
+
+Version 1.9.3
+
+  - Comes with a compatibility layer that allows GnuCash to be built
+    with it.
+
+  - Reverts the enhanced generics support, which was introduced in
+    1.9.2, since that currently breaks guile-gnome
+
+  - Bugfixes
+    + g-wrap-2.0-guile.pc is now generated correctly, even if the 
+      internal libffi is used.
+    + Types used by constants are now considered when calculating the 
+      set of referenced types in a wrapset. This bug led to missing code
+      and compile errors when a type defined in another wrapset was used 
+      by only by a constant.
+    + On platforms which lack alloca(), the version shipped with 
+      G-Wrap should now build correctly.
+
+Version 1.9.2
+
+  - Now comes with libffi included, for systems which lack an libffi
+    installation
+
+  - SRFI module checks now work correctly, even if you do an in-tree build
+
+Version 1.9.1
+
+ - API change: destruct-value-cg is now named destroy-value-cg
+
+ - Bugfixes
+   + A bug in the latent generic code has been fixed
+   + The error message for WCP type errors has been fixed
+
+Version 1.9.0
+
+ - Complete rewrite; too many changes to list, see the manual for the
+   new GOOPS-based API and the guile-gnome project for an extended
+   example.
+
+  - New features:
+    + Output arguments
+    + Default arguments
+
+  - G-Wrap should be target-language agnostic, like it was in its
+    early days.
 
 Version 1.3.3
 

@@ -28,7 +28,8 @@
 
   #:export (<test-parent-wrapset>))
 
-(define-class <test-parent-wrapset> (<gw-wrapset>))
+(define-class <test-parent-wrapset> (<gw-wrapset>)
+  #:dependencies '(standard))
   
 (define-method (global-declarations-cg (ws <test-parent-wrapset>))
   (list
@@ -38,8 +39,6 @@
 (define-method (initialize (ws <test-parent-wrapset>) initargs)
   (next-method)
   
-  (depends-on! ws 'standard)
-
   (wrap-as-wct! ws
                 #:name '<gw:TestParentObj*>
                 #:c-type-name "gwTestParentObj*"

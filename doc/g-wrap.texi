@@ -1,7 +1,7 @@
 \input texinfo @c -*-texinfo-*-
 @c %**start of header
 @setfilename g-wrap.info
-@settitle g-wrap
+@settitle G-Wrap
 @setchapternewpage on
 @c Choices for setchapternewpage are {on,off,odd}.
 @paragraphindent 0
@@ -9,7 +9,7 @@
 
 @dircategory Libraries
 @direntry
-* G-wrap: (g-wrap). Scheme wrapper for C libraries
+* G-Wrap: (g-wrap). Scheme wrapper for C libraries
 @end direntry
 
 @iftex
@@ -20,11 +20,13 @@
 @end iftex
 
 @titlepage
-@title g-wrap
+@title G-Wrap
 @subtitle A tool to wrap C APIs for Guile use.
 @subtitle Version 1.9.0
-@subtitle April 2001
-@author Christopher Lee <chrislee@@ri.cmu.edu>, Rob Browning <rlb@@defaultvalue.org> and Andreas Rottmann <rotty@@debian.org>
+@subtitle June 2004
+@author Christopher Lee <chrislee@@ri.cmu.edu>
+@author Rob Browning <rlb@@defaultvalue.org>
+@author Andreas Rottmann <rotty@@debian.org>
 
 @page
 @vskip 0pt plus 1filll
@@ -50,40 +52,20 @@ approved by the author.
 @node Top, Copying, (dir), (dir)
 @ifinfo
 
-This is the info manual for g-wrap, covering versions 1.9.*.
+This is the info manual for G-Wrap, covering versions 1.9.*.
 
 @end ifinfo
-
-@center **********************************
-@center NOTE: THESE DOCS ARE NOT FINISHED.
-@center **********************************
-
-
-I'm including them in the hope that they're at least somewhat useful,
-but they have only been partially converted to reflect the major changes
-that have happened recently.  There may be very misleading or just rough
-bits as you get further in, and the part still documents the old
-version.  Caveat emptor.  I hope to finish revising them soon.
 
 @menu
 * Copying::                     
 * Introduction::                
 * Usage::                       
-* Extending G-wrap::            
-* Reference::                   
-* Functions for describing C code to import to the interpreter::  
-* C code needed for adding new types::  
-* Generating and using the glue code::  
-* Types available by default::  
-* Extending g-wrap and porting it to other Scheme implementations::  
-* Portable "Fancy tricks"::     
 
 @detailmenu
  --- The Detailed Node Listing ---
 
 Introduction
 
-* Caveats::                     
 * Overview::                    
 * Why Create a Wrapper Generator?::  
 
@@ -92,71 +74,6 @@ Usage
 * A More Detailed Example::    
 * Creating a Wrapper Module::   
 * Defining New Wrapped Types::  
-* Wrapping C Functions::        
-* Generating the Wrapper Code::  
-* Using the Wrapped Interface::  
-
-Extending G-wrap
-
-* Other Internal Details::      
-* Adding New Wrapper Types::    
-
-Reference
-
-* Wrapper Module Operations::   
-* Defining Wrapped Types::      
-* Defining New Wrapper Types::  
-* Wrapping Functions::          
-* Wrapper Types Available by Default::  
-* Wrapped Types Available by Default::  
-
-Functions for describing C code to import to the interpreter
-
-* Defining a new function::     
-* Adding a new type::           
-* Defining a new constant::     
-* Other functions needed for describing the library glue code::  
-* Example of a library description::  
-
-Defining a new function
-
-* Manually defining functions::  
-* Scanning source code for functions to export::  
-
-Manually defining functions
-
-* Scanning source code for functions to export::  
-
-C code needed for adding new types
-
-* Utility functions::           
-* Printing object representations::  
-* Function for deallocating an object::  
-* Function for object comparisons::  
-
-Generating and using the glue code
-
-* Generating the glue code::    
-* Accessing the wrapped API from the target language::  
-* Coping With Old Guile Versions::  
-
-Types available by default
-
-* Guile Types::                 
-* RScheme Types::               
-
-Guile Types
-
-* Pointer Tokens and Pointer Arrays::  
-
-Pointer Tokens and Pointer Arrays
-
-* Pointer Tokens::              
-* Pointer Arrays::              
-
-Extending g-wrap and porting it to other Scheme implementations
-
-* Defining basic Scheme/C types::  
 
 @end detailmenu
 @end menu
@@ -206,46 +123,26 @@ OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 @chapter Introduction
 
 @menu
-* Caveats::                     
 * Overview::                    
 * Why Create a Wrapper Generator?::  
 @end menu
 
-@node Caveats, Overview, Introduction, Introduction
-@section Caveats
-
-@enumerate
-
-@item
-I'd like to state right up front that g-wrap is to some extent an
-experimental work.  It seems useful, but it is certainly not elegant, at
-least not yet, and maybe not ever, and it's somehat hard for me to say
-whether that's a statement about the problem, or the current solution.
-
-@item
-I'm a little concerned that g-wrap is suffering from mission-creep.
-
-@item
-All of these things are my (rlb's) fault, not Christopher's :>
-
-@end enumerate
-
-@node Overview, Why Create a Wrapper Generator?, Caveats, Introduction
+@node Overview
 @section Overview
 
 Given a definition of the types and prototypes for a given C interface,
-g-wrap will automatically generate the C code that provides access to
+G-Wrap will automatically generate the C code that provides access to
 that interface and its types from the Scheme level.
 
-To use g-wrap, you must make sure it knows how to handle all of the C
+To use G-Wrap, you must make sure it knows how to handle all of the C
 types that the functions you will be calling take as arguments and
-return as values, and you must also tell g-wrap about the C prototypes
-of these functions.  Since g-wrap already knows about quite a few of
+return as values, and you must also tell G-Wrap about the C prototypes
+of these functions.  Since G-Wrap already knows about quite a few of
 the common C types, for many simple C APIs, you may not need to add
 any custom type specifications.
 
-G-wrap is implemented as a Guile module, and so its interface is a
-programmatic one.  You tell g-wrap about your functions and types, and
+G-Wrap is implemented as a Guile module, and so its interface is a
+programmatic one.  You tell G-Wrap about your functions and types, and
 ask it to generate wrappers for you by calling the functions exported
 from the @code{(g-wrap)} module.
 
@@ -257,23 +154,21 @@ one function with a prototype like this
 @end example
 
 @noindent
-a complete g-wrap specification would look like this:
+a complete G-Wrap specification would look like this:
 
 @lisp
   (define-module (my-wrapset)
-    #:use-modules (g-wrap)
-    #:use-modules (g-wrap guile)
-    #:use-modules (g-wrap guile ws standard)
+    #:use-modules (oop goops))
+    #:use-modules (g-wrap))
     
     #:export (<my-wrapset>))
 
   (define-class <my-wrapset> (<gw-guile-wrapset>)
-    #:id 'my-wrapset)
+    #:id 'my-wrapset
+    #:dependencies '(standard))
 
   (define-method (initialize (ws <my-wrapset>) initargs)
     (next-method)
-
-    (depends-on! ws 'standard)
 
     (wrap-function! ws 
                     #:name 'frob
@@ -286,26 +181,49 @@ a complete g-wrap specification would look like this:
 @noindent
 You can see that the specification is encapsulated in a Guile module
 that exports a class - @code{<my-wrapset>} derived from
-@code{<gw-wrapset>}. A wrapset is the g-wrap counterpart to some API;
-it describes how the API looks in C and additional information for the
-target language; the @code{(my-wrapset)} module as presented above is
-describes a Guile wrapset, as indicated by using
-@code{<gw-guile-wrapset>} as superclass. As you'll see later, you
-could have written the module without any reference to Guile, defining
-an @emph{abstract} wrapset, which can then be refined for each target
-language.
+@code{<gw-wrapset>}. A wrapset is the G-Wrap counterpart to some API;
+it describes how the API looks in C and provides additional
+information for the target language. The wrapset above doesn't yet
+provide any such information; it is @emph{abstract} and can be refined
+for every target language.
 
-In the @code{initialize} method, the wrapset
-declares a dependency on the standard wrapset, which provides the
-basic C types. Then the @code{frob} function is wrapped, providing all
-relevant data such as return and argument types.
+In the @code{define-class} statement, the wrapset defines its ID, a
+globally unique identifier, and declares a dependency on the
+@code{standard} wrapset, which provides the basic C types. In the
+@code{initialize} method, the @code{frob} function is wrapped,
+providing all relevant data such as return and argument types.
 
-@noindent
-Once g-wrap has seen this specification, the code for the wrappers can
-be generated with this call:
+To refine the above wrapset for Guile, you derive from it and add the
+necessary information:
 
 @lisp
-  (generate-wrapset guile 'my-wrapset "my-wrapset")
+(define-module (my-guile-wrapset)
+  #:use-module (oop goops)
+  #:use-module (g-wrap)
+  #:use-module (g-wrap guile)
+  #:use-module (g-wrap guile ws standard)
+
+  #:export (<my-guile-wrapset>)
+
+(define-class <my-guile-wrapset> (<my-wrapset> <gw-guile-wrapset>))
+
+(define-method (initialize (ws <my-guile-wrapset>) initargs)
+  (next-method ws (append '(#:module (my-module)) initargs)))
+@end lisp
+
+We derive our Guile-specific wrapset from the generic wrapset
+@code{<my-wrapset>} and the base class for all Guile wrapsets
+@code{<gw-guile-wrapset>}. In @code{initialize}, we tell G-Wrap that
+the wrapset should eventually reside in the Guile module
+@code{my-module}.
+
+@noindent
+Once G-Wrap has seen this specification, the code for the wrappers can
+be generated with this code:
+
+@lisp
+  (use-modules (g-wrap) (g-wrap guile) (my-guile-wrapset))
+  (generate-wrapset 'guile 'my-wrapset "my-wrapset")
 @end lisp
 
 @noindent
@@ -317,27 +235,19 @@ Scheme function named @code{frob} which you can call as expected:
   (frob 4 2.3)
 @end lisp
 
-When it comes to defining how C types should be handled, g-wrap is
-very flexible.  G-wrap provides a fairly generic underlying
+When it comes to defining how C types should be handled, G-Wrap is
+very flexible.  G-Wrap provides a fairly generic underlying
 infrastructure which can then be customized for particular purposes by
 teaching it how to generate code for a given type or wrapset.  You can
 take explicit control over what code is generated in the wrapper
-module@footnote{The term "wrapper module" will always be used to
-indicate the collection of C code that is generated as the wrapper for
-a given C API.  It may or may not have any correlation to a Guile
-module.  When a Guile module is meant, the term Guile module will be
-used explicitly.} to handle arguments and return values of a given
-type (both for their initialization and cleanup), what code is
-generated to handle the wrapper module's global initialization, and
-what code is generated to provide global declarations.  G-wrap can
-also spit out a fully functional, dynamically-loadable Guile module if
-you like (so technically, @code{(use-modules (g-wrapped ncurses))} is
-now possible, and (with a minor tweak to re-enable some code) g-wrap
-can generate html docs for the wrapper interface).
+module to handle arguments and return values of a given type (both for
+their initialization and cleanup), what code is generated to handle
+the wrapper module's global initialization, and what code is generated
+to provide global declarations.
 
 At the lowest level, there is a "wrapping protocol" for types, which
 you can plug into to describe how a type is converted from and to the
-target language as well as other aspects of the type. G-wrap comes
+target language as well as other aspects of the type. G-Wrap comes
 with a few of these more types pre-defined.  This set should cover
 most of the common cases, but you can extend this set if needed.  The
 wrapper types currently available by default include:
@@ -363,18 +273,18 @@ right C-side values at runtime.
 
 @end table
 
-Furthermore, g-wrap allows you to define types in one wrapper module
+Furthermore, G-Wrap allows you to define types in one wrapper module
 that can then be used by other wrapper modules.  So as an example, you
-should be able to define a glib wrapper module that provides wrapper
-specifications for GList*'s that other wrapper modules can then import
-and use in their own wrapper function prototypes for argument and
-result types.  The goal is for this to allow different wrapper modules
-to be able to safely exchange data among their wrapped functions when
-they share common wrapped types.
+should be able to define a GLib wrapper module that provides wrapper
+specifications for @code{GList*}'s that other wrapper modules can then
+import and use in their own wrapper function prototypes for argument
+and result types.  The goal is for this to allow different wrapper
+modules to be able to safely exchange data among their wrapped
+functions when they share common wrapped types.
 
-As mentioned, g-wrap itself is implemented as purely Scheme-code Guile
+As mentioned, G-Wrap itself is implemented as purely Scheme-code Guile
 modules.  This means that you you can wrap functions for multiple
-modules on the fly from any invocation of guile.
+modules on the fly from any invocation of Guile.
 
 @node Why Create a Wrapper Generator?,  , Overview, Introduction
 @section Why Create a Wrapper Generator?
@@ -387,51 +297,48 @@ target language can access a foreign API are often in flux, it makes
 sense to consider automatically generating the "glue code" that binds
 the library API and the target language together.  This means that
 whenever the foreign function access mechanisms in a target language
-change, only g-wrap (or some similar tool) will need to be updated.
+change, only G-Wrap (or some similar tool) will need to be updated.
 Then all of the relevant glue code can be trivially re-generated.  This
-is the job that g-wrap was designed to handle.
+is the job that G-Wrap was designed to handle.
 
-In truth, one of the primary goals of g-wrap is also to acumulate as
+In truth, one of the primary goals of G-Wrap is also to acumulate as
 many language independent definitions of various APIs as possible, so
 that interfaces for other languages may be generated automatically,
-whether by g-wrap, or some other program.
+whether by G-Wrap, or some other program.
 
-The original motivation for g-wrap came from Aubrey Jaffer's suggestion
+The original motivation for G-Wrap came from Aubrey Jaffer's suggestion
 to Christopher Lee that using Scheme to parse a language neutral API
 specification and generate glue code would be a good way to address this
-problem for Scheme interpreters.  G-wrap may well evolve beyond that to
+problem for Scheme interpreters.  G-Wrap may well evolve beyond that to
 support other languages, but for now, it only handles access to C APIs
 from Guile.
 
-In fact, the original implementation of g-wrap was much more declarative
+In fact, the original implementation of G-Wrap was much more declarative
 than programmatic.  The API specification files were not executable
 Scheme code, but rather declarative Scheme forms.  In the long run, this
-might be preferable, if g-wrap decides to move in the direction of
+might be preferable, if G-Wrap decides to move in the direction of
 language independence, or an alternate possibility is to design a
 language neutral API spec file (as gnome-guile is trying to do) and then
-just have a translator from that to native g-wrap calls.
+just have a translator from that to native G-Wrap calls.
 
-G-wrap can be found at @url{http://www.nongnu.org/g-wrap/}.
+G-Wrap can be found at @url{http://www.nongnu.org/g-wrap/}.
 
 @c Chapter ==================================================================
-@node Usage, Extending G-wrap, Introduction, Top
+@node Usage, , Introduction, Top
 @chapter Usage
 
 @menu
 * A More Detailed Example::    
 * Creating a Wrapper Module::   
 * Defining New Wrapped Types::  
-* Wrapping C Functions::        
-* Generating the Wrapper Code::  
-* Using the Wrapped Interface::  
 @end menu
 
 @node A More Detailed Example, Creating a Wrapper Module, Usage, Usage
 @section A More Detailed Example
 
 In this chapter we'll walk through the process of wrapping an
-incresingly complex C API.  In the process, we'll try to hit all the
-important g-wrap features.
+increasingly complex C API.  In the process, we'll try to hit all the
+important G-Wrap features.
 
 You'll see how to define a wrapset, add new types to it (when the
 default set of types isn't sufficient), wrap the C-side functions, and
@@ -462,7 +369,7 @@ foo-spec.scm, or placed in separate @file{ws/} subdirectory.
 
 Inside the wrapset specification file, the first thing you have to do
 is create the wrapset class.  But before that, you have to tell Guile
-that you'll use the GOOPS and g-wrap modules. So the most trivial
+that you'll use the GOOPS and G-Wrap modules. So the most trivial
 wrapper module possible would look something like this:
 
 @lisp
@@ -480,14 +387,15 @@ to the @code{next-method} of @code{initialize} as a keyword argument.
 
 However, this wrapset won't let you do much.  In particular, a newly
 created wrapset doesn't know about any wrapped types.  In general
-you'll probably want to be able to use the standard set of g-wrap
+you'll probably want to be able to use the standard set of G-Wrap
 wrapped types which include support for int, double, strings, etc.  If
-so, then you need to add a call to @code{depends-on!} like this:
+so, then you need to add a @code{#:dependencies} keyword argument to
+the class definition:
 
 @example
-  (define-method (initialize (ws <miscutils-wrapset>) initargs)
-    (next-method ws (append '(#:module (miscutils)) initargs))
-    (depends-on! ws 'standard))
+  (define-class <miscutils-wrapset> (<gw-guile-wrapset>)
+    #:id 'miscutils
+    #:dependencies '(standard))
 @end example
 
 Now you can start wrapping functions using the default set of wrapped
@@ -498,8 +406,6 @@ want to say something like this:
 @example
   (define-method (initialize (ws <miscutils-wrapset>) initargs)
     (next-method ws (append '(#:module (miscutils)) initargs))
-
-    (depends-on! ws 'standard)
 
     (wrap-function! 
       ws
@@ -530,7 +436,7 @@ the symbol which should be bound to the wrapped function in Scheme at
 runtime.
 
 @item #:returns
-the symbol naming the g-wrap wrapped type of the C function result.
+the symbol naming the G-Wrap wrapped type of the C function result.
 
 @item #:c-name
 a string giving the C function's name.
@@ -545,13 +451,13 @@ a string describing the function.
 @end table
 
 Actually, the example given above won't work because specifying
-@code{mchars} (roughly g-wrap's type for @code{char*}) alone doesn't
+@code{mchars} (roughly G-Wrap's type for @code{char*}) alone doesn't
 provide enough information about the allocation semantics of the
-argument or return value.  g-wrap needs to know whether a @code{char*}
+argument or return value.  G-Wrap needs to know whether a @code{char*}
 argument that's passed in to a function should be considered to be
 "owned" by the function after the C function returns, or should be
 considered caller owned, and hence safe for deletion if appropriate.
-So g-wrap requires you to be explicit, and provides two type options
+So G-Wrap requires you to be explicit, and provides two type options
 for string type arguments and return values: @code{caller-owned} and
 @code{callee-owned}.  The "m" in @code{mchars} stands for
 @code{malloc}, since it's conceivable that for some C functions, the
@@ -587,10 +493,10 @@ these C functions normally.  You could use it like this:
   guile>
 @end example
 
-@node Defining New Wrapped Types, Wrapping C Functions, Creating a Wrapper Module, Usage
+@node Defining New Wrapped Types, , Creating a Wrapper Module, Usage
 @section Defining New Wrapped Types
 
-Though g-wrap already provides a number of wrapped types in the
+Though G-Wrap already provides a number of wrapped types in the
 standard wrapset, there will be many cases where you will need to
 define your own wrapped types.
 
@@ -598,7 +504,7 @@ As an example, let's presume someone has added a fine-grained, wide
 ranging, time type to miscutils along with a function that uses that
 type like this:
  
-FIXME: Add an overview of how g-wrap thinks about types -- i.e. using a
+FIXME: Add an overview of how G-Wrap thinks about types -- i.e. using a
 template-like process with ccodegens inserting content in important
 places.
 
@@ -619,25 +525,26 @@ car will be the seconds and the cdr will be the
 nanoseconds.@footnote{Though you should probably consider using the time
 type from SRFI-19 @url{http://srfi.schemers.org/srfi-19/} instead.}
 
-Since you've decided to use a native Scheme representation for the type,
-you'll want to define it as an instance of the g-wrap "normal" or
-"native" wrapper type.  This primarily involves telling g-wrap how to
-translate from the C representation of the type to the C representation
-and vice-versa.
+Since you've decided to use a native Scheme representation for the
+type, you'll want to define it as an instance of the G-Wrap "normal"
+or "native" wrapper type.  This primarily involves telling G-Wrap how
+to translate from the C representation of the type to the Scheme
+representation and vice-versa.
 
 The way you do this, is by declaring your new wrapped type and
 specifying a set of C-code generator functions (or "codegens") that
 will handle producing the C code inside your function wrappers that will
 handle the translations.
 
-The first thing you need for your new type is a g-wrap name.  For this
-example, we'll use @code{<miscutils:timespec-64>}.  Note that whatever
-name you pick here will actually be bound to a value at runtime.  The
-reason for this will become clear later.
+The first thing you need for your new type is a G-Wrap name.  For this
+example, we'll use @code{timespec64}.
 
 To begin, you have to define a new class for your type. We derive it
 from @code{<gw-rti-type>}, which can (and should) be used instead of
-the more generic @code{<gw-type>} in most cases.
+the more generic @code{<gw-type>} in most cases@footnote{When
+@code{<gw-rti-type>} is used, G-Wrap is able to use shared conversion
+functions and not emit code for each wrapper function, in most cases,
+which can considerably reduce the emitted code size}.
 
 @lisp
   (define-class <timespec64-type> (<gw-rti-type>))
@@ -656,13 +563,13 @@ wrapset you're creating.
 @end lisp
 
 In order to make this type useful, you have to define some relevant
-codegen methods.  Let's start with one that will tell g-wrap how to
+codegen methods.  Let's start with one that will tell G-Wrap how to
 ``unwrap'' instances of this type that are passed in as arguments from
 the Scheme side.
 
 @lisp
   (define-method (unwrap-value-cg (type <gw-ctype-void>)
-                                    (value <gw-value>) error-var)
+                                  (value <gw-value>) error-var)
     (list
       "if (!msu_scm_timespec_64_p(" (scm-var value) "))"
       `(gw:error ,error-var type ,(wrapped-var value))
@@ -677,7 +584,7 @@ code being generated for the wrapper module.
 
 The @code{unwrap-value-cg} is called with the type that should be
 ``unwrapped'', the actual value, which consists of a Scheme and a C
-variable. As you can see this ccodegen grabs the Scheme name and the C
+variable. As you can see this codegen grabs the Scheme name and the C
 names of the value and then assignes the C value to be the result of
 converting the scheme value with the hypothetical
 @code{msu_timespec64_to_scm} function.
@@ -691,7 +598,7 @@ The above codegen presumes that the C function
 @code{msu_scm_timespec_64_p} has been defined and returns non-zero if
 the given SCM is a pair and both elements are integers.
 
-At this point g-wrap knows how to convert and incoming Scheme
+At this point G-Wrap knows how to convert and incoming Scheme
 arguments, but it doesn't know how to convert from C values to Scheme,
 which is needed if you return a Timespec64. To teach it, you need to
 define the @code{wrap-value-cg} for @code{<timespec64-type>}, which
@@ -711,1214 +618,6 @@ There are a bunch of codegens you can define for a type but if you do
 nothing overly fancy, you can get away with just @code{wrap-value-cg},
 @code{unwrap-value-cg}. For C values that need deconstruction, there
 is also @code{destruct-value-cg}.
-
-@c Note that though the code here is C-code, you can also in-line scheme
-@c code in many cases with a special construct...
-
-@node Wrapping C Functions, Generating the Wrapper Code, Defining New Wrapped Types, Usage
-@section Wrapping C Functions
-
-@node Generating the Wrapper Code, Using the Wrapped Interface, Wrapping C Functions, Usage
-@section Generating the Wrapper Code
-
-@node Using the Wrapped Interface,  , Generating the Wrapper Code, Usage
-@section Using the Wrapped Interface
-
-@c Chapter ==================================================================
-@node Extending G-wrap, Reference, Usage, Top
-@chapter Extending G-wrap
-
-@menu
-* Other Internal Details::      
-* Adding New Wrapper Types::    
-@end menu
-
-@node Other Internal Details, Adding New Wrapper Types, Extending G-wrap, Extending G-wrap
-@section Other Internal Details
-
-@node Adding New Wrapper Types,  , Other Internal Details, Extending G-wrap
-@section Adding New Wrapper Types
-
-@c Chapter ==================================================================
-@node Reference, Functions for describing C code to import to the interpreter, Extending G-wrap, Top
-@chapter Reference
-
-@menu
-* Wrapper Module Operations::   
-* Defining Wrapped Types::      
-* Defining New Wrapper Types::  
-* Wrapping Functions::          
-* Wrapper Types Available by Default::  
-* Wrapped Types Available by Default::  
-@end menu
-
-@node Wrapper Module Operations, Defining Wrapped Types, Reference, Reference
-@section Wrapper Module Operations
-
-@node Defining Wrapped Types, Defining New Wrapper Types, Wrapper Module Operations, Reference
-@section Defining Wrapped Types
-
-@node Defining New Wrapper Types, Wrapping Functions, Defining Wrapped Types, Reference
-@section Defining New Wrapper Types
-
-@node Wrapping Functions, Wrapper Types Available by Default, Defining New Wrapper Types, Reference
-@section Wrapping Functions
-
-@node Wrapper Types Available by Default, Wrapped Types Available by Default, Wrapping Functions, Reference
-@section Wrapper Types Available by Default
-
-@node Wrapped Types Available by Default,  , Wrapper Types Available by Default, Reference
-@section Wrapped Types Available by Default
-
-@c Chapter ==================================================================
-@node Functions for describing C code to import to the interpreter, C code needed for adding new types, Reference, Top
-@chapter Functions for describing C code to import to the interpreter
-
-These Scheme functions are used to describe the library to be interfaced
-to the interpreter.  Use of these functions should allow the library to
-be described in a manner which is independent from the details of any
-particular Scheme interpreter's implementation.  An example of the use
-of these functions is given in @ref{Example of a library description}.
-
-@menu
-* Defining a new function::     
-* Adding a new type::           
-* Defining a new constant::     
-* Other functions needed for describing the library glue code::  
-* Example of a library description::  
-@end menu
-
-@node Defining a new function, Adding a new type, Functions for describing C code to import to the interpreter, Functions for describing C code to import to the interpreter
-@comment  node-name,  next,  previous,  up
-@section Defining a new function
-
-@menu
-* Manually defining functions::  
-* Scanning source code for functions to export::  
-@end menu
-
-@node  Manually defining functions, Scanning source code for functions to export, Defining a new function, Defining a new function
-@comment  node-name,  next,  previous,  up
-@subsection Manually defining functions
-
-@defun new-function scheme-name ret-type c-name param-list description
-
-Exports a C-function to the Scheme interpreter.  @var{c-name} must be a
-string naming the function to be exported.  @var{scheme-name} must be a
-symbol naming the corresponding function to be provided at the Scheme
-level.  @var{ret-type} must be a symbol or a list of the form
-(@var{type-sym} . @var{options}) which describes the function's return
-type, and @var{param-list} describes the function's parameters.
-@var{param-list} must be a list where each element is also a list of the
-form (@var{type-sym} @var{arg-name} . @var{options}).  For both the
-return value and the arguments, @var{type-sym} is a symbol of a type
-assigned using @var{new-type}, @var{add-type} or
-@var{gwrap-c-assume-types-wrapped}, and @var{options} must be symbols.
-Currently 'cleanup and 'no-cleanup are the only available options and
-they are used to override the default cleanup behaviors on a
-per-argument/return-value basis.  See the discussion of 'cleanup in the
-@code{make-complex-c-type} documentation for details.
-
-@var{description} must be a string, and will be added to the
-automatically generated documentation file.
-
-Examples:
-
-@example
-(new-function 
- 'eig-dsyev
- 'void "eig_dsyev" '((MAT A) (MAT Z) (VEC w))
- "calculates eigenvectors Z and eigenvalues w
-of real symmetric matrix A")
-@end example
-
-This writes a wrapper function which accepts three arguments, checks
-them to make sure they are of types @code{MAT}, @code{MAT}, and
-@code{VEC}, converts the parameters to the corresponding C-types, then
-calls the C function @code{eig_dsyev} on the converted arguments.  The
-wrapper function returns an "unspecified" value because the return type
-is void---otherwise the return value of the C function would be
-converted to a Scheme value and returned.  The wrapper-function is bound
-to the Scheme symbol @code{eig-dsyev}.
-
-@strong{For Guile}@* This command also adds a pair of the form
-@code{(@var{scheme-sym} . @var{description})} to a list exported to the
-Guile interpreter as @code{*gw:descriptions*} which describes the
-function.
-
-In the example above, the following pair is then added to
-@code{*gw:descriptions*} when the interpreter is initialized (or when
-the module is dynamically linked to the interpreter):
-
-@example
-(eig-dsyev . 
-"(eig-dsyev A Z w)
-  A is a MAT, Z is a MAT, w is a VEC.
-  no return value.
-calculates eigenvectors Z and eigenvalues w
-of real symmetric matrix A")
-@end example
-
-The following example depicts the use of the cleanup options:
-
-@example
-(new-function
- 'some-function
- '(some-type no-cleanup)
- "some_function"
- '((some-other-type x cleanup) (yet-another-type y 'no-cleanup))
- "Do something to x and y to produce an answer of type some-type.")
-@end example
-
-@end defun
-
-@menu
-* Scanning source code for functions to export::  
-@end menu
-
-@node Scanning source code for functions to export,  , Manually defining functions, Defining a new function
-@comment  node-name,  next,  previous,  up
-@subsection Scanning source code for functions to export
-
-@defun gwrap-scan-source-file filename
-
-This command looks through @var{filename} for ANSI function declarations
-that are preceded by a special comment, and does some simplistic parsing
-to find out enough about each function to write a wrapper function for it.
-To export a function, simply add the following comment before an ANSI
-function declaration (note, the @code{/*[} must be the first characters
-on the line, no indenting):
-@example
-/*[EXPORT @var{flags}]
- @var{Description}
- */
-@end example
-where @var{description} is a short description of what the function does,
-and @var{flags} (usually left empty) can indicate that g-wrap should
-override its default assumptions about return type, parameter types,
-or function name.
-
-If @var{flags} contains:
-@itemize @bullet
-@item @code{(name @var{new-name})}
-  the function is exported as @var{new-name}.
-@item @code{(types ((@var{n} @var{new-type}) ...))}
-  the type of the @var{n}-th parameter (the first parameter is 0) is
-  assumed to be @var{new-type}.
-@item @code{(ret-type @var{new-type})}
-  the return type of the function is assumed to be @var{new-type}.
-@end itemize
-
-Up to three characters of each line of @var{description} are ignored if
-they are space or '*' characters.
-
-For example, if this function definition is in @code{lmatrix.c},
-@example
-/*[EXPORT (ret-type RETVEC0)]
- * out := A.x
- */
-VEC *mv_mlt(VEC *v_out, MAT *A, VEC *x) @{
-  ....
-@}
-@end example
-then these lines in the library description file 
-@example
-(set! type-translations
-      (append '((VEC* VEC) (MAT* MAT)) type-translations))
-(gwrap-scan-source-file "lmatrix.c")
-@end example
-will be equivalent to
-@example
-(new-function 
- 'mv-mlt
- 'VEC "mv_mlt" '((VEC v-out) (MAT A) (VEC x))
- "out := A.x")
-@end example
-
-@end defun
-
-
-@node Adding a new type, Defining a new constant, Defining a new function, Functions for describing C code to import to the interpreter
-@comment  node-name,  next,  previous,  up
-@section Adding a new type
-
-@defun add-type scheme-sym c-name fn-to-scm fn-from-scm fn-isa
- Defines a new Scheme type corresponding to C-type @var{c-name}, and
- associates it with symbol @var{scheme-sym}.
- Objects of this type are printed with C-function @var{c-print-name},
- deallocated by C-function @var{c-die-name}, and checked for equality with
- C-function @var{c-eq-name}.
-
- Scheme-sym should be a symbol, and the other arguments should be
- strings.
-@end defun
-
-@defun new-type scheme-sym c-name c-print-fn c-die-fn c-eq-fn [options @dots{}]
- As does @code{add-type}, this command defines a new Scheme type
- corresponding to C-type @var{c-name}, and associates it with symbol
- @var{scheme-sym}. @var{scheme-sym} can then be used as a type parameter
- in functions @code{new-constant} and @code{new-function}.
- In addition, a function called @var{c-name}? is generated to test if
- any Scheme object is an object of this type.
-
-@c  If @code{'(c-gc-name @var{mark-fn})} is passed as an option, function
-@c  @var{mark-fn} is called when the object is marked so that other objects
-@c  may be protected from garbage-collection. @strong{Note, this option has
-@c  not been tested}.
-
-@c  If @code{'(pass-c-ptr? #f)} is passed to the options parameter, objects
-@c  of this type will be passed to functions as a structure rather
-@c  than a pointer.  @strong{Note, this option has not been tested}.
-
- @code{new-type} also documents the type in documentation file.  If 
- @code{(doc @var{description})} is passed as an option,
- @var{description} is used to document the type.
-
-Example:
-@example
-(new-type 'MAT  "MAT"  "MAT_print"  "m_free"  "MAT_eq")
-@end example
-@itemize @bullet
-@item
- A Scheme function @code{MAT?} is defined to test to see if a Scheme
- value has this type.
-@item
- C functions must be provided for performing the tasks of performing the
- basic jobs which the interpreter needs to perform for Scheme objects.
- In this example, 
- @code{MAT_print} writes the representation of the matrix to a port,
- @code{MAT_die} deallocates the matrix,
- @code{MAT_eq} checks for equality of matrices.
- See @ref{C code needed for adding new types} to see how to
- write these functions.
-@item
- This allows @code{MAT}s to be used as function parameters and
- as return values.
-@item
- For Guile, this creates a new smob type for holding (@code{MAT*})
- pointers, and for RScheme it creates a new object-class for the type.
-@end itemize
-@end defun
-
-
-@node Defining a new constant, Other functions needed for describing the library glue code, Adding a new type, Functions for describing C code to import to the interpreter
-@comment  node-name,  next,  previous,  up
-@section Defining a new constant
-
-@defun new-constant sym-name type varb
-   Defines a constant with C value @var{varb} and C-type @var{type}, and
-   export it into the interpreter with Scheme-name @var{sym-name}.
-   @var{sym-name} and @var{varb} must be strings.
-
-   If @code{(doc @var{description})} is passed as an option,
-   @var{description} is used to document the constant in the
-   documentation file. 
-
-  Example:
-@example
-(new-constant 'MNULL  'MAT  "NULL" '(doc "null matrix"))
-@end example
-This adds a value to the interpreter which is the @code{NULL} pointers,
-wrapped as a @code{MAT} value, and bound to symbol @code{MNULL}.
-@end defun
-
-@node  Other functions needed for describing the library glue code, Example of a library description, Defining a new constant, Functions for describing C code to import to the interpreter
-@comment  node-name,  next,  previous,  up
-@section Other functions needed for describing the library glue code
-
-@defun gwrap-open-module fname [options @dots{}]
-   @strong{For Guile}@*
-   Opens a text file with name @var{fname}.c, and a Guile initialization
-   function 
-      void init_@var{fname}(void).
-   @var{fname} must be a string.
-   Also generates a text file with name @var{fname}.h which contains
-   declarations of functions and variables which may be needed by other
-   code, and a file @var{fname}.html which contains documentation about
-   the exported functions, types, and constants.
-
-   If @code{(c++? #t)} is passed as an option, a @code{C++} file
-   (@var{fname}.cc) is generated instead of a C file (@var{fname}.c).
-
-   If @code{(guile-module @var{lst})} is passed as an option, then
-   g-wrap generates code for a (dynamically linkable) module, where the
-   module-path is @var{lst}.  If this option is #f, no module is
-   generated.
-
-If @code{(guile-prefix @var{name})} is passed as an option @var{name}
-indicates a prefix that will be appended to the guile-side names.  This
-may be useful if you don't want to create a module.
-
-   If @code{(call-on-init @var{fn-name})} is passed as an option
-   (@var{fn-name} should be the name of a function of type 
-   @code{void @var{fn-name}(void)}), 
-   @var{fn-name} is called when the Scheme interpreter initializes the
-   library wrapper.
-
-   @strong{For RScheme}@*
-   Creates code for generating an RScheme module named @code{fname}.
-   This includes a file @var{fname}.scm of glue-code, and an RScheme
-   module control file @var{fname}.mcf which tells the RScheme module
-   compiler how to build/compile the module.
-
-   Option @code{(c-files ("@var{file1.c}" ...))} puts code in the module
-   control file which tells the RScheme module compiler to compile the
-   specified C files into the module.  
-
-   Option @code{(h-files ("@var{file1.h}" ...))} puts code in the module
-   control file which tells the RScheme module compiler to use the header
-   files when compiling code into the module.  
-
-   Option @code{(rs-scm-files ("@var{file1}" ...))} puts code in the
-   module control file which tells the RScheme module compiler to
-   compile compile the specified Scheme files into the module.
-
-   Option @code{(rs-mods ("@var{mod1}" ...))} indicates that the module
-   will use types, functions, or constants from the specified RScheme
-   modules.
-
-   For example,
-@example
- (gwrap-open-module "cmat"
-                    ; name of Guile module
-                    '(guile-module (math matrix cmat)) 
-                    ; extra C files to compile into RS module
-                    '(c-files ("cmat_gw_fns.c")) 
-                    ; extra RScheme modules to include
-                    '(rs-mods ("mathlib"))
-                    ; extra Scheme files to compile into RS mod
-                    '(rs-scm-files ("matrix.scm")))
-@end example
-
-@end defun
-
-@defun gwrap-include-local-header x
-   The C version of the glue code needs to include local header file
-   "@var{x}".
-@end defun
-
-@defun gwrap-include-global-header x
-   The C version of the glue code needs to include global header file
-   "@var{x}".
-@end defun
-
-@defun gwrap-generate-wrapped-header x
-Generate a C header file for all of the wrapped functions and store it
-in the file named "@var{x}".  This can be useful if you want the g-wrap
-file to be the ultimate authority about the API.  G-wrap will include
-documentation in the header file derived from the @code{new-function}
-documentation strings.
-@end defun
-
-@defun gwrap-assume-types-wrapped lst [options @dots{}]
-   Assume that types have been defined in another g-wrap file, so
-   that they may be used as parameters in the current g-wrap file.
-   @var{lst} is a list of pairs of the form (@var{scheme-sym}
-   @var{c-name}) where @var{scheme-sym} is a symbol for the type which
-   will be used to for defining parameter types in calls to 'new-function', and
-   @var{c-name} is a string indicating the name of the object type in C.
-
-@c    @strong{Guile-only option} (for now)@*
-@c    If @code{'(pass-c-ptr? #f)} is passed to the options parameter, the
-@c    object will be passed to functions as a structure rather than a 
-@c    pointer.
-@end defun
-
-@defun gwrap-close-module
- Specify end of module description, causing the glue-code and related
- files to be generated.
-@end defun
-
-@node Example of a library description,  , Other functions needed for describing the library glue code, Functions for describing C code to import to the interpreter
-@comment  node-name,  next,  previous,  up
-@section Example of a library description
-
-@example
-;;; -*- scheme -*-
-;;; This file generates the glue code for interfacing the the cmatrix
-;;;  library to Guile (I've shortened it for the sake of example)
-(set! type-translations
-      (append '((VEC* VEC) (MAT* MAT)) type-translations))
-
-(gwrap-open-module "cmat"
-                   ; name of Guile module
-                   '(guile-module (math matrix cmat)) 
-                   ; extra C files to compile into the RScheme module
-                   '(c-files ("cmat_gw_fns.c")) 
-                   ; extra RScheme modules to include
-                   '(rs-mods ("mathlib"))
-                   ; extra Scheme files to compile into RScheme module
-                   '(rs-scm-files ("matrix.scm")))
-(gwrap-include-global-header "cmat.h")
-
-;; New types to wrap with smobs
-(new-type 
- 'MAT  "MAT"  "MAT_print"  "m_free"  "MAT_eq"
- '(doc 
-   "2D matrix of double precision floats"))
-
-;; Some constants:
-(new-constant 'MNULL  'MAT  "NULL" '(doc "null matrix"))
-
-;; Functions to export to Scheme
-(new-function 
- 'm-rows
- 'int "M_ROWS_CHECKED" '((MAT m))
- "returns number of rows in m")
-(new-function
- 'm-cols
- 'int "M_COLS_CHECKED" '((MAT m))
- "returns number of columns in m")
-
-;; Scan some files to automatically export some functions
-(let ((scan-in-cmatrix-dir 
-       (lambda (x)
-        (gwrap-scan-source-file                     
-         (string-append "../../chrlib/cmatrix/" x)))))
-  (for-each scan-in-cmatrix-dir '("cmat_basefns" "cmat_stats.c")))
-
-(gwrap-close-module)
-@end example
-
-@node  C code needed for adding new types, Generating and using the glue code, Functions for describing C code to import to the interpreter, Top
-@comment  node-name,  next,  previous,  up
-@chapter C code needed for adding new types
-
-When you add a new type to the interpreter, you will need to supply the
-names of three functions.  One function prints a representation of an
-object of that type, another is called to deallocate the object when it
-is garbage-collected, and the third is called to compare two objects of
-that type for equality.  
-@c Optionally, you can supply the name of a fourth
-@c function which protects objects associated with an object of that type
-@c from garbage collection.
-
-
-@menu
-* Utility functions::           
-* Printing object representations::  
-* Function for deallocating an object::  
-* Function for object comparisons::  
-@end menu
-
-@node  Utility functions, Printing object representations, C code needed for adding new types, C code needed for adding new types
-@comment  node-name,  next,  previous,  up
-@section Utility functions
-
-These functions, prototyped in @code{g-wrap.h} and implemented for
-each interpreter which g-wrap supports, can be used in the glue
-functions for writing strings to Scheme ports and raising Scheme
-errors.
-
-@deftypefun void gw_puts (char* @var{str}, GWSCM @var{port})
- Writes string @var{str} to Scheme port @var{port}.
-@end deftypefun
-
-@deftypefun void gw_error (char* @var{message})
- Raises a Scheme error with string @var{message}.
-@end deftypefun
-
-@c  This function can be used to mark a value during garbage collection, if
-@c  you want your objects of your new type to be able to protect some other
-@c  Scheme objects from garbage collection.
-@c  @deftypefun void gw_mark (GWSCM @var{obj})
-@c  Marks @var{obj} so that it is not garbage-collected.
-@c  @end deftypefun
-
-@node  Printing object representations, Function for deallocating an object, Utility functions, C code needed for adding new types
-@comment  node-name,  next,  previous,  up
-@section Printing object representations
-
-The function for printing a representation of the object should have a
-declaration similar to this:
-@example
-void @var{print_fn_name} (@var{type}* obj, GWSCM port, int writingp);
-@end example
-The first parameter accepts a pointer to the object to be printed, the
-second parameter accepts a Scheme value representing the Scheme port to
-write to, and the final argument indicates whether the object is being
-printed with @code{display} (@code{writingp==0}) or @code{write}
-(@code{writingp!=0}).  The function @code{gw_puts(char*,GWSCM)} can be
-used to write a string to the port.
-
-Here is an example of a function used for printing a matrix type:
-@example
-void MAT_print(MAT *m, GWSCM scmport, int writingp) @{
-  int i, j;
-  char buff[80];
-
-  if ( !m ) @{  gw_puts("MNULL",scmport); return; @}
-  if ( writingp ) @{
-    sprintf(buff,"(MAT %d %d (", m->m, m->n);
-    gw_puts(buff, scmport);
-  @} else @{
-    gw_puts("\n", scmport);
-  @}
-  for ( i = 0; i < m->m; i++ ) @{
-    if ( !writingp ) @{ gw_puts("[ ", scmport); @}
-    for ( j = 0; j < m->n; j++ ) @{
-      sprintf(buff,"%lf ", m->me[i][j]);
-      gw_puts(buff, scmport);
-    @}
-    if ( !writingp ) @{ gw_puts("]\n", scmport); @}
-  @}
-  if ( writingp ) @{ gw_puts(")) ", scmport); @}
-@}
-@end example
-
-@node  Function for deallocating an object, Function for object comparisons, Printing object representations, C code needed for adding new types
-@comment  node-name,  next,  previous,  up
-@section Function for deallocating an object
-
-The function for deallocating a pointer to an object on garbage
-collection should have a single argument---a pointer to the object to be
-deallocated.
-
-An example of such a function declaration:
-@example
-void m_free(MAT *);
-@end example
-
-@node  Function for object comparisons,  , Function for deallocating an object, C code needed for adding new types
-@comment  node-name,  next,  previous,  up
-@section Function for object comparisons
-
-The function for checking the equality of two objects should have a
-declaration like
-@example
-int @var{equal_fn_name}(@var{type}* @var{obj1}, @var{type}* @var{obj2});
-@end example
-It should return 0 for false (not equal), and 1 for true (equal).
-
-Here is an example from the matrix object type:
-@example
-int MAT_equal(MAT *m1, MAT *m2) @{
-  int i, j;
-  
-  if ( !m1 || !m2 )                           @{ return ( m1 == m2 ); @}
-  if ( ! (m1->m == m2->m && m1->n == m2->n) ) @{ return 0; @}
-  for ( i = 0; i < m1->m; i++ ) @{
-    for ( j = 0; j < m1->n; j++ ) @{
-      if ( m1->me[i][j] != m2->me[i][j] ) @{ return 0; @}
-    @}
-  @}
-  return 1;
-@}
-@end example
-
-@c @node  Function for protecting Scheme object from garbage collection,  , Function for object comparisons, C code needed for adding new types
-@c @comment  node-name,  next,  previous,  up
-@c @section Function for protecting Scheme object from garbage collection
-
-@c A function for protecting Scheme objects from garbage collection should
-@c be of this form.
-@c @example
-@c void @var{mark_fn_name}(@var{type}* obj);
-@c @end example
-@c This function will be called during the mark phase of garbage collection
-@c (if that applies to the Scheme implementation).  It should call the
-@c function @code{gw_mark(GWSCM obj)} to mark Scheme objects to protect
-@c them from collection.
-
-@c NOTE: As of version 0.3.7, I have not used this capability myself, so I
-@c can't guarantee it works as is.  If my implementation is broken, give me
-@c your code and I will get it to work!
-
-@node Generating and using the glue code, Types available by default, C code needed for adding new types, Top
-@comment  node-name,  next,  previous,  up
-@chapter Generating and using the glue code
-
-@menu
-* Generating the glue code::    
-* Accessing the wrapped API from the target language::  
-* Coping With Old Guile Versions::  
-@end menu
-
-@node Generating the glue code, Accessing the wrapped API from the target language, Generating and using the glue code, Generating and using the glue code
-@comment  node-name,  next,  previous,  up
-@section Generating the glue code
-
-The command g-wrap will generate the wrappers for a given target
-language.  It may be invoked as follows:
-
-For Guile:
-
-  g-wrap --target guile --api c interface-spec.gwp
-
-For RScheme:
-
-  g-wrap --target rscheme --api c interface-spec.gwp
-
-In both cases, g-wrap will generate a number of files containing the
-glue code, documention, etc.  In the guile case, presuming that the .gwp
-file names the output module interface-spec and also requests an
-automatically generated C header named interface-spec-autogen.h, the
-following files would be generated:
-
-@table @samp
-@item interface-spec.h
-glue code header
-@item interface-spec.c
-glue code
-@item interface-spec.html
-glue code and API documentation
-@item interface-spec-autogen.h
-automatically generated header for the underlying C API
-@end table
-
-@node  Accessing the wrapped API from the target language, Coping With Old Guile Versions, Generating the glue code, Generating and using the glue code
-@comment  node-name,  next,  previous,  up
-@section Interfacing the library and glue code to the interpreter
-
-The methods for integrating support for a g-wrapped API into various
-target languages vary, so these will have to be dealt with on a case by
-case basis.
-
-At the moment only the primitive tool g-wrap-config is documented here.
-It can provide the information needed for linking g-wrap into a target
-executable for each of the languages g-wrap supports (presuming linking
-even makes sense).  Consider this entire area one that's still under
-development, so expect the details to change.
-
-Right now code can be statically linked to the interpreters, or loaded
-dynamically as shared libraries.  To find out which libraries are
-required use the g-wrap-config command.  It may be invoked as follows:
-
-@table @code
-@item g-wrap-config --version
-  show version information
-@item g-wrap-config --help
-  show this message
-@item g-wrap-config --c-compile-args LANGUAGE
-  C compile args for LANGUAGE
-@item g-wrap-config --c-link-args LANGUAGE
-  C link args for LANGUAGE
-@item g-wrap-config --c-static-link-args LANGUAGE
-  C static link args for LANGUAGE
-@end table
-
-where (at the moment) LANGUAGE may be either rscheme or guile.  Examples
-for each of the target languages will be available in the distribution.
-
-This infrastructure is probably not sufficient in the long run if g-wrap
-is extended to support many languages, but it's a start, and it handles
-the current scope fairly well.
-
-
-@node Coping With Old Guile Versions,  , Accessing the wrapped API from the target language, Generating and using the glue code
-@section Coping With Old Guile Versions
-
-The guile interface for dealing with pointers was changed between version 1.3 and
-subsequent releases (including 1.3.4), and g-wrap was changed to use the new interface.  However, as
-some older distributions still use guile 1.3 it has been necessary to keep the
-option of the old interface available.  If you only use 1.3.4 or later versions of guile, 
-you can safely ignore this section.
-
-To use the old interface, make sure the C constant GWRAP_OLD_GUILE_SMOB is defined
-when compiling the generated C file.  
-
-If you are using autoconf, a macro AC_GWRAP_CHECK_GUILE, with no arguments, is
-provided in g-wrap.m4.  It checkes which version of guile is available, and if necessary sets
- GWRAP_OLD_STYLE_SMOB.  If you use it, make sure to include the line
-
-@example
-#undef GWRAP_OLD_STYLE_SMOB
-@end example
-
-in either acconfig.h, or config.h.in, depending on how you are using autoconf.
-Of course, if you do this, you must ensure config.h is #included when you compile
-the generated C file!
-
-For more details on autoconf see its extensive documentation.
-
-NOTE: we can't guarantee that old versions of guile will be supported forever.  
-We will try to ensure that most of the versions currently being distributed work, but 
-we're not in a position to keep multiple layers of compatability code. 
-
-@node Types available by default, Extending g-wrap and porting it to other Scheme implementations, Generating and using the glue code, Top
-@chapter Types available by default
-
-By default g-wrap supports the following types.  Each may be used as the
-@var{type-sym} in calls to @code{new-function}:
-
-@menu
-* Guile Types::                 
-* RScheme Types::               
-@end menu
-
-@node Guile Types, RScheme Types, Types available by default, Types available by default
-@section Guile Types
-
-@table @samp
-
-@item void
-nothing, on both the C and Scheme sides.
-
-@item char
-a C `char' and a Scheme character.
-
-@item int
-a C `int' and a Scheme number.
-
-@item unsigned-int
-a C `unsigned int' and a Scheme number.
-
-@item unsigned-long
-a C `unsigned long' and a Scheme number.
-
-@item unsigned-long-long
-a C `unsigned long long' and a Scheme number.
-
-@item float
-a C `float' and a Scheme number.
-
-@item double
-a C `double' and a Scheme number.
-
-@item bool
-a C `int' and a Scheme boolean.
-
-@item string-as-symbol
-a C `char *' and a Scheme symbol.  This type lets you pass symbols to C
-as strings and get them back as symbols.  Note that by default it is
-assumed that C returns freshly malloced strings, so they'll be deleted
-immediately.  You can override this on a per function basis with the
-'no-cleanup option.  For details see the description of
-@samp{make-complex-c-type} in the section on @ref{Defining basic
-Scheme/C types}.  WARNING, this type is new and subject to change.
-Don't rely on it unless you're willing to possibly have to rewrite your
-spec file a bit when things stablize.
-
-@item const-string
-a C `char *' and a Scheme string.  This type lets you pass strings from
-Scheme to C and back, but bear in mind that by default, it takes the
-conservative (but leaky) position of assuming that the C code might
-store for later use any strings passed in as arguments, and might pass
-back as return values strings that are shared elsewhere, or for some
-other reason cannot be disposed of.  This means that g-wrap will not, by
-default free the strings it allocates to pass to the underlying C
-function as parameters, and it will not free any string that the C
-function might return.  You can override this behavior on a per function
-basis with the 'cleanup option; for details see the description of
-@samp{make-complex-c-type} in the section on @ref{Defining basic
-Scheme/C types}.  WARNING, the cleanup functionality is new and subject
-to change.  Don't rely on it unless you're willing to possibly have to
-rewrite your spec file a bit when things stablize.
-
-FIXME: we need a node covering memory allocation.  Combine it with the
-final node discussing garbage collection.  In the end we need a more
-general approach in g-wrap.
-
-@item tSCM
-This is a ``transparent'' type that allows you to pass a Scheme object
-directly to a C function, or receive one as a return value through the
-standard Guile SCM type.
-
-@end table
-
-The Guile side also supports pointer tokens and pointer arrays.
-For more information, see @ref{Pointer Tokens and Pointer Arrays}.
-
-@menu
-* Pointer Tokens and Pointer Arrays::  
-@end menu
-
-@node Pointer Tokens and Pointer Arrays,  , Guile Types, Guile Types
-@subsection Pointer Tokens and Pointer Arrays
-
-WARNING: Like the ``cleanup'' functionality, pointer tokens and pointer
-arrays should be considered highly experimental and subject to
-change up until at least 1.X of g-wrap is released.  Don't use this
-unless you're willing to have to re-write everything that depends on it
-later.  It is currently being tested in GnuCash, but isn't claimed to be
-ready for prime-time.  Further, in it's final incarnation, we probably
-need a more coherent mechanism.  As it stands this is a first draft, and
-things are added as needed.
-
-That said, pointer tokens and pointer arrays provide a method for
-handling C pointers as arguments and return values.  Pointer tokens
-handle pointers to C structures and pointer arrays handle C arrays of
-pointers.
-
-@menu
-* Pointer Tokens::              
-* Pointer Arrays::              
-@end menu
-
-@node Pointer Tokens, Pointer Arrays, Pointer Tokens and Pointer Arrays, Pointer Tokens and Pointer Arrays
-@subsubheading Pointer Tokens
-
-Before deciding to use pointer tokens, please see the warning here
-@ref{Pointer Tokens and Pointer Arrays}.
-
-Pointer tokens provide a method for handling pointers to C structures.
-For example, if you had a C function that took as an argument a Lead*
-and returned a Gold*, you could tell g-wrap how to handle these pointers
-and related functions.
-
-@example
-(make-pointer-token-type 'Lead* "Lead*")
-(make-pointer-token-type 'Gold* "Gold*")
-(new-function
- 'frobnicate
- 'Gold* "frobnicate" '((Lead* lead))
- "Frobnicate.")
-@end example
-
-The calls to @code{make-pointer-token-type} tell g-wrap to create a
-Scheme level object for each type that can hold the lower level C
-pointer at the Scheme level.  Pointer token objects are represented as
-opaque objects (SMOBs actually).  You can pass them around to wrapped C
-functions, and there are some support functions for manipulating them
-that are detailed below.  You can't directly create pointer tokens at
-the Scheme level.  Right now, they're only created as the return values
-of C level functions.
-
-Null pointers are just represented by #f.  If a wrapped function tries
-to return a null pointer, g-wrap will convert it to #f, and if you pass
-in #f to a function that expects a pointer token then g-wrap will
-arrange for a null pointer to be passed to the underlying wrapped
-function.
-
-The pointer token items themselves are garbage collected, as you would
-expect, but the pointers they contain are never touched directly by the
-g-wrap subsystems, so it's up to you (or the functions being called) to
-handle de-allocation of the associated C-level Foo* pointers.  This will
-usually be handled by some sequence like this:
-
-@example
-(define bar (c-func-to-create-foo-pointer))
-(c-func-to-manipulate-foo-pointer bar)
-(c-func-to-destroy-foo-pointer bar)
-@end example
-
-FIXME: There are also some functions available at the C level for
-manuipulating pointer tokens from there, but at the moment those
-functions are not documented.
-
-@node Pointer Arrays,  , Pointer Tokens, Pointer Tokens and Pointer Arrays
-@subsubheading Pointer Arrays
-
-Before deciding to use pointer arrays, please see the warning here
-@ref{Pointer Tokens and Pointer Arrays}.
-
-Pointer arrays provide a method for handling arrays of C pointers to
-structures.  At the moment, pointer arrays presume null terminated
-arrays of pointers at the C level.  This is a result of the fact that
-they were originally implemented to handle an interface that uses null
-terminated arrays heavily.  Eventually pointer arrays will be extended
-to handle both null terminated and non-null terminated arrays, probably
-with two separate types.  This may mean backward-incompatible API
-renaming/changes, so be warned.
-
-Null array pointers are just represented by #f.  If a wrapped function
-tries to return a null array pointer, g-wrap will convert it to #f, and
-if you pass in #f to a function that expects a pointer array then g-wrap
-will arrange for a null array pointer to be passed to the underlying
-wrapped function.
-
-As an example, pretend you have a C function that takes as an argument
-an array of Lead* items (i.e. it has an argument of C type Lead**) and
-returns an array of Gold* items, you can tell g-wrap how to handle these
-pointers and related functions like this:
-
-@example
-(make-pointer-array-type 'Lead** "Lead**")
-(make-pointer-array-type 'Gold** "Gold**")
-(new-function
- 'frobnicate
- 'Gold** "frobnicate" '((Lead** lead))
- "Frobnicate.")
-@end example
-
-The calls to @code{make-pointer-array-type} tell g-wrap to create a
-Scheme level object for each type that can hold the lower level C
-pointer array at the Scheme level.  At the Scheme level, pointer array
-objects are represented as opaque objects (SMOBs actually).  You can
-pass them around to wrapped C functions, and there are some support
-functions for manipulating them that are detailed below, but you can't
-directly create pointer arrays at the Scheme level.  Right now, they're
-only created as the return values of C level functions.
-
-The pointer array items themselves are garbage collected, as you
-would expect, but the pointers they contain are never touched directly
-by the g-wrap subsystems, so it's up to you (or the functions being
-called) to handle de-allocation of the associated C-level Foo** array
-objects.  This will usually be handled by some sequence like this:
-
-@example
-(define bar (c-func-to-create-foo-array))
-(c-func-to-manipulate-foo-arrays bar)
-(c-func-to-destroy-foo-arrays bar)
-@end example
-
-G-wrap will handle arranging for the Scheme level pointer wrappers to be
-cleaned up by the garbage collector.
-
-In addition to passing pointer arrays as parameters and receiving
-them as return values, the following functions are available at the
-Scheme level.  Note that right now, as mentioned above, all of the code
-presumes that the pointer arrays are null terminated, so if your C
-code's not set up to work thi way, then you can't use this functionality
-just yet.
-
-@defun pointer-array-ref pointer-array index
-
-Returns a pointer-token representing the C level pointer at the given
-index in the pointer-array (uses zero-indexing).
-
-Right now there is no range checking on the index, so you can ask for a
-bogus pointer.
-
-@end defun
-
-@defun pointer-array-length pointer-array
-
-Returns the number of items in the pointer-array.
-
-@end defun
-
-FIXME: There are also some functions available at the C level for
-manuipulating pointer tokens from there, but at the moment those
-functions are not documented.
-
-@node RScheme Types,  , Guile Types, Types available by default
-@section RScheme Types
-
-FIXME: not documented yet...
-
-@node   Extending g-wrap and porting it to other Scheme implementations, Portable "Fancy tricks", Types available by default, Top
-@chapter Extending g-wrap and porting it to other Scheme implementations
-
-To expand the ability of g-wrap to generate glue code for a given
-interpreter, you may want to add support for more Scheme data types.
-This is (usually) a simple process if you understand the internal
-details of how the interpreter deals with the type in question.
-
-@menu
-* Defining basic Scheme/C types::  
-@end menu
-
-@node Defining basic Scheme/C types,  , Extending g-wrap and porting it to other Scheme implementations, Extending g-wrap and porting it to other Scheme implementations
-@comment  node-name,  next,  previous,  up
-@section Defining basic Scheme/C types
-
-For calling C functions from Scheme, a mechanism is needed for
-checking the type of Scheme values, converting Scheme values to C
-values, and converting C values to Scheme values.  The function
-@code{make-c-type} is used for making a type-description object which
-represents how to do this for a given Scheme implementation.
-
-@defun make-c-type c-name fn-convert-to-scm fn-convert-from-scm fn-scm-is-a
- @var{c-name} is a string indicating the name of the type in C.
- @var{fn-convert-to-scm} is a function which generates an expression to
-  convert a C value of this type to a Scheme value.
- @var{fn-convert-from-scm} is a function which generates an expression 
-  convert a Scheme value into a C value of this type.
- @var{fn-scm-is-a} is a function which generates a check for whether a
-  Scheme value can be converted to this type of C value.  It returns
-  @code{0} for false and a non-zero value for true.
-
- The ``expressions'' generated for output to C code are strings, or lists
- or trees of strings.
-@end defun
-
-@defun add-new-type scheme-sym the-type
- Associates a type-description object, such as that generated by
- @code{make-c-type}, to a symbol so that symbol may be used to refer to
- a type in a parameter of a function such as @code{(new-function ...)}.
-@end defun
-
-@defun add-type scheme-sym c-type-str fn-to-scm fn-from-scm fn-isa
- This both defines the type-description and assigns it to a symbol.
-
-A simple example of how an integer type corresponding to an immediate
-number in the Guile might be defined:
-@example
-(add-type 'int "int"  
-            ;fn-convert-to-scm 
-            (lambda (x) (list "SCM_MAKINUM(" x ")"))
-            ;fn-convert-from-scm 
-            (lambda (x) (list "SCM_INUM(" x ")"))
-            ;fn-scm-is-a
-            (lambda (x) (list "SCM_INUMP(" x ")")))
-@end example
-
-An example of how type @code{void} (used for specifying no return
-value for a function) might be defined for the Guile interpreter.
-@example
-(add-type 'void "void" 
-            ;fn-convert-to-scm 
-            (lambda (x) "SCM_UNSPECIFIED")
-            ;fn-convert-from-scm 
-            (lambda (x) "(void)")
-            ;fn-scm-is-a
-            (lambda (x) 1))
-@end example
-@end defun
-
-@defun get-type scheme-sym
-  Returns the type-description object associated with a symbol.
-@end defun
-
-@defun make-complex-c-type c-name fn-convert-to-scm fn-convert-from-scm fn-scm-is-a c-cleanup-arg-default? c-cleanup-ret-default? fn-c-cleanup
-
-WARNING: This function, and the related "cleanup" system should be
-considered highly experimental and subject to change up until at least
-1.X of g-wrap is released.  Don't use this unless you're willing to have
-to re-write everything that depends on it later.  It is currently being
-tested in GnuCash, but isn't claimed to be ready for prime-time.
-Further, in it's final incarnation, it will probably be a more general
-mechanism...
-
-This function creates a new g-wrap type corresponding to the C-type
-@var{c-name}.  Unlike @var{new-type}, this function does not have any
-affect unless you use @var{add-new-type} to tell g-wrap to add the type
-to its list of known types.
-
-The parameters have the following purposes:
-
-@table @var
-@item c-name
-the name of the type as far as C is concerned.
-@item fn-convert-to-scm
-a function returning the C code to be used to convert this type from a C
-representation to a Scheme representation.
-@item fn-convert-from-scm
-a function returning the C code to be used to convert this type from a Scheme
-representation to a C representation.
-@item fn-scm-is-a
-a function returning the C code to be used to test if a Scheme object is
-of this type.
-@item c-cleanup-arg-default?
-should arguments of this type have their C representations (the ones
-created for the purpose of the C-side function call) be cleaned up just
-after the call by default?
-@item c-cleanup-ret-default?
-should return values of this type have their C representations (the ones
-returned by a C-side function call) cleaned up just after they are
-converted to Scheme, but before the wrapper code returns to Scheme by
-default?
-@item fn-c-cleanup
-a function returning the C code to be used to clean up (destroy, delete,
-free, whatever) C representations of this type.
-@end table
-
-To understand what the cleanup-related arguments do, consider a typical
-wrapper call-sequence.  First the Scheme wrapper function is called.
-Then all of the Scheme arguments are converted to C representations
-using the convert-to-scm functions, then the C function is called with
-these arguments, and finally, the return value, if any is converted from
-its C representation back to a Scheme value and returned from the
-wrapper.
-
-The cleanup arguments control the final disposition of the C
-representations of the given type when used as arguments and return
-values.  If an argument is marked as 'cleanup, then just after the C
-function returns, the argument will be cleaned up using the c-cleanup
-function provided by @var{fn-c-cleanup}.  The same thing happens to the
-C representation of the return value just after it has been converted to
-a Scheme representation, and just before the wrapper returns.
-
-An argument or return value is considered to be "marked as 'cleanup" if
-either @var{c-cleanup-arg-default?} or @var{c-cleanup-ret-default?} is
-not #f respectively, or if the argument or return value is marked
-'cleanup in the options to @var{new-function}.  For more details see
-@ref{Defining a new function}.
-
-Deciding when cleanup is appropriate depends on the semantics of both
-the type in question and of a given C function.  What's really at issue
-here is the "ownership" of the C level data involved.  For example,
-imagine you have a C function that takes a string pointer as an argument
-and expects that at the time of the call, it becomes the "owner" of that
-pointer, and perhaps it takes that pointer and stores it in a hash table
-for later use.  If that particular argument were marked as 'cleanup in
-g-wrap, as soon as the C function was called, g-wrap would arrange for
-it to be freed, leaving the pointer in the hash table dangling.  So for
-this particular hypothetical function, the argument in question needs to
-be marked as 'no-cleanup, either as the type default (probably not a
-good idea for strings in general), or in the @var{new-function}
-declaration.  For more details see @ref{Defining a new function}.
-
-Similar considerations apply to return values.  If you had a C function
-that returned a constant string pointer from some static or global
-table, then it wouldn't be appropriate for the return value to be marked
-'cleanup.
-
-Conversely there may also be types for which 'no-cleanup makes the most
-sense as a default, and then 'cleanup would need to be used in calls to
-@var{new-function} occasionally.  For more details see @ref{Defining a
-new function}.
-
-Example:
-
-@example
-(add-new-type
- 'bar
- (make-complex-c-type
-  "bar"
-  ;; fn-convert-to-scm 
-  (lambda (x) (list "bar2scm(" x ")"))
-  ;; fn-convert-from-scm 
-  (lambda (x) (list "scm2bar(" x ")"))
-  ;; fn-scm-is-a
-  (lambda (x) (list "bar_p(" x ")"))
-  ;; c-cleanup-arg-default?
-  #t
-  ;; c-cleanup-ret-default?
-  #t
-  ;; fn-c-cleanup
-  (lambda (x) (list "free_bar(" x ")"))))
-@end example
-
-@end defun
-
-@c @node  Functions you should rewrite to support a new interpreter,  , Defining basic Scheme/C types, Extending g-wrap and porting it to other Scheme implementations
-@c @comment  node-name,  next,  previous,  up
-@c @section Functions you should rewrite to support a new interpreter
-
-@c A library is described by calls to the Scheme functions
-@c @code{define-constant}, @code{new-type}, and @code{new-function}.  To
-@c port g-wrap to another Scheme interpreter, you should rewrite these
-@c procedures to generate the correct glue-code for that interpreter.  This
-@c should not be too difficult, if you study how the current implementations
-@c of these functions work.  The procedures in the file
-@c @code{output-file.scm} should help to keep the job of generating C code
-@c simple.
-
-@c The C functions in the file g-wrap-runtime.c should be ported to the new
-@c interpreter.  @code{gw_puts(char *string, GWSCM port)} should be written
-@c so that it will write a string to a Scheme port for the given Scheme
-@c implementation, and (if possible) @code{gw_error(char* string)} should
-@c be written to generate a Scheme error with a string as the error message
-@c @pxref{Utility functions}.
-
-@c If the implementation has a garbage collector with a mark phase, the
-@c function @code{void gw_mark(GWSCM obj)} should be updated to mark Scheme
-@c objects for your implementation.
-
-@node   Portable "Fancy tricks",  , Extending g-wrap and porting it to other Scheme implementations, Top
-@comment  node-name,  next,  previous,  up
-@chapter Additional issues
-
-The most difficult issue with wrapping a C library for use with a Scheme
-interpreter seems to be the issue of memory management.  g-wrap does not
-try to deal much with this issue because it is a messy one.  One
-assumption made by the code generator is that objects are maintained in
-the Scheme world---when the interpreter no longer references an object,
-it may be garbage-collected and de-allocated.  Another assumption
-@emph{is that any object returned by a call to a C function is a new
-object} which the interpreter will wrap in a new Scheme object.  If this
-is not true, then it is possible for multiple Scheme objects to refer to
-a single C object, and serious errors can occur.  I have written code
-which uses some fancy tricks to get around this problem for certain
-specific cases, but there is no simple way to deal with this problem in
-general without the C library to have specific support for helping the
-interpreter out.  Future versions of g-wrap may incorporate some support
-for helping the C library cooperate with this issue by storing the
-Scheme representation of an object inside the object itself.
-
-@printindex fn
 
 @contents
 @bye

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+chk_is_guile() {
+  if [ "$1" != guile ]; then
+    echo "unsupported language: $1"
+    exit 1
+  fi
+}
+
+pkg=g-wrap-@GW_BRANCH@-guile
+
+case $1 in
+    --version)
+	echo g-wrap-config @VERSION@
+	;;
+    --c-compile-args)
+	chk_is_guile $2
+	pkg-config --cflags $pkg
+	;;
+    --c-link-args)
+	chk_is_guile $2
+	pkg-config --libs $pkg
+	;;
+    --guile-module-directory)
+	pkg-config --variable=module_directory $pkg
+	;;
+    *)
+	echo "unsupported option/argument $1"
+	exit 1
+esac
