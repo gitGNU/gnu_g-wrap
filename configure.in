@@ -12,12 +12,12 @@ AC_ARG_WITH(modules-dir,
 [  --with-modules-dir=<dir>  Base directory for contributed Guile modules ],
   GUILEMODDIR=$withval
   G_WRAP_LOAD_DIR=$withval,
-  if test "x$prefix" = xNONE; then
+  if test "x$prefix" = xNONE; then # what's that for? -- rotty
     GUILEMODDIR='$(GUILE_SCMDIR)'
     G_WRAP_LOAD_DIR='$(GUILE_SCMDIR)'
   else
-    GUILEMODDIR='$(datadir)/guile'
-    G_WRAP_LOAD_DIR='$(datadir)/guile'
+    GUILEMODDIR=${datadir}/guile
+    G_WRAP_LOAD_DIR=${datadir}/guile
   fi)
 AC_SUBST(GUILEMODDIR)
 AC_SUBST(G_WRAP_LOAD_DIR)
@@ -204,4 +204,5 @@ AC_OUTPUT([Makefile
            example/Makefile
            g-wrap/Makefile
            rpm/Makefile
-           test/Makefile])
+           test/Makefile
+	   g-wrap.pc])

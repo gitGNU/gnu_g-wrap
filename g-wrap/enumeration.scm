@@ -156,20 +156,18 @@ static SCM
        ;; regular client
        (client-wrapset
         (list
-         val->int-var-name " = gh_lookup(\"" val->int-scm-func-name "\");\n"
-         val->sym-var-name " = gh_lookup(\"" val->sym-scm-func-name "\");\n"))
+         val->int-var-name " = SCM_VARIABLE_REF (scm_c_lookup(\"" val->int-scm-func-name "\");\n"
+         val->sym-var-name " = SCM_VARIABLE_REF (scm_c_lookup(\"" val->sym-scm-func-name "\");\n"))
        ;; normal wrapset type code.
        (else
         (list
          "\n"
          "    " val->int-var-name " =\n"
-         "      gh_new_procedure(\"" val->int-scm-func-name "\",\n"
-         "                       " val->int-c-func-name ",\n"
-         "                       1, 0, 0);\n"
+         "      scm_c_define_gsubr (\"" val->int-scm-func-name "\", 1, 0, 0,\n"
+         "                         " val->int-c-func-name ");\n"
          "    " val->sym-var-name " =\n"
-         "      gh_new_procedure(\"" val->sym-scm-func-name "\",\n"
-         "                       " val->sym-c-func-name ",\n"
-         "                       2, 0, 0);\n"))))
+         "      scm_c_define_gsubr (\"" val->sym-scm-func-name "\", 2, 0, 0,\n"
+         "                         " val->sym-c-func-name ");\n"))))
     
     (define (pre-call-arg-ccg param status-var)
       (let* ((scm-name (gw:param-get-scm-name param))

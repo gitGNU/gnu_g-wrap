@@ -56,12 +56,12 @@ gw_test_gw_standard_echo_double (double arg)
   return arg;
 }
 
-SCM gw_test_gw_standard_get_int_max () { return gh_long2scm (INT_MAX); }
-SCM gw_test_gw_standard_get_int_min() { return gh_long2scm (INT_MIN); }
-SCM gw_test_gw_standard_get_uint_max() { return gh_ulong2scm(UINT_MAX); }
-SCM gw_test_gw_standard_get_long_max() { return gh_long2scm(LONG_MAX); }
-SCM gw_test_gw_standard_get_long_min() { return gh_long2scm(LONG_MIN); }
-SCM gw_test_gw_standard_get_ulong_max() { return gh_ulong2scm(ULONG_MAX); }
+SCM gw_test_gw_standard_get_int_max () { return scm_long2num (INT_MAX); }
+SCM gw_test_gw_standard_get_int_min() { return scm_long2num (INT_MIN); }
+SCM gw_test_gw_standard_get_uint_max() { return scm_ulong2num (UINT_MAX); }
+SCM gw_test_gw_standard_get_long_max() { return scm_long2num (LONG_MAX); }
+SCM gw_test_gw_standard_get_long_min() { return scm_long2num (LONG_MIN); }
+SCM gw_test_gw_standard_get_ulong_max() { return scm_ulong2num (ULONG_MAX); }
 
 int
 gw_test_gw_standard_echo_int (int arg)

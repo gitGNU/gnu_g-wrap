@@ -35,7 +35,7 @@ gw_glib_gint64_to_scm(const gint64 x)
   result = scm_sum(scm_ash(gh_ulong2scm(upper_half), SCM_MAKINUM(32)),
                    gh_ulong2scm(lower_half));
   
-  if(negative_p) {
+  if (negative_p) {
     return scm_difference(SCM_INUM0, result);
   } else {
     return result;
@@ -63,7 +63,7 @@ gw_glib_scm_to_gint64(SCM num)
   
   if (bits00to15_mask == SCM_BOOL_F) {
     bits00to15_mask = gh_ulong2scm(0xFFFF);
-    scm_protect_object (bits00to15_mask);
+    scm_gc_protect_object (bits00to15_mask);
   }
 
   /*
@@ -115,8 +115,8 @@ gw_glib_gint64_p(SCM num)
     tmp <<= 32;
     minval = gw_glib_gint64_to_scm(tmp);
 
-    scm_protect_object(maxval);
-    scm_protect_object(minval);
+    scm_gc_protect_object(maxval);
+    scm_gc_protect_object(minval);
     initialized = 1;
   }
 

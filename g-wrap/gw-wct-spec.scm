@@ -163,7 +163,7 @@
           ;; regular client
           (client-wrapset
            (list
-            "    " wct-var-name " = gh_eval_str(\"" wcp-type-name "\");\n"))
+            "    " wct-var-name " = scm_c_eval_string(\"" wcp-type-name "\");\n"))
           ;; normal wrapset type code.
           (else
            (list
@@ -175,7 +175,7 @@
             mark-func ", "
             cleanup-func ");\n"
             
-            "  gh_define(\"" wcp-type-name "\", " wct-var-name ");\n")))
+            "  scm_c_define(\"" wcp-type-name "\", " wct-var-name ");\n")))
          
          (if wct-init-ccg
              (wct-init-ccg type client-wrapset)

@@ -47,9 +47,9 @@
     (define (global-init-ccg type client-wrapset status-var)
       (if client-wrapset
           (list minvar " = " scm-minval-text ";\n"
-                "scm_protect_object(" minvar ");\n"
+                "scm_gc_protect_object(" minvar ");\n"
                 maxvar " = " scm-maxval-text ";\n"
-                "scm_protect_object(" maxvar ");\n")
+                "scm_gc_protect_object(" maxvar ");\n")
           '()))
     
     (define (scm->c-ccg c-var scm-var typespec status-var)
@@ -139,7 +139,7 @@
     (define (global-init-ccg type client-wrapset status-var)
       (if client-wrapset
           (list maxvar " = " scm-maxval-text ";\n"
-                "scm_protect_object(" maxvar ");\n")
+                "scm_gc_protect_object(" maxvar ");\n")
           '()))
     
     (define (scm->c-ccg c-var scm-var typespec status-var)
@@ -264,15 +264,17 @@
   ;; <gw:float>
   (gw:wrap-simple-type ws '<gw:float> "float"
                        '("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
-                       '(c-var "= gh_scm2double(" scm-var ");\n")
-                       '(scm-var "= gh_double2scm(" c-var ");\n"))
+                       '(c-var "= scm_num2float(" scm-var ", 1,"
+                               " \"gw:scm->float\");\n")
+                       '(scm-var "= scm_float2num(" c-var ");\n"))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <gw:double>
   (gw:wrap-simple-type ws '<gw:double> "double"
                        '("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
-                       '(c-var "= gh_scm2double(" scm-var ");\n")
-                       '(scm-var "= gh_double2scm(" c-var ");\n"))
+                       '(c-var "= scm_num2double(" scm-var ", 1,"
+                               " \"gw:scm->double\");\n")
+                       '(scm-var "= scm_double2num(" c-var ");\n"))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <gw:int>

@@ -26,7 +26,7 @@ USA.
 extern "C" {
 #endif
 
-  /* guile 1.3.4 compatibility */
+/* guile 1.3.4 compatibility */
 #ifndef SCM_CHAR
 #define SCM_CHAR(x) SCM_ICHR(x)
 #endif
@@ -46,6 +46,9 @@ extern "C" {
 
 void *  scm_malloc(size_t size);
 void *  scm_realloc(void *mem, size_t size);
+
+#define scm_gc_malloc(size, what) scm_must_malloc((size), (what))
+void    scm_gc_free(void *mem, size_t size, const char *what);
 
 #endif
 

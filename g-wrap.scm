@@ -1011,7 +1011,7 @@ port))
 (define-public (gw:inline-scheme . code-chunks)
   (map
    (lambda (chunk)
-     (list "gh_eval_str(\""
+     (list "scm_c_eval_string(\""
            (scm-form-str->safe-c-str
             (call-with-output-string
              (lambda (port)
@@ -1168,8 +1168,8 @@ port))
           "\n"
           "  if(!gw_wrapset_initialized)\n"
           "  {\n"
-          "    gh_eval_str(\"(use-modules (g-wrap runtime))\");\n"
-          "    gh_eval_str(\"(gw:wrapset-register-runtime \\\"" wrapset-name "\\\")\");\n"
+          "    scm_c_eval_string(\"(use-modules (g-wrap runtime))\");\n"
+          "    scm_c_eval_string(\"(gw:wrapset-register-runtime \\\"" wrapset-name "\\\")\");\n"
           "\n"))
 
         (for-each
@@ -1543,13 +1543,13 @@ port))
         ;;                       (vector "\\n\\\n" "\\\""))))
 
     (list
-     "    gh_new_procedure(" fn-c-string ",\n"
-     "                     (SCM (*) ()) " fn-c-wrapper ",\n"
+     "    scm_c_define_gsubr(" fn-c-string ",\n"
      "                     " (if use-extra-params?
                                  gw:*max-fixed-params*
                                  nargs) ",\n"
      "                     0,\n" 
-     "                     " (if use-extra-params? "1" "0") ");\n"
+     "                     " (if use-extra-params? "1" "0") ",\n"
+     "                       (SCM (*) ()) " fn-c-wrapper ");\n"
      "\n"
      ;;(gw:inline-scheme `(gw:add-description ,scm-sym ,fn-doc))
      )))
@@ -1657,7 +1657,7 @@ port))
             "\n"
             convert-value-code
             "if(!" `(gw:error? ,status-var) ")"
-            "  gh_define(\"" (symbol->string scheme-sym) "\"," scm-var ");\n"
+            "scm_c_define(\"" (symbol->string scheme-sym) "\"," scm-var ");\n"
             "}\n")))))))
 
 (use-modules (g-wrap enumeration))

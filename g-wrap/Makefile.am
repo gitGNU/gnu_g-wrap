@@ -4,7 +4,7 @@ gwrapincludedir = $(includedir)/g-wrap
 
 CLEANFILES =
 noinst_PROGRAMS =
-gwrapinclude_HEADERS = g-wrap-compatibility.h
+gwrapinclude_HEADERS = 
 
 EXTRA_DIST =
 
@@ -65,8 +65,8 @@ GUILE_FLAGS =
 
 GW_RUNTIME_VINFO = \
   ${GW_RUNTIME_INTERFACE_MAJOR_VER}:${GW_RUNTIME_INTERFACE_REVISION}:${GW_RUNTIME_INTERFACE_AGE}
-gwrapinclude_HEADERS += g-wrap-runtime.h g-wrap-wct.h
-libgwrap_runtime_la_SOURCES = g-wrap-runtime.c g-wrap-wct.c
+gwrapinclude_HEADERS += g-wrap-runtime.h g-wrap-compatibility.h g-wrap-wct.h
+libgwrap_runtime_la_SOURCES = g-wrap-runtime.c g-wrap-wct.c g-wrap-compatibility.c
 libgwrap_runtime_la_LDFLAGS = -rpath $(libdir) -version-info ${GW_RUNTIME_VINFO}
 libgwrap_runtime_la_LIBADD = @GUILE_LIBS@ $(LIBFFI_LIBS)
 

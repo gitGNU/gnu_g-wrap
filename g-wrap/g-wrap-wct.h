@@ -74,7 +74,7 @@ extern "C" {
                                  char writing_p,
                                  int *use_default_printer_p),
                     SCM (*mark)(SCM wcp),
-                    scm_sizet (*cleanup)(SCM wcp));
+                    size_t (*cleanup)(SCM wcp));
   
   int gw_wct_p(SCM obj);
 

@@ -2,8 +2,6 @@
 
 #ifndef SCM_VERSION_17X
 
-/* These are basically xmalloc & friends */
-
 void *
 scm_malloc(size_t size)
 {
@@ -23,6 +21,12 @@ scm_realloc(void *mem, size_t size)
     return mem;
 
   scm_memory_error("scm_realloc");
+}
+
+void scm_gc_free(void *mem, size_t size, const char *what)
+{
+  scm_must_free (mem);
+  scm_done_free (size);
 }
 
 #endif

@@ -1,0 +1,13 @@
+# Package Information for pkg-config
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@/g-wrap
+module_directory=@GUILEMODDIR@
+
+Name: G-Wrap
+Description: A Guile wrapper generator
+Version: @VERSION@
+Libs: -L${libdir} -lgwrap-runtime
+Cflags: -I${includedir}

@@ -1,10 +1,54 @@
 2004-01-16  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* g-wrap/g-wrap-compatibility.c (scm_gc_free): Syntax typo fix.
+
+	* g-wrap/Makefile.am (libgwrap_runtime_la_SOURCES): Added
+	g-wrap-compatibility.c.
+
+2004-01-14  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/g-wrap-wct.c: Removed unneeded <libguile/gh.h> #include.
+	Add "g-wrap-compatibility.h" #include (fixes compilation for Guile
+	1.6).
+	
+2003-12-14  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* Makefile.am: Install .pc file.
+
+	* configure.in (GUILEMODDIR, G_WRAP_LOAD_DIR) : AC_SUBST to values
+	usable in the .pc file (i.e. no Makefile variable references).
+	(AC_OUTPUT): Generate .pc file.
+	
+	* g-wrap.pc.in: New file.
+
+2003-12-10  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/gw-standard-spec.scm (wrap-simple-ranged-integer-type):
+	Use scm_gc_protect_object() instead of deprecated
+	scm_protect_object().
+	
+	* g-wrap/g-wrap-wct.c, test/g-wrap-test-c-code.c,
+	* g-wrap/gw-standard-spec.scm, gw-wct-spec.scm: Get rid of gh_*
+	usage.
+
+	* g-wrap/g-wrap-wct.c: Use scm_gc_malloc/free() instead of
+	deprecated scm_must_malloc().
+
+	* g-wrap/g-wrap-wct.c, g-wrap/g-wrap-wct.h: Replace deprecated
+	scm_sizet with size_t.
+
+2004-01-16  Andreas Rottmann  <a.rottmann@gmx.at>
+
 	* configure.in, g-wrap/g-wrap-runtime.h, g-wrap-runtime.c: Revert
 	ffi support (not scheduled for 1.3).
 
 2003-11-11  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* test/gw-test-glib-spec.scm: Use #:use-module clauses instead of
+	(use-modules ...) statements.
+	
+	* g-wrap/g-wrap-glib.c: Fixes for Guile 1.7.
+	
 	* bin/g-wrap-config.in (c-link-args): s/gwrap-wct/gwrap-runtime/
 	and don't link against libgwrap-glib.
 

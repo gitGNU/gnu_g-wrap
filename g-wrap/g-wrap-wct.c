@@ -20,9 +20,9 @@ USA.
 
 #include <stdio.h>
 
-#include <guile/gh.h>
 #include <libguile.h>
 #include "g-wrap-wct.h"
+#include "g-wrap-compatibility.h"
 
 #ifdef HAVE_CONFIG_H
 # include "../config.h"
@@ -70,7 +70,7 @@ typedef struct {
   SCM (*equal_p)(SCM wcp_a, SCM wcp_b);
   int (*print)(SCM wcp, SCM port, char writing_p, int *use_default_printer);
   SCM (*mark)(SCM wcp);
-  scm_sizet (*cleanup)(SCM wcp);
+  size_t (*cleanup)(SCM wcp);
 } wrapped_c_type_data;
 
 typedef struct {
@@ -107,23 +107,22 @@ gw_wcp_p(SCM obj) {
 /****************************************************************************/
 /* Wrapped C pointer functions */
 
-static scm_sizet
+static size_t
 wcp_data_free(SCM wcp) {
-  scm_sizet maybe_total_reclaimed = 0;
   wrapped_c_pointer_data *data;
   wrapped_c_type_data *type_data;
   
   data = (wrapped_c_pointer_data *) SCM_SMOB_DATA(wcp);
   type_data = (wrapped_c_type_data *) SCM_SMOB_DATA(data->type);
 
-  if(type_data->cleanup) {
-    maybe_total_reclaimed += type_data->cleanup(wcp);
+  if (type_data->cleanup) {
+    type_data->cleanup(wcp);
     /* c pointer may be destrotyed at this point (probably should be) */
   }
 
-  free(data);
-  maybe_total_reclaimed += sizeof(wrapped_c_pointer_data); 
-  return maybe_total_reclaimed;
+  scm_gc_free (data, sizeof(wrapped_c_pointer_data), "gw:wcp");
+  
+  return 0;
 }
 
 static int
@@ -173,7 +172,8 @@ wcp_data_mark(SCM wcp) {
 }
 
 static SCM
-wcp_data_equal_p(SCM wcp_a, SCM wcp_b) {
+wcp_data_equal_p (SCM wcp_a, SCM wcp_b)
+{
   wrapped_c_pointer_data *data_a;
   wrapped_c_pointer_data *data_b;
   wrapped_c_type_data *type_data;
@@ -183,7 +183,7 @@ wcp_data_equal_p(SCM wcp_a, SCM wcp_b) {
 
   if(data_a == data_b) return SCM_BOOL_T;
 
-  if(!gh_eq_p(data_a->type, data_b->type)) return SCM_BOOL_F;
+  if (!SCM_EQ_P(data_a->type, data_b->type)) return SCM_BOOL_F;
  
   if((data_a->pointer == data_b->pointer)) return SCM_BOOL_T;
 
@@ -205,7 +205,7 @@ gw_wcp_assimilate_ptr(void *ptr, SCM type) {
   type_data = (wrapped_c_type_data *) SCM_SMOB_DATA(type);
 
   ptr_data = (wrapped_c_pointer_data *)
-    scm_must_malloc(sizeof(wrapped_c_pointer_data), "gw:wcp");
+    scm_gc_malloc(sizeof(wrapped_c_pointer_data), "gw:wcp");
 
   ptr_data->pointer = ptr;
   ptr_data->type = type;
@@ -223,12 +223,14 @@ gw_wcp_get_ptr(SCM obj) {
 }
 
 int
-gw_wcp_is_of_type_p(SCM type, SCM obj) {
+gw_wcp_is_of_type_p(SCM type, SCM obj)
+{
   /* return non-zero if wrapped C pointer obj is of the given type. */
-  if(SCM_SMOB_PREDICATE(wcp_smob_id, obj)) {
+  if(SCM_SMOB_PREDICATE(wcp_smob_id, obj))
+  {
     wrapped_c_pointer_data *ptr_data =
-      (wrapped_c_pointer_data *) SCM_SMOB_DATA(obj);
-    return(gh_eq_p(ptr_data->type, type));
+      (wrapped_c_pointer_data *) SCM_SMOB_DATA (obj);
+    return SCM_EQ_P (ptr_data->type, type);
   }
   return 0;
 }
@@ -247,15 +249,17 @@ gw_wcp_coerce(SCM obj, SCM new_type) {
 /****************************************************************************/
 /* Wrapped C type functions */
 
-static scm_sizet 
-wct_data_free(SCM smob) {
-  wrapped_c_type_data *data = (wrapped_c_type_data *) SCM_SMOB_DATA(smob);
-  free(data);
-  return sizeof(wrapped_c_type_data);
+static size_t 
+wct_data_free(SCM smob)
+{
+  scm_gc_free ((void *) SCM_SMOB_DATA (smob), sizeof (wrapped_c_type_data),
+               "gw:wct");
+  return 0;
 }
 
 static SCM
-wct_data_mark(SCM smob) {
+wct_data_mark(SCM smob)
+{
   wrapped_c_type_data *data = (wrapped_c_type_data *) SCM_SMOB_DATA(smob);
   return(data->name);
 }
@@ -281,7 +285,7 @@ gw_wct_create(const char *type_name,
                            char writing_p,
                            int *use_default_printer_p),
               SCM (*mark)(SCM wcp),
-              scm_sizet (*cleanup)(SCM wcp))
+              size_t (*cleanup)(SCM wcp))
 {
   /* see header for docs */
   wrapped_c_type_data *type_data;
@@ -293,11 +297,11 @@ gw_wct_create(const char *type_name,
   }
 
   type_data = (wrapped_c_type_data *)
-    scm_must_malloc(sizeof(wrapped_c_type_data),
+    scm_gc_malloc(sizeof(wrapped_c_type_data),
                     "gw_wct_create_and_register: type_data");
 
   /* (char *) fixes problem with guile 1.3.4 prototype. */
-  type_data->name = gh_str02scm((char *) type_name);
+  type_data->name = scm_makfrom0str ((char *) type_name);
 
   type_data->equal_p = equal_p;
   type_data->print = print;

@@ -1,10 +1,9 @@
 
 (define-module (gw-test-glib-spec)
-  :use-module (g-wrap))
-
-(use-modules (g-wrap gw-standard-spec))
-(use-modules (g-wrap gw-wct-spec))
-(use-modules (g-wrap gw-glib-spec))
+  #:use-module (g-wrap)
+  #:use-module (g-wrap gw-standard-spec)
+  #:use-module (g-wrap gw-wct-spec)
+  #:use-module (g-wrap gw-glib-spec))
 
 (let ((ws (gw:new-wrapset "gw-test-glib")))
 
