@@ -1,7 +1,6 @@
-SUBDIRS = guile
+include $(top_srcdir)/common.mk
 
-gwrapmoduledir = @GUILEMODDIR@/g-wrap
-gwrapincludedir = $(includedir)/g-wrap
+SUBDIRS = guile
 
 AM_CPPFLAGS = -I$(top_srcdir)
 

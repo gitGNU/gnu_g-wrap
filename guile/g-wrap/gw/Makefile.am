@@ -1,4 +1,4 @@
-gwrapmoduledir = @GUILEMODDIR@/g-wrap/gw
+include $(top_srcdir)/common.mk
 
 gwrapmodule_DATA = standard.scm
 
