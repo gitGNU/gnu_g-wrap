@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2002 Rob Browning
+Copyright (C) 2003 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -17,37 +17,52 @@ to the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139,
 USA.
 **********************************************************************/
 
-#ifndef __G_WRAP_COMPATIBILITY_H__
-#define __G_WRAP_COMPATIBILITY_H__
+#ifndef __G_WRAP_RUNTIME_H__
+#define __G_WRAP_RUNTIME_H__
 
 #include <libguile.h>
-  
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  /* guile 1.3.4 compatibility */
-#ifndef SCM_CHAR
-#define SCM_CHAR(x) SCM_ICHR(x)
-#endif
+typedef struct _GWEnumPair GWEnumPair;
+typedef enum _GWErrorStatus GWErrorStatus;
+typedef struct _GWError GWError;
 
-#ifndef SCM_MAKE_CHAR
-#define SCM_MAKE_CHAR(x) SCM_MAKICHR(x)
-#endif
+enum _GWErrorStatus
+{
+  GW_ERR_NONE,
+  GW_ERR_MISC,
+  GW_ERR_MEMORY,
+  GW_ERR_RANGE,
+  GW_ERR_TYPE,
+  GW_ERR_ARGC,
+  GW_ERR_ARG_RANGE,
+  GW_ERR_ARG_TYPE
+};
 
-/* Define this macro if Guile 1.7.x or better is in use. */
-#if defined (SCM_MINOR_VERSION) && (SCM_MINOR_VERSION >= 7) && \
-    defined (SCM_MAJOR_VERSION) && (SCM_MAJOR_VERSION >= 1)
-#define SCM_VERSION_17X 1
-#endif
+struct _GWError
+{
+    GWErrorStatus status;
+    const char *message;
+    SCM data;
+};
 
-/* Support for coding against Guile 1.7 */
-#ifndef SCM_VERSION_17X
+struct _GWEnumPair
+{
+    int val;
+    const char *sym;
+};
 
-void *  scm_malloc(size_t size);
-void *  scm_realloc(void *mem, size_t size);
+void gw_runtime_get_version_info(int *major, int *revision, int *age);
 
-#endif
+SCM gw_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p);
+SCM gw_enum_val2int(GWEnumPair enum_pairs[], SCM scm_val);
+
+void gw_handle_wrapper_error(GWError *error,
+                             const char *func_name,
+                             unsigned int arg_pos) __attribute__ ((noreturn));
 
 #ifdef __cplusplus
 }

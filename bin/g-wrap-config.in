@@ -45,7 +45,7 @@
     (pr "--guile-module-directory      - Location of guile module dir")))
 
 (define (c-link-args language static?)
-  (let* ((lib-list '(("guile" "gwrap-wct" "gwrap-glib")
+  (let* ((lib-list '(("guile" "gwrap-runtime")
                      ("rscheme" "gwraprs")))
          (libs (assoc language lib-list)))
                    

@@ -1,5 +1,5 @@
 
-gwrapmoduledir=@GUILEMODDIR@/g-wrap
+gwrapmoduledir = @GUILEMODDIR@/g-wrap
 gwrapincludedir = $(includedir)/g-wrap
 
 CLEANFILES =
@@ -47,8 +47,8 @@ EXTRA_DIST += $(gwrapmodule_DATA)
 EXTRA_DIST += ${GW_GLIB_EXTRAS} ${GW_GUILE_GTK_EXTRAS}
 
 lib_LTLIBRARIES = \
+ libgwrap-runtime.la \
  libgw-standard.la \
- libgwrap-wct.la \
  libgw-wct.la \
  ${GW_GLIB_LIB_ADD} \
  ${GW_GUILE_GTK_LIB_ADD}
@@ -61,20 +61,20 @@ AM_CFLAGS = -O2 -g -Wall -Werror \
 
 GUILE_FLAGS =
 
-################## libgwrap-wct section
+################## libgwrap-runtime section
 
-GW_LIBWCT_VINFO = \
-  ${GW_WCT_INTERFACE_MAJOR_VER}:${GW_WCT_INTERFACE_REVISION}:${GW_WCT_INTERFACE_AGE}
-gwrapinclude_HEADERS += g-wrap-wct.h
-libgwrap_wct_la_SOURCES = g-wrap-wct.c
-libgwrap_wct_la_LDFLAGS = -rpath $(libdir) -version-info ${GW_LIBWCT_VINFO}
-libgwrap_wct_la_LIBADD = @GUILE_LIBS@
+GW_RUNTIME_VINFO = \
+  ${GW_RUNTIME_INTERFACE_MAJOR_VER}:${GW_RUNTIME_INTERFACE_REVISION}:${GW_RUNTIME_INTERFACE_AGE}
+gwrapinclude_HEADERS += g-wrap-runtime.h g-wrap-wct.h
+libgwrap_runtime_la_SOURCES = g-wrap-runtime.c g-wrap-wct.c
+libgwrap_runtime_la_LDFLAGS = -rpath $(libdir) -version-info ${GW_RUNTIME_VINFO}
+libgwrap_runtime_la_LIBADD = @GUILE_LIBS@ $(LIBFFI_LIBS)
 
 ################## (g-wrap gw-wct) section
 
 nodist_libgw_wct_la_SOURCES = gw-wct.c
 libgw_wct_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic @GUILE_LIBS@
-libgw_wct_la_LIBADD = libgwrap-wct.la
+libgw_wct_la_LIBADD = libgwrap-runtime.la
 
 gw-wct.scm gw-wct.c gw-wct.h gw-wct.html: gw-wct-spec.scm
 	guile $(GUILE_FLAGS) -c \
@@ -100,15 +100,12 @@ SETGWPPATH= "(set! %load-path (cons \"$(top_builddir)\" (cons \"$(top_srcdir)\" 
 
 nodist_libgw_standard_la_SOURCES = gw-standard.c
 libgw_standard_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic @GUILE_LIBS@
-libgw_standard_la_LIBADD = 
+libgw_standard_la_LIBADD = libgwrap-runtime.la
 LIBGW_STANDARD_GWGEN = $(addprefix gw-standard, .h .c .scm .html) 
 
 ${LIBGW_STANDARD_GWGEN}: gw-standard-spec.scm
-	guile -c \
-          ${SETGWPPATH}"(debug-enable 'backtrace) \
-                        (debug-enable 'debug) \
-                        (read-enable 'positions) \
-                        (use-modules (g-wrap)) \
+	guile $(GUILE_FLAGS) -c \
+          ${SETGWPPATH}"(use-modules (g-wrap)) \
                         (use-modules (g-wrap gw-standard-spec)) \
                         (gw:generate-wrapset \"gw-standard\")"
 

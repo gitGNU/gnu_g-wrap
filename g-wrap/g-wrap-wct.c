@@ -53,13 +53,6 @@ USA.
 #endif
 
 void
-gwp_runtime_get_version_info(int *major, int *revision, int *age) {
-  *major = GW_WCT_INTERFACE_MAJOR_VER;
-  *revision = GW_WCT_INTERFACE_REVISION;
-  *age = GW_WCT_INTERFACE_AGE;
-}
-
-void
 gw_puts(const char* str, SCM port) {
 #if HAVE_SCM_PUTS 
   /* (char *) fixes problem with guile 1.3.4 prototype. */

@@ -1,3 +1,29 @@
+2004-01-16  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* configure.in, g-wrap/g-wrap-runtime.h, g-wrap-runtime.c: Revert
+	ffi support (not scheduled for 1.3).
+
+2003-11-11  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* bin/g-wrap-config.in (c-link-args): s/gwrap-wct/gwrap-runtime/
+	and don't link against libgwrap-glib.
+
+	* configure.in: Add check for libffi.
+
+	* g-wrap/g-wrap-wct.c (gwp_runtime_get_version_info): Moved to
+	g-wrap-runtime.c and renamed to gw_runtime_get_version_info.
+	
+	* configure.in, g-wrap/Makefile.am: libgwrap-wct is now
+	libgwrap-runtime.
+
+	* g-wrap/g-wrap-runtime.h, g-wrap/g-wrap-runtime.c: New files,
+	accomodating a bunch of runtime functions.
+	
+	* g-wrap/g-wrap-compatibility.h (SCM_VERSION_17X): New macro.
+	* g-wrap/g-wrap-compatibility.h, g-wrap/g-wrap-compatibility.c
+	(scm_malloc, scm_free): New compat functions.
+	* g-wrap/g-wrap-compatibility.c: New file.
+
 2003-11-09  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* Makefile.am (guilemoduledir): Revert to configure-time setting.

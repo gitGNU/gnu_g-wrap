@@ -84,7 +84,6 @@ AC_TRY_LINK([#include <libguile/smob.h>],
 
 
 
-
 ###########################################################################
 ### Check for and set up glib
 
@@ -179,24 +178,24 @@ then
   AC_SUBST(GW_GUILE_GTK_LIBFLAGS)
 fi
 
-GW_WCT_INTERFACE_MAJOR_VER=1
-GW_WCT_INTERFACE_REVISION=0
-GW_WCT_INTERFACE_AGE=0
+GW_RUNTIME_INTERFACE_MAJOR_VER=0
+GW_RUNTIME_INTERFACE_REVISION=0
+GW_RUNTIME_INTERFACE_AGE=0
 
-AC_SUBST(GW_WCT_INTERFACE_MAJOR_VER)
-AC_SUBST(GW_WCT_INTERFACE_REVISION)
-AC_SUBST(GW_WCT_INTERFACE_AGE)
+AC_SUBST(GW_RUNTIME_INTERFACE_MAJOR_VER)
+AC_SUBST(GW_RUNTIME_INTERFACE_REVISION)
+AC_SUBST(GW_RUNTIME_INTERFACE_AGE)
 
-AC_DEFINE_UNQUOTED(GW_WCT_INTERFACE_MAJOR_VER,
-                   ${GW_WCT_INTERFACE_MAJOR_VER},
-                   [The major interface number for libgwp-runtime-guile.])
+AC_DEFINE_UNQUOTED(GW_RUNTIME_INTERFACE_MAJOR_VER,
+                   ${GW_RUNTIME_INTERFACE_MAJOR_VER},
+                   [The major interface number for libgwrap-runtime.])
 
-AC_DEFINE_UNQUOTED(GW_WCT_INTERFACE_REVISION,
-                   ${GW_WCT_INTERFACE_REVISION},
-                   [The revision number for libgwp-runtime-guile.])
+AC_DEFINE_UNQUOTED(GW_RUNTIME_INTERFACE_REVISION,
+                   ${GW_RUNTIME_INTERFACE_REVISION},
+                   [The revision number for libgwrap-runtime.])
 
-AC_DEFINE_UNQUOTED(GW_WCT_INTERFACE_AGE,
-                   ${GW_WCT_INTERFACE_AGE},
+AC_DEFINE_UNQUOTED(GW_RUNTIME_INTERFACE_AGE,
+                   ${GW_RUNTIME_INTERFACE_AGE},
   [Number of previous interfaces supported by the current libgwp-runtime-guile API.])
 
 AC_OUTPUT([Makefile
