@@ -29,13 +29,11 @@
     (slot-ref enum 'values))
    " { 0, NULL } };\n"))
   
-(define-method (global-declarations-cg (lang <gw-language>)
-                                      (wrapset <gw-wrapset>)
-                                      (enum <gw-enumeration-type>))
+(define-method (global-declarations-cg (wrapset <gw-wrapset>)
+                                       (enum <gw-enumeration-type>))
   (val-array-cg enum))
 
-(define-method (client-global-declarations-cg (lang <gw-language>)
-                                              (wrapset <gw-wrapset>)
+(define-method (client-global-declarations-cg (wrapset <gw-wrapset>)
                                               (enum <gw-enumeration-type>))
   (val-array-cg enum))
 

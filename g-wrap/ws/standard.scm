@@ -13,30 +13,32 @@
   (next-method)
   (slot-set! wrapset 'use-limits? #t))
 
-(define-method (initialize (wrapset <gw-standard-wrapset>) initargs)
+(define-class <limits-item> (<gw-item>))
 
-  (define (before-includes lang)
+(define-method (before-includes-cg (wrapset <gw-standard-wrapset>)
+                                   (item <limits-item>))
     (if (slot-ref wrapset 'use-limits?)
         (list "#define _GNU_SOURCE\n")
         '()))
-
-  (define (global-declarator lang)
+  
+(define-method (global-declarations-cg (wrapset <gw-standard-wrapset>)
+                                       (item <limits-item>))
     (if (slot-ref wrapset 'use-limits?)
         (list "#include <limits.h>\n")
         '()))
-  
+
+(define-method (initialize (wrapset <gw-standard-wrapset>) initargs)
+
   (next-method)
 
-  (add-cs-before-includes! wrapset before-includes)
-  (add-client-cs-before-includes! wrapset before-includes)
-  (add-cs-global-declarator! wrapset global-declarator)
-  (add-client-cs-global-declarator! wrapset global-declarator)
+  (let ((limits (make <limits-item>)))
+    (add-item! wrapset limits)
+    (add-client-item! wrapset limits))
   
-  (add-type! wrapset
-             (make <gw-ctype-void>
-               #:name 'void
-               #:c-type-name "void"
-               #:ffspec 'void))
+  (wrap-type! wrapset 'void
+              #:name 'void
+              #:c-type-name "void"
+              #:ffspec 'void)
   
   (wrap-simple-type! wrapset
                      #:name 'bool
@@ -112,10 +114,9 @@
                              #:max "ULLONG_MAX"
                              #:ffspec 'ulong_long)
   
-  (add-type! wrapset
-             (make <gw-ctype-mchars>
-               #:name 'mchars
-               #:c-type-name "char *"
-               ;; We don't use const, since free() will be called
-               #:c-const-type-name "char *" 
-               #:ffspec 'pointer)))
+  (wrap-type! wrapset 'mchars
+              #:name 'mchars
+              #:c-type-name "char *"
+              ;; We don't use const, since free() will be called
+              #:c-const-type-name "char *" 
+              #:ffspec 'pointer))

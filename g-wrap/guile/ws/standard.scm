@@ -8,10 +8,18 @@
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap ws standard)
   #:use-module (g-wrap guile))
-  
+
+
+;;; standard wrapset
+
+(define-class <gw-guile-ctype-void> (<gw-ctype-void> <gw-guile-rti-type>))
+(define-class <gw-guile-ctype-mchars> (<gw-ctype-mchars> <gw-guile-rti-type>))
+
 (define-class <standard-wrapset> (<gw-guile-wrapset>
                                   <gw-standard-wrapset>)
-   #:language guile #:id 'standard)
+   #:id 'standard
+   #:types `((void ,<gw-guile-ctype-void>)
+             (mchars ,<gw-guile-ctype-mchars>)))
 
 (define-method (initialize (wrapset <standard-wrapset>) initargs)
   (next-method)
@@ -136,25 +144,27 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 
 
 ;;;
-;;; <gw-ctype-void>
+;;; <gw-guile-ctype-void>
 ;;;
-(define-method (wrap-value-cg (lang <gw-language>)
-                              (type <gw-ctype-void>)
+
+(define-method (wrap-value-cg (type <gw-guile-ctype-void>)
                               (value <gw-value>) error-var)
   (list (scm-var value) " = SCM_UNSPECIFIED;\n"))
 
-(define-method (post-call-result-cg (lang <gw-guile>)
-                                    (type <gw-ctype-void>)
+(define-method (post-call-result-cg (type <gw-guile-ctype-void>)
                                     (result <gw-value>)
                                     status-var)
   (list (scm-var result) " = SCM_UNSPECIFIED;\n"))
 
 ;;;
-;;; <ranged-integer-type>
+;;; <gw-guile-ranged-integer-type>
 ;;;
-(define-class <ranged-integer-type> (<gw-ranged-integer-type>)
+(define-class <gw-guile-ranged-integer-type> (<gw-ranged-integer-type>
+                                              <gw-guile-rti-type>)
   (wrap #:init-keyword #:wrap)
   (unwrap #:init-keyword #:unwrap))
+
+(define <ranged-integer-type> <gw-guile-ranged-integer-type>) ; Lazy ;)
 
 (define (ranged-integer-name type)
   (let ((special (assq-ref '((unsigned-short . "ushort")
@@ -187,13 +197,12 @@ example (gw:wcp-is-a? <gw:void*> foo)")
     (slot-set! type 'max-var
                (gen-c-tmp (string-append "range_minval" c-sym-name)))))
 
-(define-method (wrap-value-cg (lang <gw-guile>)
-                              (type <ranged-integer-type>)
+(define-method (wrap-value-cg (type <ranged-integer-type>)
                               (value <gw-value>)
                               error-var)
   (list (scm-var value) " = " (slot-ref type 'wrap) "(" (var value) ");\n"))
 
-(define-method (unwrap-value-cg (lang <gw-guile>)
+(define-method (unwrap-value-cg 
                                 (type <ranged-integer-type>)
                                 (value <gw-value>)
                                 error-var)
@@ -218,7 +227,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
           "}\n")))
 
 
-(define-method (global-declarations-cg (lang <gw-guile>)
+(define-method (global-declarations-cg 
                                        (wrapset <gw-guile-wrapset>)
                                        (type <ranged-integer-type>))
   (list
@@ -241,21 +250,18 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      maxvar " = " (slot-ref type 'wrap) "(" maxval ");\n"
      "scm_gc_protect_object(" maxvar ");\n")))
   
-(define-method (initializations-cg (lang <gw-guile>)
-                                   (wrapset <gw-guile-wrapset>)
+(define-method (initializations-cg (wrapset <gw-guile-wrapset>)
                                    (type <ranged-integer-type>)
                                    error-var)
   (list
    (next-method)
    (minmax-var-init-cg type)))
 
-(define-method (client-global-declarations-cg (lang <gw-guile>)
-                                              (wrapset <gw-guile-wrapset>)
+(define-method (client-global-declarations-cg (wrapset <gw-guile-wrapset>)
                                               (type <ranged-integer-type>))
-  (global-declarations-cg lang wrapset type))
+  (global-declarations-cg wrapset type))
 
-(define-method (client-initializations-cg (lang <gw-guile>)
-                                          (wrapset <gw-guile-wrapset>)
+(define-method (client-initializations-cg (wrapset <gw-guile-wrapset>)
                                           (type <ranged-integer-type>)
                                           error-var)
   (minmax-var-init-cg type))
@@ -264,8 +270,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 ;;; <gw-ctype-mchars>
 ;;;
 
-(define-method (wrap-value-cg (lang <gw-guile>)
-                              (type <gw-ctype-mchars>)
+(define-method (wrap-value-cg (type <gw-ctype-mchars>)
                               (value <gw-value>)
                               error-var)
     (list
@@ -274,8 +279,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      (scm-var  value) " = scm_makfrom0str( " (var value) ");\n"))
 
 ;; FIMXE: check null-ok
-(define-method (unwrap-value-cg (lang <gw-guile>)
-                                (type <gw-ctype-mchars>)
+(define-method (unwrap-value-cg (type <gw-ctype-mchars>)
                                 (value <gw-value>)
                                 error-var)
   (let ((c-var (var value))
@@ -291,7 +295,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      `(gw:error ,error-var type ,(wrapped-var value)))))
 
 
-(define-method (destruct-value-cg (lang <gw-guile>)
+(define-method (destruct-value-cg 
                                   (type <gw-ctype-mchars>)
                                   (value <gw-value>)
                                   error-var)

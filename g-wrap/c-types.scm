@@ -44,26 +44,22 @@
 (define-method (initialize (void <gw-ctype-void>) initargs)
   (next-method void (append '(#:needs-result-var? #f) initargs)))
 
-(define-method (unwrap-value-cg (lang <gw-language>)
-                                (type <gw-ctype-void>)
+(define-method (unwrap-value-cg (type <gw-ctype-void>)
                                 (value <gw-value>) error-var)
   '()) 
 
-(define-method (pre-call-arg-cg (lang <gw-language>)
-                                (type <gw-ctype-void>)
+(define-method (pre-call-arg-cg (type <gw-ctype-void>)
                                 (param <gw-value>)
                                 status-var)
   (error "Can't use void as an argument type."))
 
-(define-method (post-call-arg-cg (lang <gw-language>)
-                                 (type <gw-ctype-void>)
+(define-method (post-call-arg-cg (type <gw-ctype-void>)
                                  (param <gw-value>)
                                  status-var)
   (error "Can't use void as an argument type."))
 
 ;; no result assignment.
-(define-method (call-cg (lang <gw-language>)
-                        (type <gw-ctype-void>)
+(define-method (call-cg (type <gw-ctype-void>)
                         (result <gw-value>)
                         func-call-code
                         status-var)
@@ -72,8 +68,7 @@
 (define-class <gw-ctype-mchars> (<gw-rti-type>))
 (class-slot-set! <gw-ctype-mchars> 'allowed-options '(null-ok))
 
-(define-method (destruct-value-cg (lang <gw-language>)
-                                  (type <gw-ctype-mchars>)
+(define-method (destruct-value-cg (type <gw-ctype-mchars>)
                                   (value <gw-value>)
                                   error-var)
   (let ((c-var (var value)))
@@ -81,21 +76,19 @@
                         (list "if (" c-var ") free (" c-var ");\n"))))
 
 
-(define-method (global-declarations-cg (lang <gw-language>)
-                                       (wrapset <gw-wrapset>)
+(define-method (global-declarations-cg (wrapset <gw-wrapset>)
                                        (mchars <gw-ctype-mchars>))
   (list
    (next-method)
    "#include <string.h>\n"))
 
 
-(define-method (client-global-declarations-cg (lang <gw-language>)
-                                              (wrapset <gw-wrapset>)
+(define-method (client-global-declarations-cg (wrapset <gw-wrapset>)
                                               (mchars <gw-ctype-mchars>))
   (list "#include <string.h>\n"))
   
 
-(define-method (set-value-cg (lang <gw-language>) (type <gw-ctype-mchars>)
+(define-method (set-value-cg (type <gw-ctype-mchars>)
                              (lvalue <gw-value>) (rvalue <string>))
   (if (string=? rvalue "NULL")
       (list (var lvalue) " = NULL;\n")

@@ -10,8 +10,4 @@
   #:id 'test-enumeration)
 
 (define-method (initialize (ws <guile-test-enumeration-wrapset>) initargs)
-  (next-method)
-
-  (set! (module ws) '(gw-test-enumeration)))
-  
-
+  (next-method ws (append '(#:module (gw-test-enumeration)) initargs)))

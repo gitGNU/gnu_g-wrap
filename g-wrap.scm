@@ -12,8 +12,6 @@
   #:export
   (&gw-bad-typespec
    
-   <gw-language>
-
    <gw-item>
    description
    
@@ -32,7 +30,8 @@
    pre-call-arg-cg pre-call-result-cg call-arg-cg post-call-result-cg
    post-call-arg-cg call-cg set-value-cg
    
-   global-declarations-cg global-definitions-cg initializations-cg
+   global-declarations-cg global-definitions-cg
+   declarations-cg initializations-cg init-finalizations-cg
    
    client-global-declarations-cg client-global-definitions-cg
    client-initializations-cg
@@ -59,16 +58,15 @@
    name language wrapsets-depended-on
    fold-types for-each-type lookup-type fold-functions
    depends-on!
-   add-type! add-constant! add-function!
+
+   add-item! add-type! add-constant! add-function!
+   add-client-item!
+   
+   provide-type-class!
    defines-generic?
    
-   add-cs-before-includes! add-cs-global-declarator! add-cs-definer!
-   add-client-cs-before-includes! add-client-cs-global-declarator! 
-   add-cs-declarator! add-cs-initializer! add-cs-init-finalizer!
-   wrap-function! wrap-constant!
+   wrap-type! wrap-function! wrap-constant!
 
-   initialize-wrapset
-   
    generate-wrapset
    ))
 
@@ -186,17 +184,11 @@
 (define-generic unwrap-value-cg)
 (define-generic destruct-value-cg)
 
-(define-method (destruct-value-cg (lang <gw-language>)
-                                  (type <gw-type>)
-                                  (value <gw-value>)
-                                  error-var)
+(define-method (destruct-value-cg (type <gw-type>) (value <gw-value>) err)
   '())
 
-(define-method (pre-call-arg-cg (lang <gw-language>)
-                                (type <gw-type>)
-                                (param <gw-value>)
-                                status-var)
-  (unwrap-value-cg lang type param status-var))
+(define-method (pre-call-arg-cg (type <gw-type>) (param <gw-value>) err)
+  (unwrap-value-cg type param err))
 
 ;; What was that for?
 ;;    "if (" `(gw:error? ,status-var type) ")"
@@ -204,35 +196,28 @@
 ;;    "else if (" `(gw:error? ,status-var range) ")"
 ;;    `(gw:error ,status-var arg-range)))
 
-(define-method (pre-call-result-cg (lang <gw-language>)
-                                   (type <gw-type>)
-                                   (result <gw-value>)
-                                   status-var)
+(define-method (pre-call-result-cg (type <gw-type>) (result <gw-value>) err)
   '())
 
-(define-method (call-arg-cg (lang <gw-language>) (type <gw-type>)
-                            (value <gw-value>))
+(define-method (call-arg-cg (type <gw-type>) (value <gw-value>))
   (list (var value)))
 
-(define-method (call-cg (lang <gw-language>) (type <gw-type>)
-                        (result <gw-value>) func-call-code error-var)
+(define-method (call-cg (type <gw-type>) (result <gw-value>)
+                        func-call-code error-var)
   (list (var result) " = " func-call-code ";\n"))
 
-(define-method (post-call-result-cg (lang <gw-language>)
-                                    (type <gw-type>)
+(define-method (post-call-result-cg (type <gw-type>)
                                     (result <gw-value>)
                                     status-var)
   (list
-   (wrap-value-cg lang type result status-var)
-   (destruct-value-cg lang type result status-var)))
+   (wrap-value-cg type result status-var)
+   (destruct-value-cg type result status-var)))
 
 
-(define-method (post-call-arg-cg (lang <gw-language>) (type <gw-type>)
-                                 (value <gw-value>) status-var)
-  (destruct-value-cg lang type value status-var))
+(define-method (post-call-arg-cg (type <gw-type>) (value <gw-value>) err)
+  (destruct-value-cg type value err))
 
-(define-method (set-value-cg (lang <gw-language>) (type <gw-type>)
-                             (lvalue <gw-value>) rvalue)
+(define-method (set-value-cg (type <gw-type>) (lvalue <gw-value>) rvalue)
   (list (var lvalue) " = " rvalue ";\n"))
 
 ;;;
@@ -347,8 +332,9 @@
 
 (define-method (initialize (class <gw-wrapset-class>) initargs)
   (next-method)
+  
   (let-keywords
-   initargs #t (language id)
+   initargs #t (language id types)
    (if (not language)
        (set! language
              (any (lambda (c) (class-slot-ref c 'language))
@@ -356,17 +342,34 @@
                    (lambda (c) (not (eq? <object> c)))
                    (class-direct-supers class)))))
    (class-slot-set! class 'language language)
-
+   
    (if (and language id)
-       (register-wrapset-class language id class))))
+       (register-wrapset-class language id class))
+
+   (if id
+       (class-slot-set! class 'name id))
+
+   (class-slot-set! class 'type-classes (make-hash-table 7))
+   (if types
+       (begin
+         (if (not (list? types))
+             (error "invalid #:types option (must be list)"))
+         (for-each (lambda (elt)
+                    (hashq-set! (class-slot-ref class 'type-classes) (first elt)
+                                (second elt)))
+                   types)
+       )
+   )))
 
 (define-class <gw-wrapset> ()
-  (name #:getter name #:init-keyword #:name)
+  (name #:getter name #:init-keyword #:name #:allocation #:each-subclass)
   (language #:getter language #:init-keyword #:language
             #:allocation #:each-subclass)
+  (type-classes #:allocation #:each-subclass)
   
   (dependencies #:getter wrapsets-depended-on #:init-value '())
   (items #:init-value '())
+  (client-items #:init-value '())
   (types #:init-value '())
   (type-hash #:init-form (make-hash-table 53))
   (functions #:init-value '())
@@ -374,15 +377,6 @@
   (generic-hash #:init-form (make-hash-table 31))
   
   (function-class #:init-keyword #:function-class #:init-value <gw-function>)
-  
-  (cs-before-includes #:init-value '())
-  (cs-client-before-includes #:init-value '())
-  (cs-global-declarators #:init-value '())
-  (cs-client-global-declarators #:init-value '())
-  (cs-definers #:init-value '())
-  (cs-declarators #:init-value '())
-  (cs-initializers #:init-value '())
-  (cs-init-finalizers #:init-value '())
 
   #:metaclass <gw-wrapset-class>)
 
@@ -394,6 +388,12 @@
                      (get-wrapset (language ws) name))
                    (cons dep-name deps))
               (slot-ref ws 'dependencies))))
+
+(define-method (add-item! (self <gw-wrapset>) (item <gw-item>))
+  (slot-set! self 'items (cons item (slot-ref self 'items))))
+
+(define-method (add-client-item! (self <gw-wrapset>) (item <gw-item>))
+  (slot-set! self 'client-items (cons item (slot-ref self 'client-items))))
 
 (define-method (add-type! (ws <gw-wrapset>) (type <gw-type>))
   (slot-set! ws 'types (cons type (slot-ref ws 'types)))
@@ -518,46 +518,22 @@
         (loop (+ i 1) (cdr specs)
               (cons (argument i (car specs)) args)))))
 
-(define-method (add-cs-before-includes! (ws <gw-wrapset>) (cg <procedure>))
-  (slot-set! ws 'cs-before-includes
-             (cons cg (slot-ref ws 'cs-before-includes))))
+;; High-level interface -- should move low-level stuff to core module
+;; and only offer this as API
+(define-method (wrap-type! (wrapset <gw-wrapset>) (class-name <symbol>) . args)
+  (let ((class (hashq-ref (class-slot-ref
+                           (class-of wrapset) 'type-classes) class-name)))
+    (if (not class)
+        (error "unknown type class ~S" class-name)) ;; FIXME: better handling
+    (add-type! wrapset (apply make class args))))
 
-(define-method (add-cs-declarator! (ws <gw-wrapset>) (cg <procedure>))
-  (slot-set! ws 'cs-declarators (cons cg (slot-ref ws 'cs-declarators))))
-
-(define-method (add-cs-initializer! (ws <gw-wrapset>) (cg <procedure>))
-  (slot-set! ws 'cs-initializers (cons cg (slot-ref ws 'cs-initializers))))
-
-(define-method (add-cs-definer! (ws <gw-wrapset>) (cg <procedure>))
-  (slot-set! ws 'cs-definers (cons cg (slot-ref ws 'cs-definers))))
-
-(define-method (add-cs-init-finalizer! (ws <gw-wrapset>) (cg <procedure>))
-  (slot-set! ws 'cs-init-finalizers
-             (cons cg (slot-ref ws 'cs-init-finalizers))))
-
-(define-method (add-cs-global-declarator! (ws <gw-wrapset>) (cg <procedure>))
-  (slot-set! ws 'cs-global-declarators
-             (cons cg (slot-ref ws 'cs-global-declarators))))
-
-(define-method (add-client-cs-global-declarator! (ws <gw-wrapset>)
-                                                 (cg <procedure>))
-  (slot-set! ws 'cs-client-global-declarators
-             (cons cg (slot-ref ws 'cs-client-global-declarators))))
-
-(define-method (add-client-cs-before-includes! (ws <gw-wrapset>)
-                                               (cg <procedure>))
-  (slot-set! ws 'cs-client-before-includes
-             (cons cg (slot-ref ws 'cs-client-before-includes))))
-
-;; High-level interface -- should move low-level stuff to core and
-;; only offer this as API
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)
   ;;(format #t "wrapping ~S\n" args)
   (let-keywords
    args #f (name returns c-name arguments description generic-name)
    (guard
     (c
-     (#t (handle-condition
+     (#t (raise
           (condition
            (&gw-stacked
             (next c)
@@ -587,18 +563,16 @@
 ;;; Wrapset registry
 ;;;
 
-(define-generic initialize-wrapset)
-
 (define *wrapset-registry* (make-hash-table 7))
 
-(define-method (register-wrapset-class (lang <gw-language>) (name <symbol>)
+(define-method (register-wrapset-class (lang <symbol>) (name <symbol>)
                                        (class <class>))
   (let ((key (cons lang name)))
     (if (hash-ref *wrapset-registry* key)
         (error "tried to re-register wrapset class" lang name class *wrapset-registry*))
     (hash-set! *wrapset-registry* key (cons class #f))))
 
-(define-method (get-wrapset (lang <gw-language>) (name <symbol>))
+(define-method (get-wrapset (lang <symbol>) (name <symbol>))
   (let ((handle (hash-get-handle *wrapset-registry* (cons lang name))))
     (if (not handle)
         (error "no wrapset registered for" lang name))
@@ -614,7 +588,7 @@
 ;;;
 ;;; Generation
 ;;;
-(define (output-initializer-cgs wrapset lang cgs port)
+(define (output-initializer-cgs wrapset cgs port)
   (let* ((error-var (gen-c-tmp "error_var"))
          (wrapset-name (name wrapset))
          (wrapset-name-c-sym (any-str->c-sym-str
@@ -623,7 +597,7 @@
                                            wrapset-name-c-sym)))
 
     (define (output-initializer-cg cg)
-      (let ((code (cg lang error-var)))
+      (let ((code (cg error-var)))
         (if (not (null? code))
             (begin
               (render (expand-special-forms code #f '(type range memory misc))
@@ -650,10 +624,11 @@
 
     (display "}\n" port)))
 
-(define-method (generate-wrapset (lang <gw-language>)
+(define-method (generate-wrapset (lang <symbol>)
                                  (name <symbol>)
                                  (basename <string>))
-  (generate-wrapset lang (get-wrapset lang name) basename))
+  (guard/handle
+   (generate-wrapset lang (get-wrapset lang name) basename)))
 
 (define (compute-client-types ws)
   (let ((client-type-hash (make-hash-table 13))
@@ -670,13 +645,19 @@
      (slot-ref ws 'functions))
     (hash-fold (lambda (key val rest) (cons val rest)) '() client-type-hash)))
 
-(define (generate-wrapset-cs lang wrapset port)
+(define (generate-wrapset-cs wrapset port)
   (define (dsp-list lst)
     (for-each (lambda (s) (display s port)) lst))
+
+  (define (render-cg-for-items cg items)
+    (for-each (lambda (item)
+                (render (cg wrapset item) port))
+              items))
   
   (let ((wrapset-name-c-sym (any-str->c-sym-str
                              (symbol->string (name wrapset))))
-        (client-types (compute-client-types wrapset)))
+        (client-types (compute-client-types wrapset))
+        (items (reverse (slot-ref wrapset 'items))))
 
     ;;(format #t "client types: ~S\n" client-types)
     (dsp-list
@@ -684,57 +665,47 @@
       "/* Generated by G-Wrap-TNG: an experimental wrapper engine */\n"
       "\n"))
     
-    (for-each (lambda (cg)
-                (render (cg lang) port))
-              (reverse (slot-ref wrapset 'cs-before-includes)))
-    
-    (for-each
-     (lambda (ws)
-       (for-each (lambda (cg)
-                   (render (cg lang) port))
-                 (reverse (slot-ref ws 'cs-client-before-includes))))
-     (wrapsets-depended-on wrapset))
-    
-    (for-each
-     (lambda (ws)
-       (for-each (lambda (cg)
-                   (render (cg lang) port))
-                 (reverse (slot-ref ws 'cs-client-global-declarators))))
-     (wrapsets-depended-on wrapset))
-    
-    (for-each (lambda (cg)
-                (render (cg lang) port))
-              (reverse (slot-ref wrapset 'cs-global-declarators)))
-    
-    (dsp-list
-     (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
-    
-    (for-each (lambda (cg)
-                (render (cg lang) port))
-              (reverse (slot-ref wrapset 'cs-definers)))
+    (render-cg-for-items before-includes-cg items)
 
-    ;; Global client declarations and definitions
-    (for-each
-     (lambda (type)
-       (render (client-global-declarations-cg lang wrapset type) port))
-     client-types)
-    
-    (for-each
-     (lambda (type)
-       (render (client-global-definitions-cg lang wrapset type) port))
-     client-types)
-
-    ;; Global declarations and definitions
-    (let ((items (reverse (slot-ref wrapset 'items))))
-      (for-each
-       (lambda (item)
-         (render (global-declarations-cg lang wrapset item) port))
-       items)
+    (let ((client-items
+           (apply append (map (lambda (ws)
+                                (reverse (slot-ref ws 'client-items)))
+                              (wrapsets-depended-on wrapset)))))
       
+      (render-cg-for-items before-includes-cg client-items)
+      (render-cg-for-items global-declarations-cg client-items))
+    
+    ;; per-wrapset global declarations
+    (render (global-declarations-cg wrapset) port)
+      
+    ;; Global client type declarations
+    (for-each
+     (lambda (type)
+       (render (client-global-declarations-cg wrapset type) port))
+     client-types)
+
+    
+    (let ((items (reverse (slot-ref wrapset 'items))))
+      ;; Global declarations
       (for-each
        (lambda (item)
-         (render (global-definitions-cg lang wrapset item) port))
-       items))
+         (render (global-declarations-cg wrapset item) port))
+       items)
+
+      (dsp-list
+       (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
+    
+      ;; Global client type definitions
+      (for-each
+       (lambda (type)
+         (render (client-global-definitions-cg wrapset type) port))
+       client-types)
+
+    ;; per-wrapset global definitions
+    (render (global-definitions-cg wrapset) port)
+    
+    ;; Global definitions
+    (render-cg-for-items global-definitions-cg items)
 
     ;; The initialization function
     (dsp-list
@@ -744,9 +715,9 @@
       "  static int gw_wrapset_initialized = 0;\n"
       "\n"))
 
-    (for-each (lambda (cg)
-                (render (cg lang) port))
-              (reverse (slot-ref wrapset 'cs-declarators)))
+    (render (declarations-cg wrapset) port)
+    
+    (render-cg-for-items declarations-cg items)
 
     (dsp-list
      (list
@@ -755,31 +726,38 @@
       "\n"))
     
     (output-initializer-cgs
-     wrapset lang
-     (append
-      (reverse (slot-ref wrapset 'cs-initializers))
+     wrapset
+     (append!
+      (list (lambda (error-var)
+              (initializations-cg wrapset error-var)))
       (map (lambda (item)
-             (lambda (lang error-var)
-               (client-initializations-cg lang wrapset item error-var)))
+             (lambda (error-var)
+               (client-initializations-cg wrapset item error-var)))
            client-types)
       (map (lambda (item)
-             (lambda (lang error-var)
-               (initializations-cg lang wrapset item error-var)))
+             (lambda (error-var)
+               (initializations-cg wrapset item error-var)))
            (receive (types others)
                (partition! (lambda (item)
                              (is-a? item <gw-type>))
-                           (reverse (slot-ref wrapset 'items)))
+                           items)
              (append! types others)))
-      (slot-ref wrapset 'cs-init-finalizers))
+      (list (lambda (error-var)
+              (init-finalizations-cg wrapset error-var)))
+      (map (lambda (item)
+             (lambda (error-var)
+               (init-finalizations-cg wrapset item error-var)))
+           items))
      port)
+
     
     (dsp-list
      (list
       "    gw_wrapset_initialized = 1;\n"
-      "}\n"))))
+      "}\n")))))
 
 
-(define-method (generate-wrapset (lang <gw-language>)
+(define-method (generate-wrapset (lang <symbol>)
                                  (wrapset <gw-wrapset>)
                                  (basename <string>))
   (let ((wrapset-source-name (string-append basename ".c"))
@@ -788,39 +766,57 @@
     (call-with-output-file/cleanup
      wrapset-source-name
      (lambda (port)
-       (generate-wrapset-cs lang wrapset port)))))
+       (generate-wrapset-cs wrapset port)))))
 
-(define-method (global-declarations-cg (lang <gw-language>)
-                                       (wrapset <gw-wrapset>)
+(define-method (before-includes-cg (wrapset <gw-wrapset>)
+                                   (item <gw-item>))
+  '())
+
+(define-method (global-declarations-cg (wrapset <gw-wrapset>))
+  '())
+
+(define-method (global-declarations-cg (wrapset <gw-wrapset>)
                                        (item <gw-item>))
   '())
 
-(define-method (client-global-declarations-cg (lang <gw-language>)
-                                              (wrapset <gw-wrapset>)
+(define-method (client-global-declarations-cg (wrapset <gw-wrapset>)
                                               (item <gw-item>))
   '())
 
-(define-method (global-definitions-cg (lang <gw-language>)
-                                      (wrapset <gw-wrapset>)
+(define-method (global-definitions-cg (wrapset <gw-wrapset>))
+  '())
+
+(define-method (global-definitions-cg (wrapset <gw-wrapset>)
                                       (item <gw-item>))
   '())
 
-(define-method (client-global-definitions-cg (lang <gw-language>)
-                                              (wrapset <gw-wrapset>)
-                                              (item <gw-item>))
+(define-method (client-global-definitions-cg (wrapset <gw-wrapset>)
+                                             (item <gw-item>))
   '())
 
-(define-method (initializations-cg (lang <gw-language>)
-                                   (wrapset <gw-wrapset>)
+(define-method (declarations-cg (wrapset <gw-wrapset>))
+  '())
+
+(define-method (declarations-cg (wrapset <gw-wrapset>) (item <gw-item>))
+  '())
+
+(define-method (initializations-cg (wrapset <gw-wrapset>) error-var)
+  '())
+
+(define-method (initializations-cg (wrapset <gw-wrapset>)
                                    (item <gw-item>)
                                    error-var)
   '())
-
-
-(define-method (client-initializations-cg (lang <gw-language>)
-                                          (wrapset <gw-wrapset>)
+(define-method (client-initializations-cg (wrapset <gw-wrapset>)
                                           (item <gw-item>)
                                           error-var)
+  '())
+
+(define-method (init-finalizations-cg (wrapset <gw-wrapset>) err)
+  '())
+
+(define-method (init-finalizations-cg (wrapset <gw-wrapset>)
+                                      (item <gw-item>) err)
   '())
 
 

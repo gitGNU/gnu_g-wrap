@@ -6,16 +6,16 @@
 
 (define-class <test-standard-wrapset> (<gw-wrapset>))
 
+(define-method (global-declarations-cg (ws <test-standard-wrapset>))
+  (list
+   (next-method)
+   "#include \"test/g-wrap-test-c-code.h\"\n"))
+
 (define-method (initialize (ws <test-standard-wrapset>) initargs)
   (next-method)
   
   (depends-on! ws 'standard)
   
-  (add-cs-global-declarator!
-   ws
-   (lambda (wrapset)
-     (list "#include \"test/g-wrap-test-c-code.h\"\n")))
-
   (wrap-constant! ws
                   #:name 'gw-test-gw-standard-foo-value
                   #:type 'int

@@ -9,13 +9,14 @@
                                              <gw-guile-wrapset>)
   #:id 'test-standard)
 
+(define-method (global-declarations-cg (ws <guile-test-standard-wrapset>))
+  (list
+   (next-method)
+   "#include \"guile-test-c-code.h\"\n"))
+
 (define-method (initialize (ws <guile-test-standard-wrapset>) initargs)
   (next-method ws (append '(#:module (gw-test-standard)) initargs))
   
-  (add-cs-global-declarator! ws
-                             (lambda (wrapset)
-                               (list "#include \"guile-test-c-code.h\"\n")))
-
   (wrap-function! ws
                   #:name 'gw-test-gw-standard-echo-scm
                   #:returns 'scm

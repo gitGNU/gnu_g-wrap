@@ -8,18 +8,15 @@
 
 (define-class <test-enumeration-wrapset> (<gw-wrapset>))
 
-(define-method (initialize (ws <test-enumeration-wrapset>) initargs)
-  (next-method)
+(define-method (global-declarations-cg (ws <test-enumeration-wrapset>))
+  (list
+   (next-method)
+   "#include \"test/g-wrap-test-c-code.h\"\n"))
 
-  (set! (module ws) '(gw-test-enumeration))
+(define-method (initialize (ws <test-enumeration-wrapset>) initargs)
+  (next-method ws (append '(#:module (gw-test-enumeration)) initargs))
 
   (depends-on! ws 'standard)
-
-  (add-cs-global-declarator!
-   ws
-   (lambda (wrapset)
-     (list "#include \"test/g-wrap-test-c-code.h\"\n")))
-
 
   (wrap-enum! ws
               #:name '<gw-test-enum>

@@ -1,4 +1,3 @@
-
 gwrapmoduledir = @GUILEMODDIR@/g-wrap/gw
 
 gwrapmodule_DATA = standard.scm
@@ -22,7 +21,7 @@ ${LIBGW_STANDARD_GWGEN}: $(top_srcdir)/g-wrap/guile/ws/standard.scm
           ${SETGWPPATH}"(use-modules (g-wrap)) \
 	                (use-modules (g-wrap guile)) \
                         (use-modules (g-wrap guile ws standard)) \
-                        (generate-wrapset guile 'standard \"standard\")"
+                        (generate-wrapset 'guile 'standard \"standard\")"
 
 CLEANFILES = ${LIBGW_STANDARD_GWGEN}
 

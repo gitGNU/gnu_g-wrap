@@ -7,16 +7,16 @@
 
 (define-class <test-child-wrapset> (<gw-wrapset>))
   
+(define-method (global-declarations-cg (ws <test-child-wrapset>))
+  (list
+   (next-method)
+   "#include \"test/g-wrap-test-c-code.h\"\n"))
+
 (define-method (initialize (ws <test-child-wrapset>) initargs)
   (next-method)
   
   (depends-on! ws 'test-parent)
   
-  (add-cs-global-declarator!
-   ws
-   (lambda (wrapset)
-     (list "#include \"test/g-wrap-test-c-code.h\"\n")))
-
   (wrap-as-wct! ws
                 #:name '<gw:TestChildObj*>
                 #:c-type-name "gwTestChildObj*"

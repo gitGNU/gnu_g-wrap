@@ -75,14 +75,13 @@
 (define-generic unwrap-value-function-cg)
 (define-generic destruct-value-function-cg)
 
-(define-method (global-definitions-cg (lang <gw-language>)
-                                      (wrapset <gw-rti-wrapset>)
+(define-method (global-definitions-cg (wrapset <gw-rti-wrapset>)
                                       (type <gw-rti-type>))
   (list
    (next-method)
-   (wrap-value-function-cg lang type)
-   (unwrap-value-function-cg lang type)
-   (destruct-value-function-cg lang type)))
+   (wrap-value-function-cg type)
+   (unwrap-value-function-cg type)
+   (destruct-value-function-cg type)))
 
 (define-method (make-typespec (type <gw-rti-type>) (options <list>))
   (let ((remainder options))
@@ -116,8 +115,7 @@
                      type options))))
 
 
-(define-method (initializations-cg (lang <gw-language>)
-                                   (wrapset <gw-rti-wrapset>)
+(define-method (initializations-cg (wrapset <gw-rti-wrapset>)
                                    (type <gw-rti-type>)
                                    status-var)
   (let ((class-name (class-name type))
@@ -181,16 +179,14 @@
        (every (lambda (arg) (not (default-value arg)))
               (arguments function))))
 
-(define-method (global-declarations-cg (lang <gw-language>)
-                                       (wrapset <gw-rti-wrapset>)
+(define-method (global-declarations-cg (wrapset <gw-rti-wrapset>)
                                        (function <gw-function>))
   (list
    (if (use-rti-for-function? wrapset function)
        '()
        (next-method))))
 
-(define-method (initializations-cg (lang <gw-language>)
-                                   (wrapset <gw-rti-wrapset>)
+(define-method (initializations-cg (wrapset <gw-rti-wrapset>)
                                    (function <gw-function>)
                                    error-var)
   (list
@@ -198,34 +194,26 @@
        (add-function-rti-cg wrapset function)
        (next-method))))
 
-(define-method (initialize (wrapset <gw-rti-wrapset>) initargs)
-  (next-method)
+(define-method (global-declarations-cg (wrapset <gw-rti-wrapset>))
+  (list (next-method)
+        "#include <g-wrap/core-runtime.h>\n"))
+
+(define-method (declarations-cg (wrapset <gw-rti-wrapset>))
+  (list (next-method)
+        "  GWWrapSet *" (c-info-sym wrapset) " = NULL;\n"))
+
+(define-method (initializations-cg (wrapset <gw-rti-wrapset>) err)
+  (list
+   (next-method)
+   (c-info-sym wrapset) " = gw_wrapset_new(gw__arena, \"" (name wrapset) "\", "
+   (map (lambda (dep)
+          (list "\"" (name dep) "\", "))
+        (wrapsets-depended-on wrapset))
+   "NULL);\n"))
     
-  (let ((ws-info (c-info-sym wrapset)))
-    
-    (define (cs-global-declarator lang)
-      (list "#include <g-wrap/core-runtime.h>\n"))
-  
-    (define (cs-initializer lang error-var)
-      (list
-       ws-info " = gw_wrapset_new(gw__arena, \"" (name wrapset) "\", "
-       (map (lambda (dep)
-              (list "\"" (name dep) "\", "))
-            (wrapsets-depended-on wrapset))
-       "NULL);\n"))
-    
-    (add-cs-global-declarator! wrapset cs-global-declarator)
-    
-    (add-cs-declarator!
-     wrapset
-     (lambda (lang)
-       (list "  GWWrapSet *" (c-info-sym wrapset) " = NULL;\n")))
-  
-    (add-cs-initializer! wrapset cs-initializer)
-    (add-cs-init-finalizer! wrapset
-                            (lambda (lang error-var)
-                              (list "gw_wrapset_register (" ws-info ");\n")))))
-  
+(define-method (init-finalizations-cg (wrapset <gw-rti-wrapset>) err)
+  (list (next-method)
+        "gw_wrapset_register (" (c-info-sym wrapset) ");\n"))
 
 (define-method (typespec-cg (type <gw-type>) (typespec <gw-typespec>))
   '("0"))
