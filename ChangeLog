@@ -1,3 +1,10 @@
+2004-02-11  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap.scm (gw:generate-error-handler): Removed, since it is
+	unused.
+	Removed commented out code at the end of the file.
+	Fixed a comment about gw:typespec-options-parser.
+
 2004-02-01  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* g-wrap/g-wrap-runtime.c: Removed benchmark code.

@@ -488,76 +488,6 @@
     
     (display "}\n" port)))
 
-;; not used anymore - moved to runtime lib
-(define (gw:generate-error-handler wrapset port)
-  (display "\
-static void
-gw__handle_wrapper_error(enum GW__ErrorStatus status,
-                         const char *func_name,
-                         unsigned int arg_pos,
-                         const char *misc_msg,
-                         SCM scm_data) __attribute__ ((noreturn));
-
-static void
-gw__handle_wrapper_error(enum GW__ErrorStatus status,
-                         const char *func_name,
-                         unsigned int arg_pos,
-                         const char *misc_msg,
-                         SCM scm_data)
-{
-  static SCM out_of_range_key = SCM_BOOL_F;
-  static SCM wrong_type_key = SCM_BOOL_F;
-
-  if(SCM_FALSEP(out_of_range_key))
-    out_of_range_key = scm_permanent_object(scm_c_make_keyword(\"out-of-range\"));
-  if(SCM_FALSEP(wrong_type_key))
-    wrong_type_key = scm_permanent_object(scm_c_make_keyword(\"wrong-type\"));
-
-  switch(status) {
-  case GW_ERR_NONE:
-    scm_misc_error(func_name,
-                   \"asked to handle error when there wasn't one\",
-                   SCM_EOL);
-    break;
-  case GW_ERR_MISC:
-    /* scm_data is a list of format args for misc_msg */
-    scm_misc_error(func_name, misc_msg, scm_data); break;
-  case GW_ERR_MEMORY:
-    scm_memory_error(func_name); break;
-  case GW_ERR_RANGE:
-    scm_error (out_of_range_key,
-	       func_name,
-	       \"Out of range: ~S\",
-               scm_cons (scm_data, SCM_EOL),
-	       SCM_BOOL_F);
-    break;
-  case GW_ERR_TYPE:
-    scm_error(wrong_type_key,
-              func_name,
-              \"Wrong type: \",
-              scm_cons (scm_data, SCM_EOL),
-              SCM_BOOL_F);
-    break;
-  case GW_ERR_ARGC:
-    scm_wrong_num_args(scm_makfrom0str(func_name)); break;
-  case GW_ERR_ARG_RANGE:
-    /* scm_data is the bad arg */
-    scm_out_of_range(func_name, scm_data); break;
-  case GW_ERR_ARG_TYPE:
-    /* scm_data is the bad arg */
-    scm_wrong_type_arg(func_name, arg_pos, scm_data); break;
-  default:
-    scm_misc_error(func_name,
-                   \"asked to handle nonexistent gw:error type: ~S\",
-                   scm_cons(scm_long2num(status), SCM_EOL));    
-    break;
-  };
-  exit(1);
-}
-"
-port))
-  
-
 (define-public (gw:new-wrapset wrapset-name)
 
   (let ((wrapset (gw:make-wrapset wrapset-name))
@@ -763,7 +693,7 @@ port))
 ;;;    throws 'gw:bad-typespec, etc.  options-form will always be a
 ;;;    list, even if original typespec-form was just the type symbol.
 ;;;    If there are any sub-types in typespec, then this type must
-;;;    access them by calling (gw:wrapset-lookup-type-and-mark-foreign
+;;;    access them by calling (gw:wrapset-lookup-type-and-mark-usage
 ;;;    wrapset type-sym)
 ;;;
 ;;; gw:scm->c-ccg (c-var scm-var typespec status-var)
@@ -1275,9 +1205,6 @@ port))
                                   gw:wrapset-get-cs-wrapper-declarations-funcs
                                   port)
   
-
-        ;; not needed - is runtime lib now
-        ;; (gw:generate-error-handler wrapset port)
 
         (run-wrapset-output-funcs wrapset
                                   gw:wrapset-get-cs-definitions-funcs
@@ -1876,39 +1803,4 @@ port))
             "if(!" `(gw:error? ,error-var) ")"
             "  scm_c_define(\"" (symbol->string scheme-sym) "\"," scm-var ");\n"
             "}\n")))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Junk.
-
-;;         (orig-doc new-description) ;; new-description is last arg
-;;                                    ;; to wrap-function call...
-;; If we decide we want to generate headers again...
-;     (let ((gen-header-file (gw:wrapset-get-generated-header-file wrapset)))
-;       (if gen-header-file
-;           (let ((subs
-;                  `((doc    ,(gen-c-comment orig-doc))
-;                    (ret    ,(gw:result-get-proper-c-type-name result))
-;                    (fnname ,c-name)
-;                    (args   ,(separate-by 
-;                              (map 
-;                               (lambda (param)
-;                                 (list (gw:param-get-proper-c-type-name param)
-;                                       " " (gw:param-get-name param)))
-;                               params)
-;                              ", ")))))
-;             (gw:trans-write gen-header-file 'declarations subs
-;                             "%doc%%ret% %fnname% (%args%);\n\n"))))
-
-; (define-public (new-constant sym-name type varb . options)
-;   (set! sym-name (prefix-name sym-name))
-;   (let ((description (fn-option options 'doc (lambda () '()))))
-;     (gwrap-c-doc-constant sym-name type description))
-;   (if constant-index-generator
-;       ((constant-index-generator 'add) sym-name))
-;   (gwrap-c-output-c
-;    'type-inits
-;    "  scm_sysintern (\"" sym-name "\", "
-;    (make-conversion-to-scm (get-type type) varb)
-;    ");\n"))
-
 
