@@ -17,6 +17,13 @@ gw_test_strtol(const char *str, int base)
   return strtol (str, NULL, base);
 }
 
+long gw_test_out_args(int arg1, int *arg2, char **arg3)
+{
+  *arg2 = 666;
+  *arg3 = "foobar";
+  return arg1;
+}
+
 /*======================================================================*/
 /* For test-gw-enumeration */
 

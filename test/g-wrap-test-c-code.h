@@ -9,6 +9,7 @@
 /* General */
 
 long gw_test_strtol(const char *str, int base);
+long gw_test_out_args(int arg1, int *arg2, char **arg3);
 
 /* For test-enumeration */
 

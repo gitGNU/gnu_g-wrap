@@ -72,8 +72,9 @@
                                   (value <gw-value>)
                                   error-var)
   (let ((c-var (var value)))
-    (if-typespec-option value 'caller-owned
-                        (list "if (" c-var ") free (" c-var ");\n"))))
+    (if-typespec-option
+     value 'caller-owned
+     (list "if (" c-var ") free ((char *)" c-var ");\n"))))
 
 
 (define-method (global-declarations-cg (wrapset <gw-wrapset>)
@@ -104,12 +105,12 @@
   (next-method wct (cons #:ffspec (cons 'pointer initargs))))
 
 (define-method (make-typespec (type <gw-wct>) (options <list>))
+  (next-method type (cons 'caller-owned options)))
+
+(define-method (check-typespec-options (type <gw-wct>) (options <list>))
   (let ((remainder options))
-    (set! remainder (delq 'const remainder))
-    (if (null? remainder)
-        (make <gw-typespec>
-          #:type type
-          #:options (cons 'caller-owned options))
+    (set! remainder (delq 'caller-owned (delq 'const remainder)))
+    (if (not (null? remainder))
         (raise (condition
                 (&gw-bad-typespec
                  (type type) (options options)

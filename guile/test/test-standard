@@ -2,15 +2,22 @@
 exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
 !#
 
-;; TODO: Convert to guileUnit testcases
+;; TODO: Convert to unit-test testcases
 
-(use-modules (gw-test-standard))
+(use-modules (gw-test-standard)
+             (srfi srfi-11))
 
 (display "checking that default arguments work as advertized...")
 (if (and (= (gw-test-strtol "123") 123)
          (= (gw-test-strtol "111" 2) 7))
     (display "yes\n")
     (begin (display "no\n") (exit 1)))
+
+(display "checking that output arguments work as advertized...")
+(let-values (((a b c) (gw-test-out-args 123)))
+  (if (and (= a 123) (= b 666) (string=? c "foobar"))
+      (display "yes\n")
+      (begin (display "no\n") (exit 1))))
 
 (display "checking that <gw:void> works as advertized...")
 (if (unspecified? (gw-test-gw-standard-no-op))

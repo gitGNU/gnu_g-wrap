@@ -175,4 +175,12 @@
    #:returns 'long
    #:c-name "gw_test_strtol"
    #:arguments '(((mchars const caller-owned) str) (int base (default "0"))))
+
+  ;; out arguments
+  (wrap-function!
+   ws
+   #:name 'gw-test-out-args
+   #:returns 'long
+   #:c-name "gw_test_out_args"
+   #:arguments '((int arg1) ((int out) arg2) ((mchars out callee-owned) arg3)))
   )

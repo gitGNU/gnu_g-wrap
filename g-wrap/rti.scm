@@ -1,13 +1,16 @@
 (define-module (g-wrap rti)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-34)
+  #:use-module (srfi srfi-35)
   #:use-module (oop goops)
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
   
   #:export
   (<gw-rti-wrapset>
-   function-rti? c-info-sym typespec-cg
-
+   c-info-sym typespec-cg
+   function-rti? use-rti-for-function?
+   
    <gw-rti-value>
    
    <gw-rti-type>
@@ -22,7 +25,7 @@
   (c-info-sym #:getter c-info-sym #:init-form (gen-c-tmp "c_info"))
   (function-rti? #:getter function-rti?
                  #:init-keyword #:function-rti?
-                 #:init-value #t))
+                 #:init-value #f))
 
 (define-class <gw-rti-value> (<gw-value>))
 
@@ -83,37 +86,49 @@
    (unwrap-value-function-cg type)
    (destruct-value-function-cg type)))
 
-(define-method (make-typespec (type <gw-rti-type>) (options <list>))
+(define-method (check-typespec-options (type <gw-rti-type>) (options <list>))
   (let ((remainder options))
     (set! remainder (delq 'const remainder))
+    (set! remainder (delq 'out remainder))
     (if (and (memq 'caller-owned remainder)
              (memq 'callee-owned remainder))
-        (throw 'gw:bad-typespec
-               (format #f "Bad rti options for ~S (caller and callee owned!)." type)
-               options))
+        (raise (condition
+                (&gw-bad-typespec
+                 (type type) (options options)
+                 (message "bothe caller and callee owned")))))
     (if (not (or (memq 'caller-owned remainder)
                  (memq 'callee-owned remainder)))
-        (throw 'gw:bad-typespec
-               (format #f "Bad options for ~S (must be caller or callee owned!)." type)
-               options))
+        (raise (condition
+                (&gw-bad-typespec
+                 (type type) (options options)
+                 (message "must be caller or callee owned" type)))))
     (set! remainder (delq 'caller-owned remainder))
     (set! remainder (delq 'callee-owned remainder))
     (for-each (lambda (opt) (set! remainder (delq! opt remainder)))
               (slot-ref type 'allowed-options))
     (if (null? remainder)
         (make <gw-typespec> #:type type #:options options)
-        (throw 'gw:bad-typespec
-               (format #f "Bad options for ~S - spurious options ~S." type remainder)))))
+        (raise (condition
+                (&gw-bad-typespec
+                 (type type) (options options)
+                 (message (format #f "spurious options ~S" remainder))))))))
 
 (define-class <gw-simple-rti-type> (<gw-rti-type>))
 
 (define-method (make-typespec (type <gw-simple-rti-type>) (options <list>))
-  (if (null? options)
-      (make <gw-typespec> #:type type #:options '(caller-owned))
-      (throw 'gw:bad-typespec
-             (format #f "Bad options for ~S - spurious options ~S."
-                     type options))))
+  (let ((typespec (next-method)))
+    (add-option! typespec 'caller-owned)
+    typespec))
 
+(define-method (check-typespec-options (type <gw-simple-rti-type>)
+                                       (options <list>))
+  (let ((remainder options))
+    (set! remainder (delq 'out remainder))
+    (if (not (null? remainder))
+        (raise (condition
+                (&gw-bad-typespec
+                 (type type) (options options)
+                 (message (format #f "spurious options ~S" options))))))))
 
 (define-method (initializations-cg (wrapset <gw-rti-wrapset>)
                                    (type <gw-rti-type>)
@@ -171,20 +186,14 @@
        "}\n")))
 
 ;; Returns #t if we can support RTI for the function and it is enabled
-(define (use-rti-for-function? wrapset function)
+(define-method (use-rti-for-function? (wrapset <gw-rti-wrapset>)
+                                      (function <gw-function>))
   (and (slot-ref wrapset 'function-rti?)
        (every (lambda (type) (is-a? type <gw-rti-type>))
               (cons (return-type function)
                     (argument-types function)))
        (every (lambda (arg) (not (default-value arg)))
               (arguments function))))
-
-(define-method (global-declarations-cg (wrapset <gw-rti-wrapset>)
-                                       (function <gw-function>))
-  (list
-   (if (use-rti-for-function? wrapset function)
-       '()
-       (next-method))))
 
 (define-method (initializations-cg (wrapset <gw-rti-wrapset>)
                                    (function <gw-function>)

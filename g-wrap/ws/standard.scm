@@ -117,6 +117,5 @@
   (wrap-type! wrapset 'mchars
               #:name 'mchars
               #:c-type-name "char *"
-              ;; We don't use const, since free() will be called
-              #:c-const-type-name "char *" 
+              #:c-const-type-name "const char *" 
               #:ffspec 'pointer))

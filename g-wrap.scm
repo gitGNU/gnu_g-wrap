@@ -2,9 +2,9 @@
 
 (define-module (g-wrap)
   #:use-module (ice-9 optargs)
-  #:use-module (ice-9 receive)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
   #:use-module (g-wrap util)
@@ -20,7 +20,8 @@
 
    <gw-function>
    c-name
-   argument-count optional-argument-count arguments argument-types
+   argument-count input-argument-count optional-argument-count
+   arguments argument-types
    return-type return-typespec
    generic-name 
    
@@ -36,10 +37,11 @@
    client-global-declarations-cg client-global-definitions-cg
    client-initializations-cg
    
-   gen-c-tmp-name make-typespec
+   gen-c-tmp-name
    
    <gw-typespec>
-   type options c-type-name all-types
+   type options c-type-name all-types add-option!
+   make-typespec check-typespec-options parse-typespec-option!
    
    <gw-value>
    var wrapped-var if-typespec-option
@@ -48,7 +50,7 @@
    visible? default-value
 
    <gw-param>
-   number
+   number output-param?
    
    <gw-code>
    render no-op?
@@ -125,6 +127,14 @@
 ;;; Types
 ;;;
 
+(define-class <gw-value> ()
+  (typespec #:getter typespec #:init-keyword #:typespec)
+  (var #:getter var #:init-keyword #:var)
+  (wrapped-var #:getter wrapped-var #:init-keyword #:wrapped-var))
+
+(define-class <gw-param> (<gw-value>)
+  (number #:getter number #:init-keyword #:number))
+
 (define-class <gw-type> (<gw-item>)
   (name #:getter name #:init-keyword #:name)
   (class-name #:accessor class-name
@@ -150,22 +160,9 @@
                              (symbol->string
                               (name type))) "_" suffix)))
 
-(define-method (make-typespec (type <gw-type>) (options <list>))
-  (if (null? options)
-      (make <gw-typespec> #:type type)
-      (raise (condition
-              (&gw-bad-typespec
-               (type type) (options options)
-               (message "typespec may not have options by default"))))))
-
 ;;;
 ;;; Values
 ;;;
-
-(define-class <gw-value> ()
-  (typespec #:getter typespec #:init-keyword #:typespec)
-  (var #:getter var #:init-keyword #:var)
-  (wrapped-var #:getter wrapped-var #:init-keyword #:wrapped-var))
 
 (define-method (type (value <gw-value>))
   (type (typespec value)))
@@ -200,7 +197,9 @@
   '())
 
 (define-method (call-arg-cg (type <gw-type>) (value <gw-value>))
-  (list (var value)))
+  (if (memq 'out (options (typespec value)))
+      (list "&" (var value))
+      (list (var value))))
 
 (define-method (call-cg (type <gw-type>) (result <gw-value>)
                         func-call-code error-var)
@@ -214,19 +213,23 @@
    (destruct-value-cg type result status-var)))
 
 
-(define-method (post-call-arg-cg (type <gw-type>) (value <gw-value>) err)
-  (destruct-value-cg type value err))
+(define-method (post-call-arg-cg (type <gw-type>) (param <gw-param>) err)
+  (list
+   (if (memq 'out (options (typespec param)))
+       (wrap-value-cg type param err)
+       '())
+  (destruct-value-cg type param err)))
 
 (define-method (set-value-cg (type <gw-type>) (lvalue <gw-value>) rvalue)
   (list (var lvalue) " = " rvalue ";\n"))
 
 ;;;
 
-(define-class <gw-param> (<gw-value>)
-  (number #:getter number #:init-keyword #:number))
-
 (define-method (visible? (self <gw-param>))
   (>= (number self) 0))
+
+(define-method (output-param? (self <gw-param>))
+  (memq 'out (options (typespec self))))
 
 (define-class <gw-typespec> ()
   (type #:init-keyword #:type #:getter type)
@@ -245,6 +248,36 @@
 (define-method (all-types (typespec <gw-typespec>))
   (list (type typespec)))
 
+(define-method (add-option! (self <gw-typespec>) (option <symbol>))
+  (slot-set! self 'options (cons option (slot-ref self 'options))))
+
+(define-method (make-typespec (type <gw-type>) (options <list>))
+  (check-typespec-options type options)
+  (let ((typespec (make <gw-typespec> #:type type)))
+    (for-each (lambda (opt) (parse-typespec-option! typespec type opt))
+              options)
+    typespec))
+
+(define-method (check-typespec-options (type <gw-type>) (options <list>))
+  (if (not (null? options))
+      (raise (condition
+              (&gw-bad-typespec
+               (type type) (options options)
+               (message "typespec may not have options by default"))))))
+
+(define-method (parse-typespec-option! (typespec <gw-typespec>)
+                                       (type <gw-type>)
+                                       (option <symbol>))
+  (add-option! typespec option))
+
+(define-method (parse-typespec-option! (typespec <gw-typespec>)
+                                       (type <gw-type>)
+                                       option)
+  (raise (condition
+          (&gw-bad-typespec
+           (type type) (options options)
+           (message "typespec options must be symbols")))))
+
 (define-generic c-type-name)
 
 
@@ -261,11 +294,22 @@
                 #:init-keyword #:generic-name
                 #:init-value #f))
 
+(define-method (write (self <gw-function>) port)
+  (display "#<gw-function " port)
+  (display (name self) port)
+  (display #\> port))
+    
 (define-method (return-type (function <gw-function>))
   (type (return-typespec function)))
 
 (define-method (argument-count (func <gw-function>))
   (length (slot-ref func 'arguments)))
+
+(define-method (input-argument-count (func <gw-function>))
+  (count (lambda (arg)
+           (and (visible? arg)
+                (not (memq 'out (options (typespec arg))))))
+         (slot-ref func 'arguments)))
 
 ;; Returns the number of optional argument (number of consecutive
 ;; arguments with default values at the end of the argument list).  We
@@ -627,8 +671,14 @@
 (define-method (generate-wrapset (lang <symbol>)
                                  (name <symbol>)
                                  (basename <string>))
-  (guard/handle
-   (generate-wrapset lang (get-wrapset lang name) basename)))
+  (let ((had-error? #f))
+    (guard
+     (c
+      (#t (handle-condition c)
+          (set! had-error? #t)))
+     (generate-wrapset lang (get-wrapset lang name) basename))
+    (if had-error?
+        (exit 1))))
 
 (define (compute-client-types ws)
   (let ((client-type-hash (make-hash-table 13))
@@ -649,64 +699,50 @@
   (define (dsp-list lst)
     (for-each (lambda (s) (display s port)) lst))
 
-  (define (render-cg-for-items cg items)
-    (for-each (lambda (item)
-                (render (cg wrapset item) port))
-              items))
+  (define (render-client cg)
+      (for-each (lambda (ws)
+                  (for-each (lambda (item)
+                              (render (cg ws item) port))
+                            (reverse (slot-ref ws 'client-items))))
+              (wrapsets-depended-on wrapset)))
   
   (let ((wrapset-name-c-sym (any-str->c-sym-str
                              (symbol->string (name wrapset))))
         (client-types (compute-client-types wrapset))
         (items (reverse (slot-ref wrapset 'items))))
 
+    (define (render-items cg)
+      (for-each (lambda (item)
+                  (render (cg wrapset item) port))
+                items))
+    
+    (define (render-client-types cg)
+      (for-each (lambda (type)
+                  (render (cg wrapset type) port))
+                client-types))
+    
     ;;(format #t "client types: ~S\n" client-types)
     (dsp-list
      (list
       "/* Generated by G-Wrap-TNG: an experimental wrapper engine */\n"
       "\n"))
     
-    (render-cg-for-items before-includes-cg items)
-
-    (let ((client-items
-           (apply append (map (lambda (ws)
-                                (reverse (slot-ref ws 'client-items)))
-                              (wrapsets-depended-on wrapset)))))
-      
-      (render-cg-for-items before-includes-cg client-items)
-      (render-cg-for-items global-declarations-cg client-items))
+    (render-items before-includes-cg)
+    (render-client before-includes-cg)
     
-    ;; per-wrapset global declarations
     (render (global-declarations-cg wrapset) port)
-      
-    ;; Global client type declarations
-    (for-each
-     (lambda (type)
-       (render (client-global-declarations-cg wrapset type) port))
-     client-types)
+    (render-items global-declarations-cg)
 
+    (render-client global-declarations-cg)
+    (render-client-types client-global-declarations-cg)
+
+    (dsp-list
+     (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
     
-    (let ((items (reverse (slot-ref wrapset 'items))))
-      ;; Global declarations
-      (for-each
-       (lambda (item)
-         (render (global-declarations-cg wrapset item) port))
-       items)
-
-      (dsp-list
-       (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
-    
-      ;; Global client type definitions
-      (for-each
-       (lambda (type)
-         (render (client-global-definitions-cg wrapset type) port))
-       client-types)
-
-    ;; per-wrapset global definitions
     (render (global-definitions-cg wrapset) port)
+    (render-client-types client-global-definitions-cg)
+    (render-items global-definitions-cg)
     
-    ;; Global definitions
-    (render-cg-for-items global-definitions-cg items)
-
     ;; The initialization function
     (dsp-list
      (list
@@ -716,15 +752,15 @@
       "\n"))
 
     (render (declarations-cg wrapset) port)
+    (render-items declarations-cg)
     
-    (render-cg-for-items declarations-cg items)
-
     (dsp-list
      (list
       "  if(gw_wrapset_initialized)\n"
       "   return;\n"
       "\n"))
-    
+
+    ;; TODO: deobfuscate
     (output-initializer-cgs
      wrapset
      (append!
@@ -737,10 +773,9 @@
       (map (lambda (item)
              (lambda (error-var)
                (initializations-cg wrapset item error-var)))
-           (receive (types others)
-               (partition! (lambda (item)
-                             (is-a? item <gw-type>))
-                           items)
+           (let-values (((types others) (partition! (lambda (item)
+                                                      (is-a? item <gw-type>))
+                                                    items)))
              (append! types others)))
       (list (lambda (error-var)
               (init-finalizations-cg wrapset error-var)))
@@ -754,7 +789,7 @@
     (dsp-list
      (list
       "    gw_wrapset_initialized = 1;\n"
-      "}\n")))))
+      "}\n"))))
 
 
 (define-method (generate-wrapset (lang <symbol>)

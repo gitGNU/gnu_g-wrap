@@ -279,7 +279,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      (scm-var  value) " = scm_makfrom0str( " (var value) ");\n"))
 
 ;; FIMXE: check null-ok
-(define-method (unwrap-value-cg (type <gw-ctype-mchars>)
+(define-method (unwrap-value-cg (type <gw-guile-ctype-mchars>)
                                 (value <gw-value>)
                                 error-var)
   (let ((c-var (var value))
@@ -293,13 +293,3 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      "  " c-var " = strdup (SCM_STRING_CHARS (" scm-var "));\n"
      "else\n"
      `(gw:error ,error-var type ,(wrapped-var value)))))
-
-
-(define-method (destruct-value-cg 
-                                  (type <gw-ctype-mchars>)
-                                  (value <gw-value>)
-                                  error-var)
-  (let ((c-var (var value)))
-    (if-typespec-option
-     value 'caller-owned
-     (list "if (" c-var ") free (" c-var ");\n"))))
