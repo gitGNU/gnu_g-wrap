@@ -218,9 +218,8 @@
      (typespec-cg (return-type function) (return-typespec function)) ", "
      arg-types ", " arg-typespecs ", \"" (name function) "\", "
      (if (generic-name function)
-         (list "\"" (symbol->string (generic-name function)) "\", "
-               "\"" (symbol->string (name (type (car (arguments function))))) "\"")
-         "NULL, NULL")
+         (list "\"" (symbol->string (generic-name function)) "\"")
+         "NULL")
      ");\n"
      "}\n")))
 

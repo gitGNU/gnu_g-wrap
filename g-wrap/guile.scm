@@ -426,9 +426,8 @@
      fn-c-wrapper ", " n-req-args ", " n-optional-args ", "
      "NULL, 0, NULL, NULL, " fn-c-string ", "
      (if (generic-name function)
-         (list "\"" (symbol->string (generic-name function)) "\", "
-               "\"" (symbol->string (name (type (car (arguments function))))) "\"")
-         "NULL, NULL")
+         (list "\"" (symbol->string (generic-name function)) "\"")
+         "NULL")
      ");\n")))
 
 
@@ -733,7 +732,10 @@
       (fold-functions
        (lambda (func rest)
          (let ((gf-name (generic-name func)))
-           (if (and gf-name (not (uses-rti-for-function? wrapset func)))
+           (if (and gf-name
+                    (> (argument-count func) 0)
+                    (class-name (first (argument-types func)))
+                    (not (uses-rti-for-function? wrapset func)))
                (let ((handle
                       (hashq-create-handle! gf-hash gf-name '())))
                  (set-cdr! handle (cons func (cdr handle)))))))
@@ -744,8 +746,8 @@
               (lambda (func)
                 (write
                  `(%gw:procedure->method-public
-                   ,(name func) 
-                   ',(class-name type)
+                   ,(name func)
+                   ',(class-name (first (argument-types func)))
                    ',gf
                    ,(- (argument-count func) (optional-argument-count func))
                    ,(not (zero? (optional-argument-count func))))

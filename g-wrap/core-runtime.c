@@ -239,8 +239,7 @@ gw_wrapset_add_function (GWWrapSet *ws,
                          const char **arg_types,
                          GWTypeSpec *arg_typespecs,
                          const char *proc_name,
-                         const char *generic_name,
-                         const char *class_name)
+                         const char *generic_name)
 {
   GWFunctionInfo *fi;
   ffi_type **arg_ffi = NULL;
@@ -262,16 +261,15 @@ gw_wrapset_add_function (GWWrapSet *ws,
   fi->n_optional_args = n_optional_args;
   fi->proc_name = proc_name;
   fi->generic_name = generic_name;
-  fi->class_name = class_name;
-
+  fi->arg_types = NULL;
+  fi->ret_type = NULL;
+  
   /* FIXME: FFI should be able to handle optional args */
   assert (!arg_types || !n_optional_args);
 
   assert ((!arg_types && !ret_type)
           || ((n_req_args == 0 || arg_types) && ret_type));
 
-  assert (!generic_name || class_name);
-  
   if (arg_types || ret_type) /* i.e., if we are using rti */
   {
     if (arg_types != NULL)

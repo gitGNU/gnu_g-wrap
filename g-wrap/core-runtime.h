@@ -139,10 +139,6 @@ struct _GWFunctionInfo
     
     const char *proc_name;
     const char *generic_name;
-    /* if generic-name is non-null, we will specialize a method on generic-name
-     * whereby the first argument is of a certain class. we get the name of the
-     * class from this member. */
-    const char *class_name;
 
     ffi_cif cif;
     unsigned int data_area_size; /* Size needed for the dynamic-call info */
@@ -191,8 +187,7 @@ void 	   gw_wrapset_add_function(GWWrapSet *ws,
                                    const char **arg_types,
                                    GWTypeSpec *arg_typespecs,
                                    const char *proc_name,
-                                   const char *generic_name,
-                                   const char *class_name);
+                                   const char *generic_name);
 
 void 	   gw_wrapset_register(GWWrapSet *ws);
 
