@@ -45,6 +45,7 @@ STD_CFLAGS=""
 
 dnl Checks for types
 AC_CHECK_SIZEOF(long)
+AC_C_BIGENDIAN
 
 dnl Checks for standard functions
 gl_FUNC_ALLOCA

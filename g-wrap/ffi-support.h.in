@@ -26,6 +26,19 @@ USA.
 extern "C" {
 #endif
 
+#ifndef WORDS_BIGENDIAN
+/* Byte order. */
+#undef WORDS_BIGENDIAN
+#endif
+  
+#define GW_ALIGN(v, a)  (((((size_t) (v))-1) | ((a)-1))+1)
+#ifdef WORDS_BIGENDIAN
+#  define GW_RVALUE_PTR(ptr, typ) \
+             ((void *)((char *)(ptr) + (sizeof(ffi_arg) - (typ)->type->size)))
+#else
+#  define GW_RVALUE_PTR(ptr, typ) ((void *)(ptr))
+#endif
+  
 /* FFI has messed-up type #defines, see
  * http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12782 */
 #if !defined(ffi_type_ulong_long)

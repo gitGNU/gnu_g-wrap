@@ -483,9 +483,13 @@ dynproc_smob_apply (SCM smob, SCM args)
   error.status = GW_ERR_NONE;
 
   offset = fi->n_req_args * sizeof (void *);
+  rvalue = (void *) ((unsigned char *) data + offset);
+  offset += (fi->ret_type->type->size > sizeof(ffi_arg)
+             ? fi->ret_type->type->size : sizeof(ffi_arg));
   for (i = 0; i < fi->n_req_args; i++)
   {
     SCM arg;
+    offset = GW_ALIGN (offset, fi->arg_types[i]->type->alignment);
     values[i] = (void *) ((unsigned char *) data + offset);
     if (!SCM_CONSP (args))
       scm_wrong_num_args (smob);
@@ -497,10 +501,10 @@ dynproc_smob_apply (SCM smob, SCM args)
     offset += fi->arg_types[i]->type->size;
     args = SCM_CDR (args);
   }
-  rvalue = (void *) ((unsigned char *) data + offset);
   
   ffi_call (&fi->cif, fi->proc, rvalue, values);
 
+  rvalue = GW_RVALUE_PTR (rvalue, fi->ret_type);
   fi->ret_type->wrap_value (&result, ARENA, &fi->ret_typespec, rvalue, &error);
   if (error.status != GW_ERR_NONE)
     gw_handle_wrapper_error (ARENA, &error, fi->proc_name, 0);

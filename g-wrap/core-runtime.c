@@ -303,7 +303,7 @@ gw_wrapset_add_function (GWWrapSet *ws,
   
     if (fi->n_req_args > 0)
     {
-        /* Data is used by ffi_call, so don't free it */
+      /* Data is used by ffi_call, so don't free it */
       arg_ffi = (ffi_type **) gw_malloc (ws->arena,
                                          sizeof (ffi_type *) * fi->n_req_args);
       for (i = 0; i < fi->n_req_args; i++)
@@ -319,11 +319,22 @@ gw_wrapset_add_function (GWWrapSet *ws,
                              fi->ret_type->type, arg_ffi);
       assert (status == FFI_OK);
       
+      /* note that we treat the space for the rvalue specially; libffi
+       * says it might need up to sizeof(ffi_arg) bytes of
+       * word-aligned memory for it, so we put it first (so it should
+       * be aligned on word boundary) and make it at least
+       * sizeof(ffi_arg) bytes. */
+      fi->data_area_size += (fi->ret_type->type->size > sizeof(ffi_arg)
+                             ? fi->ret_type->type->size : sizeof(ffi_arg));
+      
       /* now we know the sizes of the types and calculate the data
        * area size where we store the arguments' values */
       for (i = 0; i < fi->n_req_args; i++)
+      {
+        fi->data_area_size = GW_ALIGN(fi->data_area_size,
+                                      arg_ffi[i]->alignment);
         fi->data_area_size += arg_ffi[i]->size;
-      fi->data_area_size += fi->ret_type->type->size;
+      }
     }
   }
   
