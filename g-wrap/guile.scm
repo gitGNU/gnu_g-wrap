@@ -23,6 +23,7 @@
 
 (define-module (g-wrap guile)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-13)
   
   #:use-module (oop goops)
   #:use-module (g-wrap)
@@ -279,6 +280,16 @@
      "  SCM gw__scm_result = SCM_UNSPECIFIED;\n"
      "  GWError gw__error = { GW_ERR_NONE, NULL, NULL };\n"
      "  unsigned int gw__arg_pos = 0;\n"
+     (if (zero? nargs)
+         '()
+         (list
+          "  GWTypeSpec *typespec = NULL;\n"
+          "  GWTypeSpec typespecs[] = { " (string-join
+                                           (map
+                                            (lambda (param)
+                                              (typespec-cg (type param) (typespec param)))
+                                            scm-params)
+                                           ", ") " };\n"))
      
      (if (needs-result-var? return-type)
          (list
@@ -294,8 +305,8 @@
         (list "  SCM " (out-param-name number) ";\n"))
       (iota (length out-params)))
      
-      "\n"
-      
+     "\n"
+
       (map
        (lambda (x)
          (list
@@ -308,6 +319,7 @@
           (if (visible? param)
               (list
                "/* ARG " (number param) " */\n"
+               "typespec = &typespecs[gw__arg_pos];\n"
                "gw__arg_pos++;\n"
                (if (>= (number param) *max-fixed-params*)
                    (list
@@ -416,14 +428,16 @@
                                    (function <gw-guile-function>)
                                    status-var)
   
-  (let* ((n-args (input-argument-count function))
-         (n-optional-args (optional-argument-count function))
-         (n-req-args (- n-args n-optional-args))
+  (let* ((visible-args (filter visible? (arguments function)))
+         (n-visible-args (length visible-args))
+         (n-optional-visible-args (length (filter identity
+                                                  (map default-value visible-args))))
+         (n-req-args (- n-visible-args n-optional-visible-args))
          (fn-c-wrapper (slot-ref function 'wrapper-name))
          (fn-c-string  (slot-ref function 'wrapper-namestr)))
     (list
      "   gw_wrapset_add_function(" (c-info-sym wrapset) ", "
-     fn-c-wrapper ", " n-req-args ", " n-optional-args ", "
+     fn-c-wrapper ", " n-req-args ", " n-optional-visible-args ", "
      "NULL, 0, NULL, NULL, " fn-c-string ", "
      (if (generic-name function)
          (list "\"" (symbol->string (generic-name function)) "\"")
@@ -444,7 +458,7 @@
   (let* ((type-name (c-type-name type))
          (value (make <gw-rti-value>
                   #:var (string-append "(*(" type-name "*)instance)")
-                  #:typespec "*typespec"
+                  #:typespec #f ;; the typespec is passed in the function
                   #:wrapped-var "value")))
     (list
      "static void " (wrap-value-function-name type)
@@ -458,7 +472,7 @@
   (let* ((type-name (c-type-name type))
          (value (make <gw-rti-value>
                   #:var (string-append "(*(" type-name "*)instance)")
-                  #:typespec "*typespec"
+                  #:typespec #f ;; the typespec is passed in the function
                   #:wrapped-var "value")))
     (list
      "static void " (unwrap-value-function-name type)
@@ -472,7 +486,7 @@
   (let* ((type-name (c-type-name type))
          (value (make <gw-rti-value>
                   #:var (string-append "(*(" type-name "*)instance)")
-                  #:typespec "*typespec"
+                  #:typespec #f ;; the typespec is passed in the function
                   #:wrapped-var "value")))
     (list
      "static void " (destruct-value-function-name type)

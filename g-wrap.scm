@@ -366,7 +366,7 @@
   (type (typespec arg)))
 
 (define-method (visible? (arg <gw-argument>))
-  (arguments-visible? (type arg)))
+  (and (arguments-visible? (type arg)) (not (output-argument? arg))))
 
 (define-method (output-argument? (arg <gw-argument>))
   (memq 'out (options (typespec arg))))

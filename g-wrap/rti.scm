@@ -19,6 +19,7 @@
 
 (define-module (g-wrap rti)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-13)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
   #:use-module (ice-9 optargs)
@@ -56,7 +57,9 @@
                       (car code2-opt))
                      (else (error "bogus parameters")))))
   (list
-   "if (" (typespec value) " & GW_TYPESPEC_"
+   "if (" (if (typespec value)
+              (typespec-cg (type value) (typespec value))
+              "*typespec") " & GW_TYPESPEC_"
    (string-upcase (any-str->c-sym-str (symbol->string option)))
    ") {\n"
    code1
@@ -264,11 +267,15 @@
         "gw_wrapset_register (" (c-info-sym wrapset) ");\n"))
 
 (define-method (typespec-cg (type <gw-type>) (typespec <gw-typespec>))
-  '("0"))
+  "0")
 
 (define-method (typespec-cg (type <gw-rti-type>) (typespec <gw-typespec>))
   (let ((options (options typespec)))
-    (list
-     (cond ((memq 'caller-owned options) "GW_TYPESPEC_CALLER_OWNED")
-           ((memq 'callee-owned options) "GW_TYPESPEC_CALLEE_OWNED")
-           (else (error "bogus typespec options" type options))))))
+    (if (null? options)
+        "0"
+        (string-join
+         (map (lambda (x) (string-append "GW_TYPESPEC_" x))
+              (map string-upcase
+                   (map any-str->c-sym-str
+                        (map symbol->string options))))
+         " | "))))

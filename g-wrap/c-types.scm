@@ -92,11 +92,7 @@
 (define-method (destruct-value-cg (type <gw-ctype-mchars>)
                                   (value <gw-value>)
                                   error-var)
-  (let ((c-var (var value)))
-    (if-typespec-option
-     value 'caller-owned
-     (list "if (" c-var ") free ((char *)" c-var ");\n"))))
-
+  (next-method)) ;; no need, we already strdup'd it if necessary
 
 (define-method (global-declarations-cg (wrapset <gw-wrapset>)
                                        (mchars <gw-ctype-mchars>))

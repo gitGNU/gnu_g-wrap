@@ -164,7 +164,7 @@
    #:name 'gw-test-gw-standard-echo-mchars-caller-owned
    #:returns '(mchars caller-owned)
    #:c-name "gw_test_gw_standard_echo_mchars_caller_owned"
-   #:arguments '(((mchars caller-owned) arg))
+   #:arguments '(((mchars caller-owned null-ok) arg))
    #:description "Return arg.")
 
   (wrap-function!
@@ -172,7 +172,7 @@
    #:name 'gw-test-gw-standard-echo-const-mchars-caller-owned
    #:returns '(mchars const caller-owned)
    #:c-name "gw_test_gw_standard_echo_const_mchars_caller_owned"
-   #:arguments '(((mchars const caller-owned) arg))
+   #:arguments '(((mchars const caller-owned null-ok) arg))
    #:description "Return arg.")
 
   (wrap-function!
@@ -180,7 +180,7 @@
    #:name 'gw-test-gw-standard-echo-mchars-callee-owned
    #:returns '(mchars callee-owned)
    #:c-name "gw_test_gw_standard_echo_mchars_callee_owned"
-   #:arguments '(((mchars callee-owned) arg))
+   #:arguments '(((mchars callee-owned null-ok) arg))
    #:description "Return arg.")
 
   (wrap-function!
@@ -188,7 +188,7 @@
    #:name 'gw-test-gw-standard-echo-const-mchars-callee-owned
    #:returns '(mchars const callee-owned)
    #:c-name "gw_test_gw_standard_echo_const_mchars_callee_owned"
-   #:arguments '(((mchars const callee-owned) arg))
+   #:arguments '(((mchars const callee-owned null-ok) arg))
    #:description "Return arg.")
 
   ;; Default arguments

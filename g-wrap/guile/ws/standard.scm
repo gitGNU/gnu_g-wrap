@@ -300,6 +300,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 ;;; <gw-ctype-mchars>
 ;;;
 
+;; FIXME: need to see if we actually own the string
 (define-method (wrap-value-cg (type <gw-ctype-mchars>)
                               (value <gw-value>)
                               error-var)
@@ -308,18 +309,25 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      "else "
      (scm-var  value) " = scm_makfrom0str( " (var value) ");\n"))
 
-;; FIMXE: check null-ok
 (define-method (unwrap-value-cg (type <gw-guile-ctype-mchars>)
                                 (value <gw-value>)
                                 error-var)
   (let ((c-var (var value))
         (scm-var (scm-var value)))
-    (list
-     c-var " = NULL;\n"
-     "\n"
-     "if(SCM_FALSEP(" scm-var "))\n"
-     "  " c-var " = NULL;\n"
-     "else if(SCM_STRINGP(" scm-var "))\n"
-     "  " c-var " = strdup (SCM_STRING_CHARS (" scm-var "));\n"
-     "else\n"
-     `(gw:error ,error-var type ,(wrapped-var value)))))
+    (let ((unwrap-code
+           (list
+            "if(SCM_STRINGP(" scm-var ")) {\n"
+            (if-typespec-option
+             value 'caller-owned
+             (list c-var " = SCM_STRING_CHARS (" scm-var ");\n")
+              (list c-var " = strdup (SCM_STRING_CHARS (" scm-var "));\n"))
+            "} else\n"
+            `(gw:error ,error-var type ,(wrapped-var value)))))
+      (if-typespec-option
+       value 'null-ok
+       (list "if (SCM_FALSEP(" scm-var "))\n"
+             "  " c-var " = NULL;\n"
+             "else {"
+             unwrap-code
+             "}\n")
+       unwrap-code))))

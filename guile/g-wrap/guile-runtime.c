@@ -244,11 +244,12 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM class_name, SCM module,
 {
   int i;
   char buffer[32];
-  SCM specializers, formals, method_args, procm, meth;
+  SCM specializers, formals, procm, meth, rest_sym = SCM_BOOL_F;
   
   if (use_optional_args)
   {
-    formals = SCM_EOL; //scm_str2symbol ("opt-args");
+    formals = SCM_EOL;
+    rest_sym = scm_str2symbol ("rest");
     specializers = scm_class_top;
   }
   else
@@ -266,9 +267,18 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM class_name, SCM module,
       specializers = scm_cons (scm_class_top, specializers);
   }
 
-  method_args = scm_cons (subr, formals);
-  procm = scm_closure (scm_list_2 (formals, method_args),
-                       scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
+  if (use_optional_args) {
+      procm = scm_closure (scm_list_2 (scm_append (scm_list_2 (formals, rest_sym)),
+                                       scm_append (scm_list_3
+                                                   (scm_list_2 (scm_f_apply, subr),
+                                                    formals,
+                                                    scm_cons (rest_sym, SCM_EOL)))),
+                           scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
+  } else {
+      procm = scm_closure (scm_list_2 (formals, scm_cons (subr, formals)),
+                           scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
+  }
+
   meth = scm_apply_0 (scm_sym_make,
                       scm_list_5 (scm_class_method,
                                   k_specializers, specializers,
@@ -492,17 +502,6 @@ dynproc_smob_print (SCM smob, SCM port, scm_print_state *pstate)
   return 1;
 }
 
-/* Performance Note: blocking GC improves performance considerably, at
- * the cost of increased memory usage.
- *
- * It was suggested that the GC slowness is caused through inproper
- * use of some _gc_ functions, but I don't think so. Recent
- * experiments showed that the GC is triggered by the add_method
- * invocation.  --rotty
- *
- */
-  
-
 static void
 gw_guile_handle_wrapper_error(GWLangArena arena,
                               GWError *error,
@@ -528,7 +527,7 @@ gw_guile_handle_wrapper_error(GWLangArena arena,
       break;
     case GW_ERR_MISC:
       /* scm_data is a list of format args for misc_msg */
-      scm_misc_error(func_name, error->message, error->data);
+      scm_misc_error(func_name, error->message, *(SCM *)error->data);
       break;
     case GW_ERR_MEMORY:
       scm_memory_error(func_name);
@@ -537,24 +536,24 @@ gw_guile_handle_wrapper_error(GWLangArena arena,
       scm_error (out_of_range_key,
                  func_name,
                  "Out of range: ~S",
-                 scm_cons (error->data, SCM_EOL),
+                 scm_cons (*(SCM *)error->data, SCM_EOL),
                  SCM_BOOL_F);
       break;
     case GW_ERR_TYPE:
       scm_error(wrong_type_key,
                 func_name,
                 "Wrong type: ",
-                scm_cons (error->data, SCM_EOL),
+                scm_cons (*(SCM *)error->data, SCM_EOL),
                 SCM_BOOL_F);
       break;
     case GW_ERR_ARGC:
       scm_wrong_num_args(scm_makfrom0str(func_name)); break;
     case GW_ERR_ARG_RANGE:
       /* scm_data is the bad arg */
-      scm_out_of_range(func_name, error->data); break;
+      scm_out_of_range(func_name, *(SCM *)error->data); break;
     case GW_ERR_ARG_TYPE:
       /* scm_data is the bad arg */
-      scm_wrong_type_arg(func_name, arg_pos, error->data); break;
+      scm_wrong_type_arg(func_name, arg_pos, *(SCM *)error->data); break;
     default:
       scm_misc_error(func_name,
                      "asked to handle nonexistent gw:error type: ~S",
