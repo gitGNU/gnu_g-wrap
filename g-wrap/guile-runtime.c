@@ -44,15 +44,15 @@ char *alloca ();
 #include <assert.h>
 #include <stdarg.h>
 
-#include "g-wrap-compatibility.h"
-#include "g-wrap-runtime.h"
+#include "g-wrap/guile-compatibility.h"
+#include "g-wrap/guile-runtime.h"
 
 void
 gw_runtime_get_version_info(int *major, int *revision, int *age)
 {
-  *major = GW_RUNTIME_INTERFACE_MAJOR_VER;
-  *revision = GW_RUNTIME_INTERFACE_REVISION;
-  *age = GW_RUNTIME_INTERFACE_AGE;
+  *major = GW_GUILE_RUNTIME_INTERFACE_MAJOR_VER;
+  *revision = GW_GUILE_RUNTIME_INTERFACE_REVISION;
+  *age = GW_GUILE_RUNTIME_INTERFACE_AGE;
 }
 
 
@@ -753,3 +753,6 @@ gw_handle_wrapper_error(GWError *error,
   };
   exit(1);
 }
+
+/*  LocalWords:  age
+ */

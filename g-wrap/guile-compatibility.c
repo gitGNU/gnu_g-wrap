@@ -1,4 +1,4 @@
-#include "g-wrap-compatibility.h"
+#include "g-wrap/guile-compatibility.h"
 
 #ifndef SCM_VERSION_17X
 

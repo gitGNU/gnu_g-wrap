@@ -2,8 +2,8 @@
 # Run this to generate all the initial makefiles, etc.
 
 DIE=0
-package=g-wrap
-srcfile=g-wrap/gw-standard-spec.scm
+package=g-wrap-tng
+srcfile=g-wrap/guile-runtime.c
 
 . autogen-support.sh
 

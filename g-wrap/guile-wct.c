@@ -21,8 +21,8 @@ USA.
 #include <stdio.h>
 
 #include <libguile.h>
-#include "g-wrap-wct.h"
-#include "g-wrap-compatibility.h"
+#include "g-wrap/guile-wct.h"
+#include "g-wrap/guile-compatibility.h"
 
 #ifdef HAVE_CONFIG_H
 # include "../config.h"
