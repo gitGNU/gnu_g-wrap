@@ -1,7 +1,27 @@
+;;;; File: rti.scm
+;;;; Copyright (C) 2004 Andreas Rottmann
+;;;;
+;;;; This program is free software; you can redistribute it and/or
+;;;; modify it under the terms of the GNU Lesser General Public
+;;;; License as published by the Free Software Foundation; either
+;;;; version 2, or (at your option) any later version.
+;;;; 
+;;;; This program is distributed in the hope that it will be useful,
+;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;;;; Lesser General Public License for more details.
+;;;; 
+;;;; You should have received a copy of the GNU Lesser General Public
+;;;; License along with this software; see the file COPYING.  If not,
+;;;; write to the Free Software Foundation, 675 Mass Ave, Cambridge,
+;;;; MA 02139, USA.
+;;;;
+
 (define-module (g-wrap rti)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
+  #:use-module (ice-9 optargs)
   #:use-module (oop goops)
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
@@ -45,19 +65,34 @@
        (list "else {\n" code2 "}\n")
        '()))))
 
-;; FIXME: This allowed-typespec stuff is kind of ugly - subclass
-;; typespecs, too?
+(define-class <gw-rti-type-class> (<class>))
+
+(define-method (initialize (class <gw-rti-type-class>) initargs)
+  (next-method)
+  ;; Inherit the allowed options
+  (let-keywords
+   initargs #t ((allowed-options '()))
+   (class-slot-set! class 'allowed-options
+                    (apply append
+                           (cons
+                            allowed-options
+                            (map (lambda (c)
+                                   (class-slot-ref c 'allowed-options))
+                                 (filter
+                                  (lambda (c) (not (eq? <gw-type> c)))
+                                  (class-direct-supers class))))))))
 
 (define-class <gw-rti-type> (<gw-type>)
-  (allowed-options #:init-keyword #:options #:init-value '()
-                   #:allocation #:each-subclass)
+  (allowed-options #:init-value '() #:allocation #:each-subclass)
   (c-type-name #:getter c-type-name #:init-keyword #:c-type-name)
   (c-const-type-name #:init-keyword #:c-const-type-name)
   (ffspec #:getter ffspec #:init-keyword #:ffspec)
   
   (wrap-value-function-name #:getter wrap-value-function-name)
   (unwrap-value-function-name  #:getter unwrap-value-function-name)
-  (destruct-value-function-name #:getter destruct-value-function-name))
+  (destruct-value-function-name #:getter destruct-value-function-name)
+  
+  #:metaclass <gw-rti-type-class>)
 
 (define-method (c-type-name (type <gw-rti-type>) (typespec <gw-typespec>))
   (slot-ref type (if (memq 'const (options typespec))
@@ -104,10 +139,9 @@
                  (message "must be caller or callee owned" type)))))
     (set! remainder (delq 'caller-owned remainder))
     (set! remainder (delq 'callee-owned remainder))
-    (for-each (lambda (opt) (set! remainder (delq! opt remainder)))
+    (for-each (lambda (opt) (set! remainder (delq opt remainder)))
               (slot-ref type 'allowed-options))
-    (if (null? remainder)
-        (make <gw-typespec> #:type type #:options options)
+    (if (not (null? remainder))
         (raise (condition
                 (&gw-bad-typespec
                  (type type) (options options)
