@@ -6,6 +6,10 @@
 # include "config.h"
 #endif
 
+/* General */
+
+long gw_test_strtol(const char *str, int base);
+
 /* For test-enumeration */
 
 enum GWTestEnum

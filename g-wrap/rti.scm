@@ -172,12 +172,14 @@
        ");\n"
        "}\n")))
 
+;; Returns #t if we can support RTI for the function and it is enabled
 (define (use-rti-for-function? wrapset function)
   (and (slot-ref wrapset 'function-rti?)
-       (every (lambda (type)
-                (is-a? type <gw-rti-type>))
+       (every (lambda (type) (is-a? type <gw-rti-type>))
               (cons (return-type function)
-                    (map type (arguments function))))))
+                    (argument-types function)))
+       (every (lambda (arg) (not (default-value arg)))
+              (arguments function))))
 
 (define-method (global-declarations-cg (lang <gw-language>)
                                        (wrapset <gw-rti-wrapset>)

@@ -132,7 +132,7 @@
                   #:c-name "gw_test_gw_standard_echo_unsigned_long"
                   #:arguments '((unsigned-long arg))
                   #:description "Return arg.")
-
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;; mchars
 
@@ -166,5 +166,13 @@
    #:returns '(mchars const callee-owned)
    #:c-name "gw_test_gw_standard_echo_const_mchars_callee_owned"
    #:arguments '(((mchars const callee-owned) arg))
-   #:description "Return arg."))
+   #:description "Return arg.")
 
+  ;; Default arguments
+  (wrap-function!
+   ws
+   #:name 'gw-test-strtol
+   #:returns 'long
+   #:c-name "gw_test_strtol"
+   #:arguments '(((mchars const caller-owned) str) (int base (default "0"))))
+  )

@@ -9,7 +9,16 @@
 #include <stdio.h>
 
 /*======================================================================*/
-/* For test-gw-enumerationx */
+/* General */
+
+long
+gw_test_strtol(const char *str, int base)
+{
+  return strtol (str, NULL, base);
+}
+
+/*======================================================================*/
+/* For test-gw-enumeration */
 
 enum GWTestEnum
 gw_test_gw_enumeration_echo(enum GWTestEnum arg)

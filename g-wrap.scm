@@ -18,7 +18,7 @@
 
    <gw-function>
    c-name
-   argument-count arguments argument-types
+   argument-count optional-argument-count arguments argument-types
    return-type return-typespec
    generic-name 
    
@@ -42,7 +42,7 @@
    var wrapped-var if-typespec-option
    
    <gw-argument>
-   visible?
+   visible? default-value
 
    <gw-param>
    number
@@ -155,12 +155,13 @@
                                 (type <gw-type>)
                                 (param <gw-value>)
                                 status-var)
-  (list
-   (unwrap-value-cg lang type param status-var)
-   "if (" `(gw:error? ,status-var type) ")"
-   `(gw:error ,status-var arg-type)
-   "else if (" `(gw:error? ,status-var range) ")"
-   `(gw:error ,status-var arg-range)))
+   (unwrap-value-cg lang type param status-var))
+
+;; What was that for?
+;    "if (" `(gw:error? ,status-var type) ")"
+;    `(gw:error ,status-var arg-type)
+;    "else if (" `(gw:error? ,status-var range) ")"
+;    `(gw:error ,status-var arg-range)))
 
 
 (define-method (pre-call-result-cg (lang <gw-language>)
@@ -204,6 +205,7 @@
 
 (define-generic c-type-name)
 
+
 ;;;
 ;;; Functions
 ;;;
@@ -223,6 +225,15 @@
 (define-method (argument-count (func <gw-function>))
   (length (slot-ref func 'arguments)))
 
+;; Returns the number of optional argument (number of consecutive
+;; arguments with default values at the end of the argument list)
+(define-method (optional-argument-count (func <gw-function>))
+  (let loop ((args (reverse (slot-ref func 'arguments))) (count 0))
+    (if (and (not (null? args))
+             (default-value (car args)))
+        (loop (cdr args) (+ count 1))
+        count)))
+
 (define-method (argument-types (func <gw-function>))
   (map type (slot-ref func 'arguments)))
 
@@ -239,7 +250,8 @@
 
 (define-class <gw-argument> ()
   (typespec #:getter typespec #:init-keyword #:typespec)
-  (name #:getter name #:init-keyword #:name))
+  (name #:getter name #:init-keyword #:name)
+  (default #:getter default-value #:init-keyword #:default #:init-value #f))
 
 (define-method (visible? (arg <gw-argument>))
   #t) ;; FIXME: implement in terms of type visibility
@@ -274,13 +286,6 @@
 
 ;;; Metaclass - handles wrapset registry
 (define-class <gw-wrapset-class> (<class>))
-
-;; This should be in goops.scm, really
-(define (class-supers c)
-  (letrec ((allsubs (lambda (c)
-                      (cons c (mapappend allsubs
-                                         (class-direct-supers c))))))
-    (list2set (cdr (allsubs c)))))
 
 (define-method (initialize (class <gw-wrapset-class>) initargs)
   (next-method)
@@ -406,16 +411,26 @@
 
 (define (resolve-arguments wrapset argspecs)
   (define (argument i spec)
-    (if (not (and (list? spec) (= (length spec) 2)))
+    (if (not (and (list? spec) (>= (length spec) 2)))
         (throw 'gw:bad-typespec
-               (format #f "argument spec must be a two-element list (got ~S)"
+               (format #f "argument spec must be a (at least) two-element list (got ~S)"
                        spec)))
     (let ((ts (car spec)))
-      (make <gw-argument>
-        #:number i
-        #:name (cadr spec)
-        #:typespec (resolve-typespec wrapset ts))))
-  
+      (apply make <gw-argument>
+             #:number i
+             #:name (cadr spec)
+             #:typespec (resolve-typespec wrapset ts)
+             (fold
+              (lambda (spec rest)
+                (if (not (and (list? spec) (= (length spec) 2)))
+                    (throw 'gw:bad-typespec
+                           (format #f "invalid argument option ~S") spec))
+                (case (first spec)
+                  ((default) (cons #:default (cons (second spec) rest)))
+                  (else
+                   (throw 'gw:bad-typespec
+                          (format #f "unknown argument option ~S" spec)))))
+              '() (cddr spec)))))
   (let loop ((i 0) (specs argspecs) (args '()))
     (if (null? specs)
         (reverse args)

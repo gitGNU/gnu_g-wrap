@@ -225,6 +225,8 @@
          (fn-c-wrapper (slot-ref function 'wrapper-name))
          (fn-c-string (slot-ref function 'wrapper-namestr))
          (nargs (length scm-params))
+         (opt-args-start (- (argument-count function)
+                            (optional-argument-count function)))
          (error-var "gw__error"))
     
     (list
@@ -260,23 +262,35 @@
                "gw__arg_pos++;\n"
                (if (> (number param) *max-fixed-params*)
                    (list
-                    "if (SCM_NULLP (gw__restargs)) (" error-var ").status = GW_ERR_ARGC;\n"
+                    "if (SCM_NULLP (gw__restargs))\n"
+                    (if (>= (number param) opt-args-start)
+                        (list
+                         "  " (scm-var param) "= SCM_UNDEFINED;\n")
+                        (list
+                         "(" error-var ").status = GW_ERR_ARGC;\n"))
                     "else {\n"
-                    "  " (scm-var param) " = SCM_CAR(gw__restargs);\n"
+                    "  " (scm-var param) " = SCM_CAR (gw__restargs);\n"
                     "    gw__restargs = SCM_CDR (gw__restargs);\n"
                     "}\n")
                    '())
-               "if ((" error-var ").status != GW_ERR_NONE)"
-               " goto " (if (zero? (number param))
-                            "gw__wrapper_exit;\n"
-                            (list "gw__post_call_arg_"
-                                  (- (number param) 1) ";\n")))
+               (if (>= (number param) opt-args-start)
+                  (list
+                   "if (" (scm-var param) "== SCM_UNDEFINED)\n"
+                   "  " (var param) " = " (default-value arg) ";\n")
+                  (list
+                   "if ((" error-var ").status != GW_ERR_NONE)"
+                   " goto " (if (zero? (number param))
+                                "gw__wrapper_exit;\n"
+                                (list "gw__post_call_arg_"
+                                      (- (number param) 1) ";\n")))))
               '())
-            "\n{\n"
-            (expand-special-forms
-             (pre-call-arg-cg lang (type param) param error-var)
-             param
-             '(memory misc type range arg-type arg-range))))
+          "\n{\n"
+          (if (>= (number param) opt-args-start)
+              '()
+              (expand-special-forms
+               (pre-call-arg-cg lang (type param) param error-var)
+               param
+               '(memory misc type range arg-type arg-range)))))
        params (arguments function))
       
       "if ((" error-var ").status == GW_ERR_NONE)\n"
@@ -321,8 +335,8 @@
                   (post-call-arg-cg lang (type param) param error-var)
                   #f '(memory misc type range))
            "}\n")
-            "  { /* shut up warnings if no code */ int x = x; }\n"
-            "}\n"))
+          ;; "  { /* shut up warnings if no code */ int x = x; }\n"
+          "}\n"))
        (reverse params) (arguments function))
       
       " gw__wrapper_exit:\n"
@@ -339,16 +353,22 @@
                                    status-var)
   
   (let* ((nargs (count visible? (arguments function)))
+         (opt-args-start (- nargs (optional-argument-count function)))
          (use-extra-params? (> nargs *max-fixed-params*))
          (fn-c-wrapper (slot-ref function 'wrapper-name))
          (fn-c-string  (slot-ref function 'wrapper-namestr)))
     (list
-     "    scm_c_define_gsubr(" fn-c-string ",\n"
-     "                     " (if use-extra-params?
-                               *max-fixed-params*
-                               nargs) ",\n"
-     "                     0,\n" 
-     "                     " (if use-extra-params? "1" "0") ",\n"
+     "    scm_c_define_gsubr(" fn-c-string ", "
+     (if (and use-extra-params?
+              (> opt-args-start *max-fixed-params*))
+         *max-fixed-params*
+         opt-args-start) ", "
+     (if use-extra-params?
+         (if (< opt-args-start *max-fixed-params*)
+             (- *max-fixed-params* opt-args-start)
+             "0")
+         (optional-argument-count function)) ", "
+     (if use-extra-params? "1" "0") ",\n"
      "                       (SCM (*) ()) " fn-c-wrapper ");\n")))
 
 
@@ -661,7 +681,7 @@
                 (wrapsets-depended-on wrapset))
           "  #:export (" (map
                           (lambda (sym)
-                            (list sym " "))
+                            (list "    " sym "\n"))
                           (module-exports wrapset))
           "))\n"
           "\n"
