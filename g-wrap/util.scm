@@ -8,10 +8,12 @@
   (&gw-bad-element
    element tree
 
+   guard/handle call-with-output-file/cleanup
+   
    <gw-cs-labels>
    goto-cg label-cg
    
-   guard/handle flatten-display flatten-string separate-by any-str->c-sym-str
+   flatten-display flatten-string separate-by any-str->c-sym-str
    gen-c-tmp str-translate))
 
 ;;; Condition stuff
@@ -26,6 +28,36 @@
       (,cond-name
        (else (handle-condition ,cond-name)))
       ,@body)))
+
+;;; General utilities
+
+(define (call-with-output-file/cleanup file-name proc)
+  
+  (define (cleanup)
+    (if (file-exists? file-name)
+        (delete-file file-name)))
+    
+  (let ((had-errors? #f))
+    (lazy-catch #t
+      (lambda () 
+        (guard
+         (c
+          ((condition-has-type? c &error)
+           (set! had-errors? #t)
+           (handle-condition c)))
+         
+         (call-with-output-file file-name proc)))
+         
+      (lambda (key . args)
+        ;; here we handle non-conditon errors (e.g. user cg code
+        ;; errors) by passing the exception thru to the top level
+        (cleanup)
+        (apply throw key args)))
+    
+    (if had-errors?
+        (begin
+          (cleanup)
+          (exit 1)))))
 
 ;;; Support for C labels - declare them only when needed
 

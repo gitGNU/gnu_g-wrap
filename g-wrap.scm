@@ -30,7 +30,7 @@
    class-name needs-result-var?
    wrap-value-cg unwrap-value-cg destruct-value-cg
    pre-call-arg-cg pre-call-result-cg call-arg-cg post-call-result-cg
-   post-call-arg-cg call-cg
+   post-call-arg-cg call-cg set-value-cg
    
    global-declarations-cg global-definitions-cg initializations-cg
    
@@ -231,6 +231,10 @@
                                  (value <gw-value>) status-var)
   (destruct-value-cg lang type value status-var))
 
+(define-method (set-value-cg (lang <gw-language>) (type <gw-type>)
+                             (lvalue <gw-value>) (rvalue <string>))
+  (list (var value) " = " rvalue ";\n"))
+
 ;;;
 
 (define-class <gw-param> (<gw-value>)
@@ -269,13 +273,14 @@
   (length (slot-ref func 'arguments)))
 
 ;; Returns the number of optional argument (number of consecutive
-;; arguments with default values at the end of the argument list)
+;; arguments with default values at the end of the argument list).  We
+;; count invisible arguments at the argument tail as optional, too.
 (define-method (optional-argument-count (func <gw-function>))
   (let loop ((args (reverse (slot-ref func 'arguments))) (count 0))
-    (if (and (not (null? args))
-             (default-value (car args)))
-        (loop (cdr args) (+ count 1))
-        count)))
+    (if (or (null? args) (and (visible? (car args)) 
+                              (not (default-value (car args)))))
+        count
+        (loop (cdr args) (+ count 1)))))
 
 (define-method (argument-types (func <gw-function>))
   (map type (slot-ref func 'arguments)))
@@ -480,10 +485,12 @@
               (fold
                (lambda (opt rest)
                  (if (not (and (list? opt) (= (length opt) 2)))
-                     (raise (condition
-                             (&gw-bad-typespec
-                              (spec spec)
-                              (message "invalid argument option ~S")) opt)))
+                     (raise
+                      (condition
+                       (&gw-bad-typespec
+                        (spec spec)
+                        (message
+                         (format #f "invalid argument option ~S" opt))))))
                  (case (first opt)
                    ((default) (cons #:default (cons (second opt) rest)))
                    (else
@@ -538,22 +545,24 @@
   ;;(format #t "wrapping ~S\n" args)
   (let-keywords
    args #f (name returns c-name arguments description generic-name)
-   (guard/handle
-    (guard
-     (c
-      (#t (raise
-           (condition
-            (&gw-stacked
-             (next c)
-             (message (format #f "while processing function `~S'" name)))))))
-     (add-function!
-      wrapset (make (slot-ref wrapset 'function-class)
-                #:name name
-                #:returns (resolve-typespec wrapset returns)
-                #:c-name c-name
-                #:arguments (resolve-arguments wrapset arguments)
-                #:description description
-                #:generic-name generic-name))))))
+   (guard
+    (c
+     (#t (handle-condition
+          (condition
+           (&gw-stacked
+            (next c)
+            (message (format #f "while processing function `~S'" name)))))
+         ;; TODO: Find a way how go on and exit with failure at the end
+         (exit 1)))
+    
+    (add-function!
+     wrapset (make (slot-ref wrapset 'function-class)
+               #:name name
+               #:returns (resolve-typespec wrapset returns)
+               #:c-name c-name
+               #:arguments (resolve-arguments wrapset arguments)
+               #:description description
+               #:generic-name generic-name)))))
 
 (define-method (wrap-constant! (wrapset <gw-wrapset>) . args)
   (let-keywords
@@ -759,37 +768,17 @@
       "    gw_wrapset_initialized = 1;\n"
       "}\n"))))
 
-  
+
 (define-method (generate-wrapset (lang <gw-language>)
                                  (wrapset <gw-wrapset>)
                                  (basename <string>))
   (let ((wrapset-source-name (string-append basename ".c"))
-        (client-types (compute-client-types wrapset))
-        (had-errors? #f))
-    
-    (lazy-catch #t
-      (lambda () 
-        (guard
-         (c
-          ((condition-has-type? c &error)
-           (set! had-errors? #t)
-           (format #t "HAD ERRORS\n")
-           (handle-condition c)))
-         
-         (call-with-output-file wrapset-source-name
-           (lambda (port)
-             (generate-wrapset-cs lang wrapset port)))))
-      
-      (lambda (key . args)
-        ;; here we handle non-conditon errors (e.g. user cg code
-        ;; errors) by passing the exception thru to the top level
-        (delete-file wrapset-source-name)
-        (apply throw key args)))
-    
-    (if had-errors?
-        (begin
-          (delete-file wrapset-source-name)
-          (exit 1)))))
+        (client-types (compute-client-types wrapset)))
+
+    (call-with-output-file/cleanup
+     wrapset-source-name
+     (lambda (port)
+       (generate-wrapset-cs lang wrapset port)))))
 
 (define-method (global-declarations-cg (lang <gw-language>)
                                        (wrapset <gw-wrapset>)

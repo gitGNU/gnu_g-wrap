@@ -298,7 +298,8 @@
             (if (>= (number param) opt-args-start)
                 (list
                  "if (SCM_EQ_P(" (scm-var param) ", SCM_UNDEFINED))\n"
-                 "  " (var param) " = " (default-value arg) ";\n"
+                 "  " (set-value-cg lang (type arg) param
+                                    (default-value arg))
                  "else {\n"
                  pre-call-code
                  "}\n")
@@ -727,11 +728,7 @@
 
   (if (module wrapset)
       (let ((wrapset-scm-file-name (string-append basename ".scm")))
-        (lazy-catch #t
-          (lambda ()
-            (call-with-output-file wrapset-scm-file-name
-              (lambda (port)
-                (generate-wrapset-scm lang wrapset port))))
-          (lambda (key . args)
-            (delete-file wrapset-scm-file-name)
-            (apply throw key args))))))
+        (call-with-output-file/cleanup        
+         wrapset-scm-file-name
+         (lambda (port)
+           (generate-wrapset-scm lang wrapset port))))))

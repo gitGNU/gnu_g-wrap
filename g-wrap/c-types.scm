@@ -95,6 +95,10 @@
   (list "#include <string.h>\n"))
   
 
+(define-method (set-value-cg (lang <gw-language>) (type <gw-ctype-mchars>)
+                             (lvalue <gw-value>) (rvalue <string>))
+  (list (var lvalue) " = strdup(" rvalue ");\n"))
+
 ;;;
 ;;; Wrapped C Types
 ;;;
