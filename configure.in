@@ -82,6 +82,8 @@ AC_TRY_LINK([#include <libguile/smob.h>],
                        [Define if you have the scm_puts function.])
              AC_MSG_RESULT(yes)])
 
+dnl Checks for standard functions
+AC_FUNC_ALLOCA
 
 
 ############################################################################

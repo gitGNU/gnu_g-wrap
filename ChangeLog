@@ -1,3 +1,27 @@
+2004-01-26  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/Makefile.am (libgwrap_runtime_la_LIBADD) 
+	(libgwrap_runtime_la_LIBADD): Added @ALLOCA@.
+
+	* g-wrap/alloca.c: New file, public domain alloca()
+	implementation, taken from Guile.
+
+	* g-wrap/g-wrap-runtime.c (dynproc_smob_apply)
+	(gw_wrapset_add_function): Move ffi_cif preparation to
+	gw_wrapset_add_function.
+	(dynproc_smob_apply): Use alloca() to allocate per-call ffi data.
+	This should make the dynamic procedure invocation thread safe.
+
+	* g-wrap/g-wrap-runtime.h (GWFunctionInfo): New member cif,
+	pointing to the ffi_cif. Member data removed, and data_area_size,
+	indicating the size needed for the value pointers and the actual
+	arguments.
+
+	* g-wrap/g-wrap-runtime.c: Added copyright header.
+	#include <alloca.h> or declare it.
+
+	* configure.in: Check for alloca.h.
+
 2004-01-22  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* g-wrap.pc.in (Cflags, Libs): Added libffi stuff.

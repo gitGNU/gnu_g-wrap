@@ -41,7 +41,7 @@ GW_RUNTIME_VINFO = \
 gwrapinclude_HEADERS += g-wrap-runtime.h g-wrap-compatibility.h g-wrap-wct.h
 libgwrap_runtime_la_SOURCES = g-wrap-runtime.c g-wrap-wct.c g-wrap-compatibility.c
 libgwrap_runtime_la_LDFLAGS = -rpath $(libdir) -version-info ${GW_RUNTIME_VINFO}
-libgwrap_runtime_la_LIBADD = @GUILE_LIBS@ $(LIBFFI_LIBS)
+libgwrap_runtime_la_LIBADD = @GUILE_LIBS@ $(LIBFFI_LIBS) @ALLOCA@
 
 ################## (g-wrap gw-wct) section
 

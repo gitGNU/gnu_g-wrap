@@ -138,8 +138,8 @@ struct _GWFunctionInfo
     const char *proc_name;
     const char *generic_name;
 
-    /* private */
-    void *data; /* This is used for the dynamic-call info */
+    ffi_cif *cif;
+    unsigned int data_area_size; /* Size needed for the dynamic-call info */
 };
 
 struct _GWWrapSet

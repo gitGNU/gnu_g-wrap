@@ -1,10 +1,48 @@
+/**********************************************************************
+Copyright (C) 2003 Andreas Rottmann
+ 
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation; either version 2.1, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+ 
+You should have received a copy of the GNU Lesser General Public
+License along with this software; see the file COPYING.  If not, write
+to the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139,
+USA.
+**********************************************************************/
+
+#if HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+/* AIX requires this to be the first thing in the file. The #pragma
+   directive is indented so pre-ANSI compilers will ignore it, rather
+   than choke on it. */
+#ifndef __GNUC__
+# if HAVE_ALLOCA_H
+#  include <alloca.h>
+# else
+#  ifdef _AIX
+ #pragma alloca
+#  else
+#   ifndef alloca /* predefined by HP cc +Olibcalls */
+char *alloca ();
+#   endif
+#  endif
+# endif
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include <assert.h>
 #include <stdarg.h>
-
-#include "config.h"
 
 #include "g-wrap-compatibility.h"
 #include "g-wrap-runtime.h"
@@ -438,6 +476,9 @@ gw_wrapset_add_function (GWWrapSet *ws,
                          const char *generic_name)
 {
   GWFunctionInfo *fi;
+  ffi_type **arg_ffi = NULL;
+  ffi_status status;
+  int i;
 
   if (ws->nfunctions >= ws->nfuncs_allocated)
   {
@@ -458,8 +499,6 @@ gw_wrapset_add_function (GWWrapSet *ws,
   
   if (arg_types != NULL)
   {
-    int i;
-
     for (fi->nargs = 0; arg_types[fi->nargs] != NULL; fi->nargs++)
       ;
     
@@ -485,62 +524,54 @@ gw_wrapset_add_function (GWWrapSet *ws,
     fi->ret_type = gw_wrapset_lookup_type (ws, ret_type);
   fi->ret_typespec = ret_typespec;
   
-  fi->data = NULL;
+  fi->data_area_size = fi->nargs * sizeof (void *);
+  fi->cif = scm_malloc (sizeof (ffi_cif));
+    
+  if (fi->nargs > 0)
+  {
+    arg_ffi = (ffi_type **) scm_malloc (sizeof (ffi_type *) * fi->nargs);
+    for (i = 0; i < fi->nargs; i++)
+    {
+      arg_ffi[i] = fi->arg_types[i]->type;
+      assert (arg_ffi[i] != NULL);
+    }
+  }
+  
+  status = ffi_prep_cif (fi->cif, FFI_DEFAULT_ABI, fi->nargs,
+                         fi->ret_type->type, arg_ffi);
+  assert (status == FFI_OK);
+  
+  /* now we know the sizes of the types and calculate the data
+   * area size where we store the arguments' values */
+  for (i = 0; i < fi->nargs; i++)
+    fi->data_area_size += arg_ffi[i]->size;
+  fi->data_area_size += fi->ret_type->type->size;
   
   ws->nfunctions++;
 }
 
 static SCM
-dynproc_smob_apply(SCM smob, SCM args)
+dynproc_smob_apply (SCM smob, SCM args)
 {
-  GWFunctionInfo *fi = (GWFunctionInfo *)SCM_SMOB_DATA(smob);
+  GWFunctionInfo *fi = (GWFunctionInfo *) SCM_SMOB_DATA (smob);
   SCM result;
   ffi_cif *cif;
   void **values;
   void *rvalue;
   int i;
   unsigned offset;
-  const unsigned cif_n_values_size = (sizeof (ffi_cif)
-                                      + fi->nargs * sizeof (void *));
+  void *data;
   GWError error;
-  
-  if (fi->data == NULL)
-  {
-    ffi_type **arg_types = NULL;
-    ffi_status status;
-    unsigned data_area_size = 0;
-    fi->data = scm_malloc (cif_n_values_size);
-    
-    cif = (ffi_cif *)fi->data;
-    if (fi->nargs > 0)
-    {
-      arg_types = (ffi_type **) scm_malloc (sizeof (ffi_type *) * fi->nargs);
-      for (i = 0; i < fi->nargs; i++)
-      {
-        arg_types[i] = fi->arg_types[i]->type;
-        assert (arg_types[i] != NULL);
-      }
-    }
-    status = ffi_prep_cif (cif, FFI_DEFAULT_ABI, fi->nargs,
-                           fi->ret_type->type, arg_types);
-    assert (status == FFI_OK);
 
-    /* now we know the sizes of the types and can allocate the data
-     * area where we store the arguments' values */
-    for (i = 0; i < fi->nargs; i++)
-      data_area_size += arg_types[i]->size;
-    data_area_size += fi->ret_type->type->size;
-    fi->data = scm_realloc (fi->data, cif_n_values_size + data_area_size);
-  }
-
-  values = (void **)((unsigned char *)fi->data + sizeof(ffi_cif));
+  data = alloca (fi->data_area_size);
+  values = (void **) data;
 
   error.status = GW_ERR_NONE;
   
-  offset = cif_n_values_size;
+  offset = fi->nargs * sizeof (void *);
   for (i = 0; i < fi->nargs; i++)
   {
-    values[i] = (void *)((unsigned char *)fi->data + offset);
+    values[i] = (void *) ((unsigned char *) data + offset);
     if (!SCM_CONSP (args))
       scm_wrong_num_args (smob);
     fi->arg_types[i]->from_scm (values[i], &fi->arg_typespecs[i],
@@ -550,10 +581,9 @@ dynproc_smob_apply(SCM smob, SCM args)
     offset += fi->arg_types[i]->type->size;
     args = SCM_CDR (args);
   }
-  rvalue = (void *)((unsigned char *)fi->data + offset);
+  rvalue = (void *) ((unsigned char *) data + offset);
   
-  cif = (ffi_cif *)fi->data;
-  ffi_call (cif, fi->proc, rvalue, values);
+  ffi_call (fi->cif, fi->proc, rvalue, values);
 
   result = fi->ret_type->to_scm (rvalue, &fi->ret_typespec, &error);
   if (error.status != GW_ERR_NONE)
@@ -613,16 +643,16 @@ gw_runtime_init (void)
     k_procedure = scm_permanent_object(
             scm_c_make_keyword ("procedure"));
     k_name = scm_permanent_object( scm_c_make_keyword ("name"));
-    k_default = scm_permanent_object( scm_c_make_keyword ("default"));
+    k_default = scm_permanent_object (scm_c_make_keyword ("default"));
     sym_object = scm_permanent_object (scm_str2symbol("object"));
     sym_args = scm_permanent_object (scm_str2symbol("args"));
     
     dynproc_smob_tag = scm_make_smob_type("%gw:dynamic-procedure",
                                           sizeof(GWFunctionInfo *));
-    scm_set_smob_free(dynproc_smob_tag, NULL);
-    scm_set_smob_apply(dynproc_smob_tag,
-                       (SCM (*)())dynproc_smob_apply, 0, 0, 1);
-    scm_set_smob_print(dynproc_smob_tag, dynproc_smob_print);
+    scm_set_smob_free (dynproc_smob_tag, NULL);
+    scm_set_smob_apply (dynproc_smob_tag,
+                        (SCM (*)())dynproc_smob_apply, 0, 0, 1);
+    scm_set_smob_print (dynproc_smob_tag, dynproc_smob_print);
     
     initialized = 1;
   }
