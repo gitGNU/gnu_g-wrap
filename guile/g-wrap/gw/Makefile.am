@@ -2,6 +2,7 @@ include $(top_srcdir)/common.mk
 
 gwmoduledir = $(gwrapmoduledir)/gw
 gwmodule_DATA = standard.scm 
+gwrapmodule_DATA =
 
 GUILE_FLAGS =
 CLEANFILES =
@@ -38,16 +39,16 @@ libgw_guile_gw_glib_la_LDFLAGS = -module $(GUILE_LDFLAGS)
 libgw_guile_gw_glib_la_LIBADD = ../libgwrap-guile-runtime.la $(GLIB_LIBS)
 libgw_guile_gw_glib_la_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
 
-LIBGW_GW_GLIB_GWGEN = $(addprefix glib, .h .c .scm) 
+LIBGW_GW_GLIB_GWGEN = $(addprefix gw-glib, .h .c .scm) 
 
 ${LIBGW_GW_GLIB_GWGEN}: $(top_srcdir)/guile/g-wrap/gw-glib-spec.scm
 	guile $(GUILE_FLAGS) -c \
           $(SETGWPATH)"(use-modules (g-wrap)) \
 	               (use-modules (g-wrap guile)) \
                        (use-modules (g-wrap gw-glib-spec)) \
-                       (generate-wrapset 'guile 'gw-glib \"glib\")"
+                       (generate-wrapset 'guile 'gw-glib \"gw-glib\")"
 
-gwmodule_DATA += glib.scm
+gwrapmodule_DATA += gw-glib.scm
 CLEANFILES += $(LIBGW_GW_GLIB_GWGEN)
 
 endif # HAVE_GLIB

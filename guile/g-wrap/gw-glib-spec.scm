@@ -1,5 +1,5 @@
 ;;;; File: gw-glib-spec.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004-2005 Andreas Rottmann
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -48,7 +48,7 @@
    "#include <glib.h>\n"))
 
 (define-method (initialize (ws <glib-wrapset>) initargs)
-  (next-method ws (append '(#:module (g-wrap gw glib)) initargs))
+  (next-method ws (append '(#:module (g-wrap gw-glib)) initargs))
   
   (add-type! ws (make <glist-of-type> #:name 'glist-of
                       #:type-cname "GList*" #:func-prefix "g_list"))
