@@ -1,11 +1,14 @@
 
+gwrapmoduledir = @GUILEMODDIR@/g-wrap/gw
+
+gwrapmodule_DATA = standard.scm
+
 GUILE_FLAGS =
 
 lib_LTLIBRARIES = libgw-guile-standard.la
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile
 
-libs = 
 nodist_libgw_guile_standard_la_SOURCES = standard.c
 libgw_guile_standard_la_LDFLAGS = -module $(GUILE_LDFLAGS)
 libgw_guile_standard_la_LIBADD = ../libgwrap-guile-runtime.la

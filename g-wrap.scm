@@ -48,6 +48,7 @@
    depends-on!
    add-type! add-constant! add-function!
    add-cs-before-includes! add-cs-global-declarator! add-cs-definer!
+   add-client-cs-global-declarator! add-cs-definer!
    add-cs-declarator! add-cs-initializer!
    wrap-function! wrap-constant!
 
@@ -77,7 +78,9 @@
 
 (define-class <gw-type> (<gw-item>)
   (name #:getter name #:init-keyword #:name)
-  (class-name #:accessor class-name #:init-value #f))
+  (class-name #:accessor class-name
+              #:init-keyword #:class-name
+              #:init-value #f))
 
 (define-method (write (type <gw-type>) port)
   (let ((class (class-of type)))
@@ -190,6 +193,7 @@
 
   (cs-before-includes #:init-value '())
   (cs-global-declarators #:init-value '())
+  (cs-client-global-declarators #:init-value '())
   (cs-definers #:init-value '())
   (cs-declarators #:init-value '())
   (cs-initializers #:init-value '()))
@@ -293,9 +297,15 @@
   (slot-set! ws 'cs-global-declarators
              (cons cg (slot-ref ws 'cs-global-declarators))))
 
+(define-method (add-client-cs-global-declarator! (ws <gw-wrapset>)
+                                                 (cg <procedure>))
+  (slot-set! ws 'cs-client-global-declarators
+             (cons cg (slot-ref ws 'cs-client-global-declarators))))
+
 ;; High-level interface -- should move low-level stuff to core and
 ;; only offer this as API
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)
+  ;;(format #t "wrapping ~S\n" args)
   (let-keywords
       args #f (name returns c-name arguments description generic-name)
       (add-function!
@@ -409,6 +419,13 @@
                     (render (cg lang) port))
                   (reverse (slot-ref wrapset 'cs-before-includes)))
 
+        (for-each
+         (lambda (ws)
+           (for-each (lambda (cg)
+                       (render (cg lang) port))
+                     (reverse (slot-ref ws 'cs-client-global-declarators))))
+         (wrapsets-depended-on wrapset))
+        
         (for-each (lambda (cg)
                     (render (cg lang) port))
                   (reverse (slot-ref wrapset 'cs-global-declarators)))

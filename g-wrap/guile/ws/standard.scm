@@ -259,6 +259,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 ;;;
 ;;; <gw-ctype-mchars>
 ;;;
+
 (define-method (wrap-value-cg (lang <gw-guile>)
                               (type <gw-ctype-mchars>)
                               (value <gw-value>)
@@ -268,6 +269,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      "else "
      (scm-var  value) " = scm_makfrom0str( " (var value) ");\n"))
 
+;; FIMXE: check null-ok
 (define-method (unwrap-value-cg (lang <gw-guile>)
                                 (type <gw-ctype-mchars>)
                                 (value <gw-value>)

@@ -67,6 +67,7 @@
   (list func-call-code ";\n"))
 
 (define-class <gw-ctype-mchars> (<gw-rti-type>))
+(class-slot-set! <gw-ctype-mchars> 'allowed-options '(null-ok))
 
 (define-method (destruct-value-cg (lang <gw-language>)
                                   (type <gw-ctype-mchars>)
@@ -83,8 +84,7 @@
 (define-class <gw-wct> (<gw-rti-type>))
 
 (define-method (initialize (wct <gw-wct>) initargs)
-  (next-method)
-  (slot-set! wct 'ffspec 'pointer))
+  (next-method wct (cons #:ffspec (cons 'pointer initargs))))
 
 (define-method (make-typespec (type <gw-wct>) (options <list>))
   (let ((remainder options))

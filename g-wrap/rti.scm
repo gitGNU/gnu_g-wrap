@@ -45,6 +45,8 @@
        '()))))
 
 (define-class <gw-rti-type> (<gw-type>)
+  (allowed-options #:init-keyword #:options #:init-value '()
+                   #:allocation #:each-subclass)
   (c-type-name #:getter c-type-name #:init-keyword #:c-type-name)
   (c-const-type-name #:init-keyword #:c-const-type-name)
   (ffspec #:getter ffspec #:init-keyword #:ffspec)
@@ -107,19 +109,21 @@
     (if (and (memq 'caller-owned remainder)
              (memq 'callee-owned remainder))
         (throw 'gw:bad-typespec
-               "Bad <gw-rti-type> options (caller and callee owned!)."
+               (format #f "Bad rti options for ~S (caller and callee owned!)." type)
                options))
     (if (not (or (memq 'caller-owned remainder)
                  (memq 'callee-owned remainder)))
         (throw 'gw:bad-typespec
-               (format #t "Bad <gw-rti-type> options for type ~S (must be caller or callee owned!)." type)
+               (format #f "Bad options for ~S (must be caller or callee owned!)." type)
                options))
     (set! remainder (delq 'caller-owned remainder))
     (set! remainder (delq 'callee-owned remainder))
+    (for-each (lambda (opt) (set! remainder (delq! opt remainder)))
+              (slot-ref type 'allowed-options))
     (if (null? remainder)
         (make <gw-typespec> #:type type #:options options)
         (throw 'gw:bad-typespec
-               "Bad <gw-rti-type> options - spurious options: " remainder))))
+               (format #f "Bad options for ~S - spurious options ~S." type remainder)))))
 
 (define-class <gw-simple-rti-type> (<gw-rti-type>))
 
@@ -127,7 +131,8 @@
   (if (null? options)
       (make <gw-typespec> #:type type #:options '(caller-owned))
       (throw 'gw:bad-typespec
-             "Bad <gw-simple-rti-type> options - spurious options: " options)))
+             (format #f "Bad options for ~S - spurious options ~S."
+                     type options))))
 
 
 (define-method (add-type-rti-cg (wrapset <gw-rti-wrapset>)
