@@ -115,5 +115,7 @@
   (add-type! wrapset
              (make <gw-ctype-mchars>
                #:name 'mchars
-               #:c-type-name "char *" #:c-const-type-name "const char *"
+               #:c-type-name "char *"
+               ;; We don't use const, since free() will be called
+               #:c-const-type-name "char *" 
                #:ffspec 'pointer)))

@@ -1,9 +1,47 @@
 (define-module (g-wrap util)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-34)
+  #:use-module (srfi srfi-35)
+  #:use-module (oop goops)
   
   #:export
-  (flatten-display flatten-string separate-by any-str->c-sym-str
+  (&gw-bad-element
+   element tree
+
+   <gw-cs-labels>
+   goto-cg label-cg
+   
+   guard/handle flatten-display flatten-string separate-by any-str->c-sym-str
    gen-c-tmp str-translate))
+
+;;; Condition stuff
+
+(define-class &gw-bad-element (&error)
+  (element #:getter element)
+  (tree #:getter tree))
+
+(define-macro (guard/handle . body)
+  (let ((cond-name (gensym)))
+    `(guard
+      (,cond-name
+       (else (handle-condition ,cond-name)))
+      ,@body)))
+
+;;; Support for C labels - declare them only when needed
+
+(define-class <gw-cs-labels> ()
+  (labels #:init-value '()))
+
+(define-method (goto-cg (self <gw-cs-labels>) label)
+  (slot-set! self 'labels (cons label (slot-ref self 'labels)))
+  (list "goto gw__" label ";\n"))
+
+(define-method (label-cg (self <gw-cs-labels>) label)
+  (if (member label (slot-ref self 'labels))
+      (list "gw__" label ":\n")
+      '()))
+
+;;; Output routines
 
 (define (flatten-display lst port)
   (define (flatten lst port)
@@ -23,7 +61,7 @@
   (catch 'bad-element
     (lambda () (flatten lst port))
     (lambda (key elt)
-      (error  "flatten-display: bad element found in the tree " lst elt))))
+      (raise (condition (&gw-bad-element (tree lst) (element elt)))))))
 
 (define (flatten-string lst)
   (cond ((null? lst) "")
@@ -40,6 +78,9 @@
 ;;	 (flatten-string ((lst 'output))))
 	(else
 	 (error "flatten-string: bad element found in the tree " lst))))
+
+
+;;; String utilities
 
 (define (separate-by lst separator)
   (cond ((null? lst) '())

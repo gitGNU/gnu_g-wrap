@@ -296,5 +296,6 @@ example (gw:wcp-is-a? <gw:void*> foo)")
                                   (value <gw-value>)
                                   error-var)
   (let ((c-var (var value)))
-    (if-typespec-option value 'caller-owned
-                        (list "if (" c-var ") free (" c-var ");\n"))))
+    (if-typespec-option
+     value 'caller-owned
+     (list "if (" c-var ") free (" c-var ");\n"))))

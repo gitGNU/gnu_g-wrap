@@ -81,6 +81,8 @@ AC_SUBST(LIBFFI_LIBS)
 
 dnl Guile
 GUILE_FLAGS
+GUILE_MODULE_AVAILABLE(HAVE_SRFI_34, [(srfi srfi-34)])
+AM_CONDITIONAL(HAVE_SRFI_34, test "$HAVE_SRFI_34" = yes)
 
 AC_OUTPUT([Makefile
            g-wrap/Makefile

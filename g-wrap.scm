@@ -5,10 +5,14 @@
   #:use-module (ice-9 receive)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-34)
+  #:use-module (srfi srfi-35)
   #:use-module (g-wrap util)
   
   #:export
-  (<gw-language>
+  (&gw-bad-typespec
+   
+   <gw-language>
 
    <gw-item>
    description
@@ -68,6 +72,39 @@
    generate-wrapset
    ))
 
+;;; Conditions
+
+(define-class &gw-bad-typespec (&error &message)
+  (spec #:accessor typespec-form #:init-value #f)
+  (type #:accessor type #:init-value #f)
+  (options #:accessor typespec-options #:init-value #f))
+
+(define-class &gw-stacked (&message)
+  (next #:accessor next-condition))
+
+(define-method (format-error msg . args)
+  (display "g-wrap: " (current-error-port))
+  (apply format (current-error-port) msg args)
+  (newline (current-error-port)))
+
+(define-method (handle-condition (c &gw-stacked))
+  (format-error "~A:" (condition-message c))
+  (handle-condition (next-condition c)))
+
+(define-method (handle-condition (c &gw-bad-typespec))
+  (cond
+   ((type c)
+    (format-error "bad typespec `~A ~A': ~A"
+                  (type c) (typespec-options c) (condition-message c)))
+   (else
+    (format-error "bad typespec `~A': ~A" (typespec-form c)
+                  (condition-message c)))))
+
+(define-method (handle-condition (c &gw-bad-element))
+  (format-error "bad element ~S in tree ~S" (element c) (tree c)))
+
+;;;
+
 (define-class <gw-language> ()
   (description #:getter description #:init-keyword #:description))
 
@@ -83,7 +120,7 @@
                #:init-keyword #:description
                #:init-value #f))
 
- ;; Upgrade the GOOPS class-name procedure
+;; Upgrade the GOOPS class-name procedure
 (define class-name (ensure-accessor class-name))
 
 ;;;
@@ -97,7 +134,10 @@
               #:init-value #f)
   (needs-result-var? #:getter needs-result-var?
                      #:init-keyword #:needs-result-var?
-                     #:init-value #t))
+                     #:init-value #t)
+  (arguments-visible? #:getter arguments-visible?
+                      #:init-keyword #:arguments-visible?
+                      #:init-value #t))
 
 (define-method (write (type <gw-type>) port)
   (let ((class (class-of type)))
@@ -115,9 +155,10 @@
 (define-method (make-typespec (type <gw-type>) (options <list>))
   (if (null? options)
       (make <gw-typespec> #:type type)
-      (throw
-       'gw:bad-typespec #f
-       (format #f "bad typespec ~S -- a typespec may only be a symbol by default" options))))
+      (raise (condition
+              (&gw-bad-typespec
+               (type type) (options options)
+               (message "typespec may not have options by default"))))))
 
 ;;;
 ;;; Values
@@ -155,14 +196,13 @@
                                 (type <gw-type>)
                                 (param <gw-value>)
                                 status-var)
-   (unwrap-value-cg lang type param status-var))
+  (unwrap-value-cg lang type param status-var))
 
 ;; What was that for?
-;    "if (" `(gw:error? ,status-var type) ")"
-;    `(gw:error ,status-var arg-type)
-;    "else if (" `(gw:error? ,status-var range) ")"
-;    `(gw:error ,status-var arg-range)))
-
+;;    "if (" `(gw:error? ,status-var type) ")"
+;;    `(gw:error ,status-var arg-type)
+;;    "else if (" `(gw:error? ,status-var range) ")"
+;;    `(gw:error ,status-var arg-range)))
 
 (define-method (pre-call-result-cg (lang <gw-language>)
                                    (type <gw-type>)
@@ -195,6 +235,9 @@
 
 (define-class <gw-param> (<gw-value>)
   (number #:getter number #:init-keyword #:number))
+
+(define-method (visible? (self <gw-param>))
+  (>= (number self) 0))
 
 (define-class <gw-typespec> ()
   (type #:init-keyword #:type #:getter type)
@@ -253,11 +296,11 @@
   (name #:getter name #:init-keyword #:name)
   (default #:getter default-value #:init-keyword #:default #:init-value #f))
 
-(define-method (visible? (arg <gw-argument>))
-  #t) ;; FIXME: implement in terms of type visibility
-
 (define-method (type (arg <gw-argument>))
   (type (typespec arg)))
+
+(define-method (visible? (arg <gw-argument>))
+  (arguments-visible? (type arg)))
 
 ;;; Constants
 
@@ -294,9 +337,9 @@
    (if (not language)
        (set! language
              (any (lambda (c) (class-slot-ref c 'language))
-                           (filter
-                            (lambda (c) (not (eq? <object> c)))
-                            (class-direct-supers class)))))
+                  (filter
+                   (lambda (c) (not (eq? <object> c)))
+                   (class-direct-supers class)))))
    (class-slot-set! class 'language language)
 
    (if (and language id)
@@ -388,9 +431,10 @@
   (let* ((form (cond
                 ((symbol? spec) (list spec))
                 ((list? spec) spec)
-                (else (throw
-                       'gw:bad-typespec
-                       (format #f "neither list nor symbol (~S)" spec)))))
+                (else (raise (condition
+                              (&gw-bad-typespec
+                               (spec spec)
+                               (message "neither list nor symbol")))))))
          (type (lookup-type wrapset (car form))))
     (if type
         (make-typespec
@@ -402,40 +446,60 @@
                  ((symbol? elt)
                   elt)
                  (else
-                  (throw 'gw:bad-typespec
-                         (format #f "found bad option ~S" elt)))))
+                  (raise (condition
+                          (&gw-bad-typespec
+                           (type type) (options (cdr form))
+                           (message (format #f "bad option ~S" elt))))))))
               (cdr form)))
-        (throw
-         'gw:bad-typespec
-         (format #f "no type ~S in wrapset ~S" (car form) (name wrapset))))))
+        (raise (condition
+                (&gw-bad-typespec
+                 (type (car form)) (options (cdr form))
+                 (message (format #f "no such type in wrapset `~S'"
+                                  (name wrapset)))))))))
 
 (define (resolve-arguments wrapset argspecs)
   (define (argument i spec)
     (if (not (and (list? spec) (>= (length spec) 2)))
-        (throw 'gw:bad-typespec
-               (format #f "argument spec must be a (at least) two-element list (got ~S)"
-                       spec)))
+        (raise (condition
+                (&gw-bad-typespec
+                 (spec spec)
+                 (message
+                  "argument spec must be a (at least) two-element list")))))
     (let ((ts (car spec)))
-      (apply make <gw-argument>
-             #:number i
-             #:name (cadr spec)
-             #:typespec (resolve-typespec wrapset ts)
-             (fold
-              (lambda (spec rest)
-                (if (not (and (list? spec) (= (length spec) 2)))
-                    (throw 'gw:bad-typespec
-                           (format #f "invalid argument option ~S") spec))
-                (case (first spec)
-                  ((default) (cons #:default (cons (second spec) rest)))
-                  (else
-                   (throw 'gw:bad-typespec
-                          (format #f "unknown argument option ~S" spec)))))
-              '() (cddr spec)))))
+      (guard
+       (c
+        (#t (raise (condition
+                    (&gw-stacked
+                     (next c)
+                     (message (format #f "while processing argument `~S'"
+                                      (second spec))))))))
+       (apply make <gw-argument>
+              #:number i
+              #:name (second spec)
+              #:typespec (resolve-typespec wrapset ts)
+              (fold
+               (lambda (opt rest)
+                 (if (not (and (list? opt) (= (length opt) 2)))
+                     (raise (condition
+                             (&gw-bad-typespec
+                              (spec spec)
+                              (message "invalid argument option ~S")) opt)))
+                 (case (first opt)
+                   ((default) (cons #:default (cons (second opt) rest)))
+                   (else
+                    (raise
+                     (condition
+                      (&gw-bad-typespec
+                       (spec spec)
+                       (message
+                        (format #f "unknown argument option ~S" opt))))))))
+               '() (cddr spec))))))
+  
   (let loop ((i 0) (specs argspecs) (args '()))
     (if (null? specs)
         (reverse args)
-          (loop (+ i 1) (cdr specs)
-                (cons (argument i (car specs)) args)))))
+        (loop (+ i 1) (cdr specs)
+              (cons (argument i (car specs)) args)))))
 
 (define-method (add-cs-before-includes! (ws <gw-wrapset>) (cg <procedure>))
   (slot-set! ws 'cs-before-includes
@@ -473,24 +537,32 @@
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)
   ;;(format #t "wrapping ~S\n" args)
   (let-keywords
-      args #f (name returns c-name arguments description generic-name)
-      (add-function!
-       wrapset (make (slot-ref wrapset 'function-class)
-                 #:name name
-                 #:returns (resolve-typespec wrapset returns)
-                 #:c-name c-name
-                 #:arguments (resolve-arguments wrapset arguments)
-                 #:description description
-                 #:generic-name generic-name))))
+   args #f (name returns c-name arguments description generic-name)
+   (guard/handle
+    (guard
+     (c
+      (#t (raise
+           (condition
+            (&gw-stacked
+             (next c)
+             (message (format #f "while processing function `~S'" name)))))))
+     (add-function!
+      wrapset (make (slot-ref wrapset 'function-class)
+                #:name name
+                #:returns (resolve-typespec wrapset returns)
+                #:c-name c-name
+                #:arguments (resolve-arguments wrapset arguments)
+                #:description description
+                #:generic-name generic-name))))))
 
 (define-method (wrap-constant! (wrapset <gw-wrapset>) . args)
   (let-keywords
    args #f (name type value description)
    (add-constant! wrapset (make <gw-constant>
-                               #:name name
-                               #:typespec (resolve-typespec wrapset type)
-                               #:value value
-                               #:description description))))
+                            #:name name
+                            #:typespec (resolve-typespec wrapset type)
+                            #:value value
+                            #:description description))))
 
 ;;;
 ;;; Wrapset registry
@@ -579,122 +651,145 @@
      (slot-ref ws 'functions))
     (hash-fold (lambda (key val rest) (cons val rest)) '() client-type-hash)))
 
-(define-method (generate-wrapset (lang <gw-language>)
-                                 (wrapset <gw-wrapset>)
-                                 (basename <string>))
-  (let ((wrapset-source-name (string-append basename ".c"))
-        (wrapset-name-c-sym (any-str->c-sym-str
+(define (generate-wrapset-cs lang wrapset port)
+  (define (dsp-list lst)
+    (for-each (lambda (s) (display s port)) lst))
+  
+  (let ((wrapset-name-c-sym (any-str->c-sym-str
                              (symbol->string (name wrapset))))
         (client-types (compute-client-types wrapset)))
 
     ;;(format #t "client types: ~S\n" client-types)
+    (dsp-list
+     (list
+      "/* Generated by G-Wrap-TNG: an experimental wrapper engine */\n"
+      "\n"))
     
-    (call-with-output-file wrapset-source-name
-      (lambda (port)
+    (for-each (lambda (cg)
+                (render (cg lang) port))
+              (reverse (slot-ref wrapset 'cs-before-includes)))
+    
+    (for-each
+     (lambda (ws)
+       (for-each (lambda (cg)
+                   (render (cg lang) port))
+                 (reverse (slot-ref ws 'cs-client-before-includes))))
+     (wrapsets-depended-on wrapset))
+    
+    (for-each
+     (lambda (ws)
+       (for-each (lambda (cg)
+                   (render (cg lang) port))
+                 (reverse (slot-ref ws 'cs-client-global-declarators))))
+     (wrapsets-depended-on wrapset))
+    
+    (for-each (lambda (cg)
+                (render (cg lang) port))
+              (reverse (slot-ref wrapset 'cs-global-declarators)))
+    
+    (dsp-list
+     (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
+    
+    (for-each (lambda (cg)
+                (render (cg lang) port))
+              (reverse (slot-ref wrapset 'cs-definers)))
 
-        (define (dsp-list lst)
-          (for-each (lambda (s) (display s port)) lst))
+    ;; Global client declarations and definitions
+    (for-each
+     (lambda (type)
+       (render (client-global-declarations-cg lang wrapset type) port))
+     client-types)
+    
+    (for-each
+     (lambda (type)
+       (render (client-global-definitions-cg lang wrapset type) port))
+     client-types)
 
-        (dsp-list
-         (list
-          "/* Generated by G-Wrap-TNG: an experimental wrapper engine */\n"
-          "\n"))
-        
-        (for-each (lambda (cg)
-                    (render (cg lang) port))
-                  (reverse (slot-ref wrapset 'cs-before-includes)))
+    ;; Global declarations and definitions
+    (let ((items (reverse (slot-ref wrapset 'items))))
+      (for-each
+       (lambda (item)
+         (render (global-declarations-cg lang wrapset item) port))
+       items)
+      
+      (for-each
+       (lambda (item)
+         (render (global-definitions-cg lang wrapset item) port))
+       items))
 
-        (for-each
-         (lambda (ws)
-           (for-each (lambda (cg)
-                       (render (cg lang) port))
-                     (reverse (slot-ref ws 'cs-client-before-includes))))
-         (wrapsets-depended-on wrapset))
-        
-        (for-each
-         (lambda (ws)
-           (for-each (lambda (cg)
-                       (render (cg lang) port))
-                     (reverse (slot-ref ws 'cs-client-global-declarators))))
-         (wrapsets-depended-on wrapset))
-        
-        (for-each (lambda (cg)
-                    (render (cg lang) port))
-                  (reverse (slot-ref wrapset 'cs-global-declarators)))
-        
-        (dsp-list
-         (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
-        
-        (for-each (lambda (cg)
-                    (render (cg lang) port))
-                  (reverse (slot-ref wrapset 'cs-definers)))
+    ;; The initialization function
+    (dsp-list
+     (list
+      "void\n"
+      "gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena gw__arena) {\n"
+      "  static int gw_wrapset_initialized = 0;\n"
+      "\n"))
 
-        ;; Global client declarations and definitions
-        (for-each
-         (lambda (type)
-           (render (client-global-declarations-cg lang wrapset type) port))
-         client-types)
-        
-        (for-each
-         (lambda (type)
-           (render (client-global-definitions-cg lang wrapset type) port))
-         client-types)
+    (for-each (lambda (cg)
+                (render (cg lang) port))
+              (reverse (slot-ref wrapset 'cs-declarators)))
 
-        ;; Global declarations and definitions
-        (let ((items (reverse (slot-ref wrapset 'items))))
-          (for-each
-           (lambda (item)
-             (render (global-declarations-cg lang wrapset item) port))
-           items)
-        
-          (for-each
-           (lambda (item)
-             (render (global-definitions-cg lang wrapset item) port))
-           items))
+    (dsp-list
+     (list
+      "  if(gw_wrapset_initialized)\n"
+      "   return;\n"
+      "\n"))
+    
+    (output-initializer-cgs
+     wrapset lang
+     (append
+      (reverse (slot-ref wrapset 'cs-initializers))
+      (map (lambda (item)
+             (lambda (lang error-var)
+               (client-initializations-cg lang wrapset item error-var)))
+           client-types)
+      (map (lambda (item)
+             (lambda (lang error-var)
+               (initializations-cg lang wrapset item error-var)))
+           (receive (types others)
+               (partition! (lambda (item)
+                             (is-a? item <gw-type>))
+                           (reverse (slot-ref wrapset 'items)))
+             (append! types others)))
+      (slot-ref wrapset 'cs-init-finalizers))
+     port)
+    
+    (dsp-list
+     (list
+      "    gw_wrapset_initialized = 1;\n"
+      "}\n"))))
 
-        ;; The initialization function
-        (dsp-list
-         (list
-          "void\n"
-          "gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena gw__arena) {\n"
-          "  static int gw_wrapset_initialized = 0;\n"
-          "\n"))
-
-        (for-each (lambda (cg)
-                    (render (cg lang) port))
-                  (reverse (slot-ref wrapset 'cs-declarators)))
-
-        (dsp-list
-         (list
-          "  if(gw_wrapset_initialized)\n"
-          "   return;\n"
-          "\n"))
-        
-        (output-initializer-cgs
-         wrapset lang
-         (append
-          (reverse (slot-ref wrapset 'cs-initializers))
-          (map (lambda (item)
-                 (lambda (lang error-var)
-                   (client-initializations-cg lang wrapset item error-var)))
-               client-types)
-          (map (lambda (item)
-                (lambda (lang error-var)
-                  (initializations-cg lang wrapset item error-var)))
-              (receive (types others)
-                  (partition! (lambda (item)
-                                (is-a? item <gw-type>))
-                              (reverse (slot-ref wrapset 'items)))
-                (append! types others)))
-          (slot-ref wrapset 'cs-init-finalizers))
-          port)
-        
-        (dsp-list
-         (list
-          "    gw_wrapset_initialized = 1;\n"
-          "}\n"))))))
-
-
+  
+(define-method (generate-wrapset (lang <gw-language>)
+                                 (wrapset <gw-wrapset>)
+                                 (basename <string>))
+  (let ((wrapset-source-name (string-append basename ".c"))
+        (client-types (compute-client-types wrapset))
+        (had-errors? #f))
+    
+    (lazy-catch #t
+      (lambda () 
+        (guard
+         (c
+          ((condition-has-type? c &error)
+           (set! had-errors? #t)
+           (format #t "HAD ERRORS\n")
+           (handle-condition c)))
+         
+         (call-with-output-file wrapset-source-name
+           (lambda (port)
+             (generate-wrapset-cs lang wrapset port)))))
+      
+      (lambda (key . args)
+        ;; here we handle non-conditon errors (e.g. user cg code
+        ;; errors) by passing the exception thru to the top level
+        (delete-file wrapset-source-name)
+        (apply throw key args)))
+    
+    (if had-errors?
+        (begin
+          (delete-file wrapset-source-name)
+          (exit 1)))))
 
 (define-method (global-declarations-cg (lang <gw-language>)
                                        (wrapset <gw-wrapset>)
@@ -744,7 +839,7 @@
 
 ;; (gw:error status-var type ...)
 
-(define (expand-gw-error args param allowed-errors top-form)
+(define (expand-gw-error args param allowed-errors top-form labels)
   ;; args will be something like (status-var err-sym)
 
   (if (or (null? args) (null? (cdr args)))
@@ -809,9 +904,9 @@
         (error "unexpected error type in gw:error")))
      
      (if param
-         (list "   goto gw__post_call_arg_" (number param) ";\n")
+         (goto-cg labels (format #f "post_call_arg_~A" (number param)))
          "")
-         
+     
      "}\n")))
 
 (define (has-error-form? tree)
@@ -821,7 +916,7 @@
           (any has-error-form? tree))
       #f))
    
-(define (expand-special-forms tree param allowed-errors)
+(define* (expand-special-forms tree param allowed-errors #:key labels)
   (define (expand-helper tree param allowed-errors top-form)
     (cond
      ((null? tree) tree)
@@ -849,7 +944,7 @@
           (else
            (error "improper use of gw:error?"))))
         ((gw:error)
-         (expand-gw-error (cdr tree) param allowed-errors top-form))
+         (expand-gw-error (cdr tree) param allowed-errors top-form labels))
         (else
          (map
           (lambda (elt) (expand-helper elt param allowed-errors top-form))

@@ -10,9 +10,7 @@
   #:id 'test-standard)
 
 (define-method (initialize (ws <guile-test-standard-wrapset>) initargs)
-  (next-method)
-
-  (set! (module ws) '(gw-test-standard))
+  (next-method ws (append '(#:module (gw-test-standard)) initargs))
   
   (add-cs-global-declarator! ws
                              (lambda (wrapset)
