@@ -1,4 +1,4 @@
-SUBDIRS = g-wrap test guile doc
+SUBDIRS = g-wrap test guile examples doc
 
 guilemoduledir = @GUILEMODDIR@
 nobase_guilemodule_DATA = g-wrap.scm
