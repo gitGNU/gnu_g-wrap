@@ -1,6 +1,0 @@
-#!/bin/sh
-
-export LD_LIBRARY_PATH="../libruntime-guile/.libs"
-exec guile -l $0 "$@"
-!#
-(set! %load-path (cons ".." %load-path))
