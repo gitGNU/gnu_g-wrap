@@ -42,7 +42,7 @@ noinst_LTLIBRARIES = \
 GUILE_FLAGS = 
 
 LOCALPWD=$(shell pwd)
-SETGWPATH = "(set! %load-path (cons \"$(top_srcdir)\" %load-path))"
+SETGWPATH = "(set! %load-path (cons \"$(top_builddir)\" (cons \"$(top_srcdir)\" %load-path)))"
 
 EXTRA_DIST += gw-guile
 EXTRA_DIST += test-gw-wct test-enumeration test-gtkobj test-gw-glib 
@@ -132,7 +132,7 @@ CLEANFILES += gw-test-parent.scm gw-test-parent.h gw-test-parent.c gw-test-paren
 
 noinst_LTLIBRARIES += libgw-test-child.la
 nodist_libgw_test_child_la_SOURCES = gw-test-child.c
-libgw_test_child_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic
+libgw_test_child_la_LDFLAGS = -rpath @libdir@ -module -export-dynamic
 libgw_test_child_la_LIBADD = ./libg-wrap-test-c-code.la \
 			     ../g-wrap/libgw-standard.la
 
@@ -151,7 +151,7 @@ CLEANFILES += gw-test-child.scm gw-test-child.h gw-test-child.c gw-test-child.ht
 
 if GW_HAVE_GLIB
 nodist_libgw_test_glib_la_SOURCES = gw-test-glib.c
-libgw_test_glib_la_LDFLAGS = -rpath $(libdir) -export-dynamic
+libgw_test_glib_la_LDFLAGS = -rpath @libdir@ -export-dynamic
 libgw_test_glib_la_LIBADD = \
   ../g-wrap/libgwrap-glib.la ../g-wrap/libgw-standard.la \
   ./libg-wrap-test-c-code.la ${GUILE_LIBS}
@@ -171,7 +171,7 @@ CLEANFILES += gw-test-glib.scm gw-test-glib.h gw-test-glib.c gw-test-glib.html g
 
 if GW_HAVE_GUILE_GTK
 nodist_libtest_gw_gtkobj_la_SOURCES = test-gw-gtkobj.c
-libtest_gw_gtkobj_la_LDFLAGS = -rpath $(libdir) -export-dynamic
+libtest_gw_gtkobj_la_LDFLAGS = -rpath @libdir@ -export-dynamic
 libtest_gw_gtkobj_la_LIBADD = ${GW_GUILE_GTK_LIBFLAGS_ADD}
 endif
 

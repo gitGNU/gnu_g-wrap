@@ -43,7 +43,7 @@ gwrapmodule_DATA= \
  output-file.scm \
  sorting.scm
 
-EXTRA_DIST += $(gwrapmodule_DATA) .cvsignore
+EXTRA_DIST += $(gwrapmodule_DATA)
 EXTRA_DIST += ${GW_GLIB_EXTRAS} ${GW_GUILE_GTK_EXTRAS}
 
 lib_LTLIBRARIES = \
@@ -58,6 +58,8 @@ lib_LTLIBRARIES = \
 AM_CFLAGS = -O2 -g -Wall -Werror \
  ${GW_GLIB_CFLAGS_ADD} \
  ${GW_GUILE_GTK_CFLAGS_ADD}
+
+GUILE_FLAGS =
 
 ################## libgwrap-wct section
 
@@ -75,11 +77,8 @@ libgw_wct_la_LDFLAGS = -rpath $(libdir) -module -export-dynamic @GUILE_LIBS@
 libgw_wct_la_LIBADD = libgwrap-wct.la
 
 gw-wct.scm gw-wct.c gw-wct.h gw-wct.html: gw-wct-spec.scm
-	guile -c \
-          ${SETGWPPATH}"(debug-enable 'backtrace) \
-                        (debug-enable 'debug) \
-                        (read-enable 'positions) \
-                        (use-modules (g-wrap)) \
+	guile $(GUILE_FLAGS) -c \
+          ${SETGWPPATH}"(use-modules (g-wrap)) \
                         (use-modules (g-wrap gw-wct-spec)) \
                         (gw:generate-wrapset \"gw-wct\")"
 
@@ -95,7 +94,7 @@ test_link_gw_wct_LDADD = ./libgw-wct.la
 ################## From ../g-wrapped 
 
 LOCALPWD=$(shell pwd)
-SETGWPPATH= "(set! %load-path (cons \"${LOCALPWD}/..\" %load-path))"
+SETGWPPATH= "(set! %load-path (cons \"$(top_builddir)\" (cons \"$(top_srcdir)\" %load-path)))"
 
 ################## (g-wrap gw-standard) section
 
@@ -136,7 +135,7 @@ libgw_glib_la_LIBADD = @GUILE_LIBS@
 endif
 
 gw-glib.scm gw-glib.c gw-glib.h gw-glib.html: gw-glib-spec.scm
-	guile -c \
+	guile $(GUILE_FLAGS) -c \
           ${SETGWPPATH}"(use-modules (g-wrap)) \
                         (use-modules (g-wrap gw-glib-spec)) \
                         (gw:generate-wrapset \"gw-glib\")"
@@ -158,7 +157,7 @@ libgw_gtk_la_LIBADD =
 endif
 
 gw-gtk.scm gw-gtk.c gw-gtk.h gw-gtk.html: gw-gtk-spec.scm
-	guile -c \
+	guile $(GUILE_FLAGS) -c \
           ${SETGWPPATH}"(use-modules (g-wrap)) \
                         (use-modules (g-wrap gw-gtk-spec)) \
                         (gw:generate-wrapset \"gw-gtk\")"

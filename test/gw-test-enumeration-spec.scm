@@ -1,8 +1,8 @@
 
 (define-module (gw-test-enumeration)
-  :use-module (g-wrap))
-
-(use-modules (g-wrap gw-standard-spec))
+  :use-module (g-wrap)
+  :use-module (g-wrap enumeration)
+  :use-module (g-wrap gw-standard-spec))
 
 (let ((ws (gw:new-wrapset "gw-test-enumeration")))
 

@@ -1,3 +1,22 @@
+2003-11-09  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* Makefile.am (guilemoduledir): Revert to configure-time setting.
+
+	* test/gw-test-enumeration-spec.scm (define-module): Explictly use
+	(g-wrap enumaration), as 1.7 doesn't support g-wrap.scm export
+	hackery/cirular dependency.
+
+	* test/Makefile.am, g-wrap/Makefile.am: VPATH build fixes.
+	
+	* g-wrap/Makefile.am (GUILE_FLAGS): New variable. Use $(GUILE_FLAGS)
+	for enabling the debugging evaluator.
+	(EXTRA_DIST): Don't distribute .cvsignore.
+
+	* g-wrap/Makefile.am: -rpath arguments should come from
+	configure-time, not compile-time.
+
+	* autogen-support.sh: Removed autoregen.sh generation.
+
 2003-11-08  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* autogen.sh, autogen-support.sh: Stolen from guile-gobject and
