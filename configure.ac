@@ -75,7 +75,7 @@ dnl Checks for required libraries
 dnl
 
 dnl libffi
-ar_WITH_LIB_LIBFFI
+ar_WITH_LIB_LIBFFI([], [AC_MSG_ERROR(G-Wrap needs libffi installed)])
 AC_SUBST(LIBFFI_CFLAGS)
 AC_SUBST(LIBFFI_LIBS)
 
