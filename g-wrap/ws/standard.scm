@@ -14,22 +14,22 @@
   (slot-set! wrapset 'use-limits? #t))
 
 (define-method (initialize (wrapset <gw-standard-wrapset>) initargs)
+
+  (define (before-includes lang)
+    (if (slot-ref wrapset 'use-limits?)
+        (list "#define _GNU_SOURCE\n")
+        '()))
+
+  (define (global-declarator lang)
+    (if (slot-ref wrapset 'use-limits?)
+        (list "#include <limits.h>\n")
+        '()))
   
   (next-method)
-  ;; FIXME: This does not consider client wrapsets yet
-  (add-cs-before-includes! wrapset 
-                           (lambda (lang)
-                             (if (slot-ref wrapset 'use-limits?)
-                                 (list "#define _GNU_SOURCE\n")
-                                 '())))
-  (add-cs-global-declarator!
-   wrapset
-   (lambda (lang)
-     (list
-      (if (slot-ref wrapset 'use-limits?)
-          (list "#include <limits.h>\n")
-          '())
-      "#include <string.h>\n")))
+
+  (add-cs-before-includes! wrapset before-includes)
+  (add-cs-global-declarator! wrapset global-declarator)
+  (add-client-cs-global-declarator! wrapset global-declarator)
   
   (add-type! wrapset
              (make <gw-ctype-void>

@@ -445,7 +445,7 @@ gw_guile_register_wrapset (GWWrapSet *ws)
     {
       SCM specializers = SCM_EOL;
       int j;
-      
+
       for (j = fi->n_args - 1; j >= 0; j--)
       {
         SCM klass = scm_class_top;
@@ -479,6 +479,7 @@ gw_guile_realloc (GWLangArena arena, void *mem, size_t size)
 {
   return scm_realloc (mem, size);
 }
+
 void
 gw_guile_runtime_init (void)
 {

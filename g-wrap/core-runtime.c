@@ -105,6 +105,8 @@ gw_wrapset_new (GWLangArena arena,
   ws->nfunctions = 0;
   ws->nfuncs_allocated = start_size;
   
+  ws->registered = 0;
+
   return ws;
 }
 
@@ -119,6 +121,13 @@ gw_wrapset_add_type (GWWrapSet *ws,
                      GWDestructValueFunc destruct_value)
 {
   GWTypeInfo *ti;
+  
+  assert (!ws->registered);
+
+  if (ws->nfunctions > 0)
+    gw_raise_error (ws->arena, "%gw:add-type",
+                    "Types must be added before functions in an RTI wrapset (%s)\n",
+                    name);
   
   if (ws->ntypes >= ws->ntypes_allocated)
   {
@@ -217,6 +226,8 @@ gw_wrapset_add_function (GWWrapSet *ws,
   ffi_status status;
   int i;
 
+  assert (!ws->registered);
+  
   if (ws->nfunctions >= ws->nfuncs_allocated)
   {
     ws->nfuncs_allocated <<= 1;
@@ -295,6 +306,10 @@ gw_wrapset_add_function (GWWrapSet *ws,
 void
 gw_wrapset_register (GWWrapSet *ws)
 {
+  assert (!ws->registered);
+  
+  ws->registered = 1;
+  
   gw_lang->register_wrapset (ws);
   
   if (nallocated_wrapsets <= nregistered_wrapsets)

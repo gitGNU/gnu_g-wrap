@@ -41,6 +41,9 @@
  ;; void is class of its, own, of course ;-)
 (define-class <gw-ctype-void> (<gw-simple-rti-type>))
 
+(define-method (initialize (void <gw-ctype-void>) initargs)
+  (next-method void (append '(#:needs-result-var? #f) initargs)))
+
 (define-method (unwrap-value-cg (lang <gw-language>)
                                 (type <gw-ctype-void>)
                                 (value <gw-value>) error-var)
@@ -59,11 +62,11 @@
   (error "Can't use void as an argument type."))
 
 ;; no result assignment.
-(define-method (call-ccg (lang <gw-language>)
-                         (type <gw-ctype-void>)
-                         (result <gw-value>)
-                         (func-call-code <gw-code>)
-                         status-var)
+(define-method (call-cg (lang <gw-language>)
+                        (type <gw-ctype-void>)
+                        (result <gw-value>)
+                        func-call-code
+                        status-var)
   (list func-call-code ";\n"))
 
 (define-class <gw-ctype-mchars> (<gw-rti-type>))
@@ -76,6 +79,21 @@
   (let ((c-var (var value)))
     (if-typespec-option value 'caller-owned
                         (list "if (" c-var ") free (" c-var ");\n"))))
+
+
+(define-method (global-declarations-cg (lang <gw-language>)
+                                       (wrapset <gw-wrapset>)
+                                       (mchars <gw-ctype-mchars>))
+  (list
+   (next-method)
+   "#include <string.h>\n"))
+
+
+(define-method (client-global-declarations-cg (lang <gw-language>)
+                                              (wrapset <gw-wrapset>)
+                                              (mchars <gw-ctype-mchars>))
+  (list "#include <string.h>\n"))
+  
 
 ;;;
 ;;; Wrapped C Types

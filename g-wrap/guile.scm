@@ -42,6 +42,19 @@
 (define guile (make <gw-guile>))
 
 
+(define-class <gw-guile-function> (<gw-function>)
+  wrapper-name wrapper-namestr)
+
+(define-method (initialize (func <gw-guile-function>) initargs)
+  (next-method)
+
+  (let ((c-name (c-name func)))
+    (slot-set! func 'wrapper-name
+               (gen-c-tmp (string-append c-name "_wrapper")))
+    (slot-set! func 'wrapper-namestr
+               (gen-c-tmp (string-append c-name "_namestr")))))
+
+
 
 ;;;
 ;;; Wrapset
@@ -52,8 +65,9 @@
   (module-exports #:getter module-exports #:init-value '()))
 
 (define-method (initialize (wrapset <gw-guile-wrapset>) initargs)
-  (next-method)
-    
+  (next-method wrapset (append (list #:function-class <gw-guile-function>)
+                               initargs))
+  
   (let ((wrapset-name-c-sym (any-str->c-sym-str
                              (symbol->string (name wrapset)))))
     
@@ -134,6 +148,207 @@
   (next-method)
   
   (add-module-export! wrapset (name func)))
+
+
+;;;
+;;; Function wrappers
+;;;
+
+;; hardcoded here, should be extracted from SCM_SUBR_MAX at configure-time
+(define *max-fixed-params* 9) 
+
+(define (make-c-wrapper-param-declarations param-list)
+  (let loop ((params param-list)
+	     (index  0))
+    (cond ((null? params) 
+	   '())
+	  ((and (= index *max-fixed-params*))
+	   "SCM gw__restargs ")
+	  (else
+	   (cons
+	    (list
+	     "SCM " "gw__scm_arg" (number->string index)
+	     (if (null? (cdr params))
+		 " "
+		 ", "))
+	    (loop (cdr params) (+ index 1)))))))
+
+(define (make-c-call-param-list lang params)
+  ;; TODO: Make tail-recursive
+  (cond ((null? params) '())
+        (else
+         (let ((param (car params)))
+           (cons
+            (list 
+             (call-arg-cg lang (type param) param)
+             (if (null? (cdr params))
+                 ""
+                 ", "))
+            (make-c-call-param-list lang (cdr params)))))))
+
+(define (actual-arguments function)
+  (map
+   (lambda (arg number)
+     (make <gw-param>
+       #:number number
+       #:typespec (typespec arg)
+       #:var (string-append "gw__c_arg" (number->string number))
+       #:wrapped-var (if (< number *max-fixed-params*)
+                         (string-append "&gw__scm_arg" (number->string number))
+                         (string-append
+                          "&gw__scm_extras[" (number->string
+                                              (- number
+                                                 *max-fixed-params*)) "]"))))
+   (arguments function)
+   (iota (argument-count function))))
+
+(define-method (global-declarations-cg (lang <gw-guile>)
+                                       (wrapset <gw-guile-wrapset>)
+                                       (function <gw-guile-function>))
+
+  (let* ((params (actual-arguments function))
+         (c-name (c-name function))
+         (return-typespec (return-typespec function))
+         (return-type (type return-typespec))
+         (result (make <gw-value>
+                   #:typespec return-typespec
+                   #:wrapped-var "&gw__scm_result"
+                   #:var "gw__result"))
+         (scm-params (fold (lambda (arg param rest)
+                             (if (visible? arg)
+                                 (cons param rest)
+                                 rest))
+                           '() (arguments function) params))
+         (scheme-sym (symbol->string (name function)))
+         (param-decl (make-c-wrapper-param-declarations scm-params))
+         (fn-c-wrapper (slot-ref function 'wrapper-name))
+         (fn-c-string (slot-ref function 'wrapper-namestr))
+         (nargs (length scm-params))
+         (error-var "gw__error"))
+    
+    (list
+     "static char * " fn-c-string " = \"" scheme-sym "\";\n"
+     "static SCM " fn-c-wrapper "  (" param-decl ") {\n"
+     "  SCM gw__scm_result = SCM_UNSPECIFIED;\n"
+     "  GWError gw__error = { GW_ERR_NONE, NULL, NULL };\n"
+     "  unsigned int gw__arg_pos = 0;\n"
+     
+     (if (needs-result-var? return-type)
+         (list
+          (c-type-name return-type return-typespec) " " (var result) ";\n")
+         '())
+     
+     (if (> nargs *max-fixed-params*)
+         (list "  SCM gw__scm_extras[" (- nargs *max-fixed-params*) "];\n")
+         '())
+     
+      "\n"
+      
+      (map
+       (lambda (x)
+         (list
+              (c-type-name (type x)) " " (var x) ";\n"))
+       params)
+      
+      (map
+       (lambda (param arg)
+         (list
+          (if (visible? arg)
+              (list
+               "/* ARG " (number param) " */\n"
+               "gw__arg_pos++;\n"
+               (if (> (number param) *max-fixed-params*)
+                   (list
+                    "if (SCM_NULLP (gw__restargs)) (" error-var ").status = GW_ERR_ARGC;\n"
+                    "else {\n"
+                    "  " (wrapped-var param) " = SCM_CAR(gw__restargs);\n"
+                    "    gw__restargs = SCM_CDR (gw__restargs);\n"
+                    "}\n")
+                   '())
+               "if ((" error-var ").status != GW_ERR_NONE)"
+               " goto " (if (zero? (number param))
+                            "gw__wrapper_exit;\n"
+                            (list "gw__post_call_arg_"
+                                  (- (number param) 1) ";\n")))
+              '())
+            "\n{\n"
+            (expand-special-forms
+             (pre-call-arg-cg lang (type param) param error-var)
+             param
+             '(memory misc type range arg-type arg-range))))
+       params (arguments function))
+      
+      "if ((" error-var ").status == GW_ERR_NONE)\n"
+      "{\n"
+      (expand-special-forms
+       (pre-call-result-cg lang return-type result error-var)
+       #f '(memory misc type range))
+      
+      (let* ((func-call-code
+              (list c-name " (" (make-c-call-param-list lang params) ")"))
+             (call-code (call-cg lang return-type result func-call-code
+                                 error-var)))
+        (if (not (no-op? call-code))
+            (list
+             "if ((" error-var ").status != GW_ERR_NONE)"
+             " goto " (if (zero? nargs)
+                          "gw__wrapper_exit;\n"
+                          (list "gw__post_call_arg_" (- nargs 1) ";\n"))
+             "SCM_DEFER_INTS;\n"
+             (expand-special-forms call-code #f '(memory misc type range))
+             "SCM_ALLOW_INTS;\n")
+            "/* no function call requested! */\n"))
+      
+      
+      "{\n"
+      (expand-special-forms
+       (post-call-result-cg lang return-type result error-var)
+       #f '(memory misc type range))
+      "}\n"
+      "}\n"
+      
+      ;; insert the post-call args code in the opposite order
+      ;; of the pre-call code
+      (map
+       (lambda (param arg)
+         (list
+          (if (visible? arg)
+              (list "  gw__post_call_arg_" (number param) ":\n")
+              '())
+          (list
+           "{\n" (expand-special-forms
+                  (post-call-arg-cg lang (type param) param error-var)
+                  #f '(memory misc type range))
+           "}\n")
+            "  { /* shut up warnings if no code */ int x = x; }\n"
+            "}\n"))
+       (reverse params) (arguments function))
+      
+      " gw__wrapper_exit:\n"
+      "  if(gw__error.status != GW_ERR_NONE)\n"
+      "    gw_handle_wrapper_error(NULL, &gw__error,\n"
+      "                             " fn-c-string ",\n"
+      "                             gw__arg_pos);\n"
+      "  return gw__scm_result;\n"
+      "}\n")))
+
+(define-method (initializations-cg (lang <gw-guile>)
+                                   (wrapset <gw-guile-wrapset>)
+                                   (function <gw-guile-function>)
+                                   status-var)
+  
+  (let* ((nargs (count visible? (arguments function)))
+         (use-extra-params? (> nargs *max-fixed-params*))
+         (fn-c-wrapper (slot-ref function 'wrapper-name))
+         (fn-c-string  (slot-ref function 'wrapper-namestr)))
+    (list
+     "    scm_c_define_gsubr(" fn-c-string ",\n"
+     "                     " (if use-extra-params?
+                               *max-fixed-params*
+                               nargs) ",\n"
+     "                     0,\n" 
+     "                     " (if use-extra-params? "1" "0") ",\n"
+     "                       (SCM (*) ()) " fn-c-wrapper ");\n")))
 
 
 ;;;
@@ -231,6 +446,8 @@
                                    (enum <gw-enumeration-type>)
                                    error-var)
   (list
+   (next-method)
+   
    "scm_c_define_gsubr (\"" (slot-ref enum 'val->int-scm-func) "\", 1, 0, 0,\n"
    "                      " (slot-ref enum 'val->int-c-func) ");\n"
    "scm_c_define_gsubr (\"" (slot-ref enum 'val->sym-scm-func) "\", 2, 0, 0,\n"
@@ -305,7 +522,7 @@
          (type-check (slot-ref type 'type-check)))
     (if type-check
         (list "if (!(" (replace-syms type-check `((scm-var . ,scm-var))) "))"
-              `(gw:error ,status-var type ,scm-var)
+              `(gw:error ,status-var type ,(wrapped-var value))
               "else {" unwrap-code "}")
         unwrap-code)))
 
@@ -377,13 +594,32 @@
   (let ((wct-var (slot-ref wct 'wct-var-name))
         (wcp-type-name (symbol->string (name wct))))
   (list
+   (next-method)
+   
    wct-var "= gw_wct_create(\"" wcp-type-name "\", NULL, NULL, NULL, NULL);\n"
    "scm_c_define(\"" wcp-type-name "\", " wct-var ");\n")))
+
+(define (wct-var-decl-cg wct)
+  (list "SCM "  (slot-ref wct 'wct-var-name) " = SCM_BOOL_F;\n"))
 
 (define-method (global-declarations-cg (lang <gw-guile>)
                                        (wrapset <gw-wrapset>)
                                        (wct <gw-guile-wct>))
-  (list "SCM "  (slot-ref wct 'wct-var-name) " = SCM_BOOL_F;\n"))
+  (wct-var-decl-cg wct))
+
+(define-method (client-global-declarations-cg (lang <gw-guile>)
+                                              (wrapset <gw-wrapset>)
+                                              (wct <gw-guile-wct>))
+  (wct-var-decl-cg wct))
+
+(define-method (client-initializations-cg (lang <gw-guile>)
+                                          (wrapset <gw-wrapset>)
+                                          (wct <gw-guile-wct>)
+                                          error-var)
+  (let ((wct-var (slot-ref wct 'wct-var-name))
+        (wcp-type-name (symbol->string (name wct))))
+    (list
+     "    " wct-var " = scm_c_eval_string(\"" wcp-type-name "\");\n")))
 
 
 ;;;

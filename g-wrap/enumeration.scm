@@ -17,9 +17,7 @@
 
   (slot-set! enum 'ffspec 'sint)) ;; Correct?
 
-(define-method (global-definitions-cg (lang <gw-language>)
-                                      (wrapset <gw-wrapset>)
-                                      (enum <gw-enumeration-type>))
+(define (val-array-cg enum)
   (list
    "static GWEnumPair " (slot-ref enum 'val-array-name) "[] = {\n"
    (map
@@ -30,8 +28,19 @@
          "  {" c-sym ", \"" scm-sym "\" },\n")))
     (slot-ref enum 'values))
    " { 0, NULL } };\n"))
+  
+(define-method (global-declarations-cg (lang <gw-language>)
+                                      (wrapset <gw-wrapset>)
+                                      (enum <gw-enumeration-type>))
+  (val-array-cg enum))
+
+(define-method (client-global-declarations-cg (lang <gw-language>)
+                                              (wrapset <gw-wrapset>)
+                                              (enum <gw-enumeration-type>))
+  (val-array-cg enum))
 
 (define-method (wrap-enum! (ws <gw-wrapset>) . args)
   (let ((type (apply make <gw-enumeration-type> args)))
     (add-type! ws type)
     type))
+

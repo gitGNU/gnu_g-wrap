@@ -19,21 +19,6 @@
 
   (set! (module wrapset) '(g-wrap gw standard))
   
-  ;; FIXME: This does not consider client wrapsets yet
-  (add-cs-before-includes! wrapset 
-                           (lambda (lang)
-                             (if (slot-ref wrapset 'use-limits?)
-                                 (list "#define _GNU_SOURCE\n")
-                                 '())))
-  (add-cs-global-declarator!
-   wrapset
-   (lambda (lang)
-     (list
-      (if (slot-ref wrapset 'use-limits?)
-          (list "#include <limits.h>\n")
-          '())
-      "#include <string.h>\n")))
-
   ;; SCM - pass scheme pointers through unmolested.
   (add-type! wrapset
              (make <gw-guile-simple-type>
@@ -157,7 +142,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
                                     (type <gw-ctype-void>)
                                     (result <gw-value>)
                                     status-var)
-  (list (wrapped-var result) " = SCM_UNSPECIFIED"))
+  (list (scm-var result) " = SCM_UNSPECIFIED;\n"))
 
 ;;;
 ;;; <ranged-integer-type>
@@ -212,7 +197,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
         (minvar (slot-ref type 'min-var))
         (maxvar (slot-ref type 'max-var)))
     (list "if(SCM_FALSEP(scm_integer_p(" scm-var ")))"
-          `(gw:error ,error-var type ,scm-var)
+          `(gw:error ,error-var type ,(wrapped-var value))
           (if (slot-ref type 'min)
               (list
                "else if(SCM_FALSEP(scm_geq_p(" scm-var ", " minvar "))"
@@ -238,23 +223,37 @@ example (gw:wcp-is-a? <gw:void*> foo)")
        '())
    "static SCM " (slot-ref type 'max-var) ";\n"))
 
-(define-method (initializations-cg (lang <gw-guile>)
-                                   (wrapset <gw-guile-wrapset>)
-                                   (type <ranged-integer-type>)
-                                   error-var)
+(define (minmax-var-init-cg type)
   (let ((minvar (slot-ref type 'min-var))
         (maxvar (slot-ref type 'max-var))
         (minval (slot-ref type 'min))
         (maxval (slot-ref type 'max)))
     (list
-     (next-method)
      (if minval
          (list minvar " = " (slot-ref type 'wrap) "(" minval ");\n"
                "scm_gc_protect_object(" minvar ");\n")
          '())
      maxvar " = " (slot-ref type 'wrap) "(" maxval ");\n"
      "scm_gc_protect_object(" maxvar ");\n")))
+  
+(define-method (initializations-cg (lang <gw-guile>)
+                                   (wrapset <gw-guile-wrapset>)
+                                   (type <ranged-integer-type>)
+                                   error-var)
+  (list
+   (next-method)
+   (minmax-var-init-cg type)))
 
+(define-method (client-global-declarations-cg (lang <gw-guile>)
+                                              (wrapset <gw-guile-wrapset>)
+                                              (type <ranged-integer-type>))
+  (global-declarations-cg lang wrapset type))
+
+(define-method (client-initializations-cg (lang <gw-guile>)
+                                          (wrapset <gw-guile-wrapset>)
+                                          (type <ranged-integer-type>)
+                                          error-var)
+  (minmax-var-init-cg type))
 
 ;;;
 ;;; <gw-ctype-mchars>
@@ -284,7 +283,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
      "else if(SCM_STRINGP(" scm-var "))\n"
      "  " c-var " = strdup (SCM_STRING_CHARS (" scm-var "));\n"
      "else\n"
-     `(gw:error ,error-var type ,scm-var))))
+     `(gw:error ,error-var type ,(wrapped-var value)))))
 
 
 (define-method (destruct-value-cg (lang <gw-guile>)

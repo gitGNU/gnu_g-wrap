@@ -159,8 +159,9 @@ struct _GWWrapSet
     
     /* private */
     int ntypes_allocated;
-    int types_sorted;
     int nfuncs_allocated;
+    int types_sorted : 1;
+    int registered : 1;
 };
 
 GWWrapSet *gw_wrapset_new (GWLangArena arena,

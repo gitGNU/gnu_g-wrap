@@ -4,3 +4,4 @@
 * Error handling
   - Use srfi-35 conditions
   - Present errors more nicely to user
+  - Remove output files on error
