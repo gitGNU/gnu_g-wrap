@@ -1,12 +1,14 @@
 G-Wrap -- A tool for exporting C libraries into Scheme interpreters
 ===================================================================
 
-This is a tool for specifying types, functions, and constants to
-import into a Scheme interpreter, and for generating code (in C) to
-interface these to the Guile and RScheme interpreters in particular.
+G-Wrap is a tool (and guile library) for generating function wrappers
+for inter-language calls. It currently only supports generating Guile
+wrappers for C functions. Other languages may be supported in the
+future, possibly on both sides.
 
 Installing
 ==========
+
 Run ./configure and then "make" and "make install".
 Note:
 + Use option --prefix={where} to tell ./configure where
