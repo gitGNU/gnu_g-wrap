@@ -97,7 +97,9 @@
 
 (define-method (set-value-cg (lang <gw-language>) (type <gw-ctype-mchars>)
                              (lvalue <gw-value>) (rvalue <string>))
-  (list (var lvalue) " = strdup(" rvalue ");\n"))
+  (if (string=? rvalue "NULL")
+      (list (var lvalue) " = NULL;\n")
+      (list (var lvalue) " = strdup(" rvalue ");\n")))
 
 ;;;
 ;;; Wrapped C Types
@@ -110,11 +112,16 @@
 
 (define-method (make-typespec (type <gw-wct>) (options <list>))
   (let ((remainder options))
-    (set! remainder (delq 'const options))
+    (set! remainder (delq 'const remainder))
     (if (null? remainder)
-        (make <gw-typespec> #:type type #:options '(caller-owned))
-        (throw 'gw:bad-typespec
-               "Bad <gw-wct> options - spurious options: " remainder))))
+        (make <gw-typespec>
+          #:type type
+          #:options (cons 'caller-owned options))
+        (raise (condition
+                (&gw-bad-typespec
+                 (type type) (options options)
+                 (message
+                  (format #f "spurious options: ~S" remainder))))))))
 
 (define-method (wrap-as-wct! (wrapset <gw-wrapset>) . args)
   (let ((wct (apply make <gw-wct> args)))

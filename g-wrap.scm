@@ -232,8 +232,8 @@
   (destruct-value-cg lang type value status-var))
 
 (define-method (set-value-cg (lang <gw-language>) (type <gw-type>)
-                             (lvalue <gw-value>) (rvalue <string>))
-  (list (var value) " = " rvalue ";\n"))
+                             (lvalue <gw-value>) rvalue)
+  (list (var lvalue) " = " rvalue ";\n"))
 
 ;;;
 
@@ -247,6 +247,16 @@
   (type #:init-keyword #:type #:getter type)
   (options #:init-keyword #:options #:getter options #:init-value '()))
 
+(define-method (write (self <gw-typespec>) port)
+  (let ((class (class-of self)))
+    (display "#<" port)
+    (display (class-name class) port)
+    (display #\space port)
+    (display (name (type self)) port)
+    (display #\space port)
+    (write (options self) port)
+    (display #\> port)))
+  
 (define-method (all-types (typespec <gw-typespec>))
   (list (type typespec)))
 
