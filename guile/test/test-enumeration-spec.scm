@@ -8,7 +8,7 @@
   #:export (test-enumeration-wrapset))
 
 (define ws (make <gw-guile-wrapset>
-             #:name "gw-test-enumeration"
+             #:name "test-enumeration"
              #:module '(gw-test-enumeration)))
 
 (define test-enumeration-wrapset ws)
@@ -22,7 +22,7 @@
 
 
 (wrap-enum! ws
-            #:name 'gw-test-enum
+            #:name '<gw-test-enum>
             #:c-type-name "enum GWTestEnum"
             #:values '((gw-test-enum-zero . "GW_TEST_ENUM_ZERO")
                        (gw-test-enum-one . "GW_TEST_ENUM_ONE")
@@ -32,7 +32,7 @@
 
 (wrap-function! ws
                 #:name 'gw-test-gw-enumeration-echo
-                #:returns 'gw-test-enum
+                #:returns '<gw-test-enum>
                 #:c-name "gw_test_gw_enumeration_echo"
-                #:arguments '((gw-test-enum arg))
+                #:arguments '((<gw-test-enum> arg))
                 #:description "Echo arg.")

@@ -48,7 +48,7 @@ char *alloca ();
 #include "g-wrap/guile-runtime.h"
 
 void
-gw_runtime_get_version_info(int *major, int *revision, int *age)
+gw_guile_runtime_get_version_info(int *major, int *revision, int *age)
 {
   *major = GW_GUILE_RUNTIME_INTERFACE_MAJOR_VER;
   *revision = GW_GUILE_RUNTIME_INTERFACE_REVISION;
@@ -57,7 +57,7 @@ gw_runtime_get_version_info(int *major, int *revision, int *age)
 
 
 SCM
-gw_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
+gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
 {
   int enum_val;
   SCM scm_result;
@@ -105,7 +105,8 @@ gw_guile_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
 
   if (SCM_NFALSEP(scm_integer_p (scm_val)))
   {
-    SCM scm_existing_sym = gw_enum_val2sym (enum_pairs, scm_val, SCM_BOOL_F);
+    SCM scm_existing_sym = gw_guile_enum_val2sym (enum_pairs, scm_val,
+                                                  SCM_BOOL_F);
     if(SCM_FALSEP (scm_existing_sym))
       return SCM_BOOL_F;
     else

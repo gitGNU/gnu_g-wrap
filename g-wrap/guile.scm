@@ -146,14 +146,14 @@
   (list
    "scm_c_define_gsubr (\"" (slot-ref enum 'val->int-scm-func) "\", 1, 0, 0,\n"
    "                      " (slot-ref enum 'val->int-c-func) ");\n"
-   "scm_c_define_gsubr (\"" (slot-ref enum 'val->sym-scm-func) "\", 1, 0, 0,\n"
+   "scm_c_define_gsubr (\"" (slot-ref enum 'val->sym-scm-func) "\", 2, 0, 0,\n"
    "                      " (slot-ref enum 'val->sym-c-func) ");\n"))
 
 (define-method (wrap-value-cg (lang <gw-guile>)
                               (type <gw-guile-enum>)
                               (value <gw-value>)
                               status-var)
-  (list (wrapped-var value) " = scm_long2num(" (var value) ");\n"))
+  (list (scm-var value) " = scm_long2num(" (var value) ");\n"))
 
 (define-method (unwrap-value-cg (lang <gw-guile>)
                                 (enum <gw-guile-enum>)
@@ -169,9 +169,15 @@
      "else " c-var " = scm_num2long(" scm-var
      ", 0, \"%gw:enum->scm->c-ccg\");\n")))
   
-
 (define-method (wrap-enum! (wrapset <gw-guile-wrapset>) . args)
-  (add-type! wrapset (apply make <gw-guile-enum> args)))
+  
+  (define (slot-sym-ref v slot)
+    (string->symbol (slot-ref v slot)))
+  
+  (let ((enum (apply make <gw-guile-enum> args)))
+    (add-type! wrapset enum)
+    (add-module-export! wrapset (slot-sym-ref enum 'val->int-scm-func))
+    (add-module-export! wrapset (slot-sym-ref enum 'val->sym-scm-func))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; <gw-guile-simple-type>

@@ -35,7 +35,7 @@
   (let ((remainder options))
     (set! remainder (delq 'const remainder))
     (if (null? remainder)
-        (make <gw-typespec> #:type type) ;; FIXME: options
+        (make <gw-typespec> #:type type)
         (throw 'gw:bad-typespec
                "Bad <gw-enumeration-type> options - spurious options: "
                remainder))))

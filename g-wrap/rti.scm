@@ -83,17 +83,17 @@
             (wrapsets-depended-on wrapset))
        "NULL);\n"
 
-       (fold-functions
-        (lambda (func code)
-          (cons (add-function-rti-cg wrapset func) code))
-        '() wrapset)
-       
        ;; TODO: subtypes support
        (fold-types
         (lambda (type code)
           (cons (add-type-rti-cg wrapset type) code))
         '() wrapset)
 
+       (fold-functions
+        (lambda (func code)
+          (cons (add-function-rti-cg wrapset func) code))
+        '() wrapset)
+       
        "gw_wrapset_register (" ws-info ");\n")))
   
   (next-method)
