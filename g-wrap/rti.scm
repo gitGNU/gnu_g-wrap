@@ -137,6 +137,7 @@
   (let ((remainder options))
     (set! remainder (delq 'const remainder))
     (set! remainder (delq 'out remainder))
+    (set! remainder (delq 'unspecialized remainder))
     (if (and (memq 'caller-owned remainder)
              (memq 'callee-owned remainder))
         (raise (condition

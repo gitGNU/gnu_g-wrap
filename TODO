@@ -1,6 +1,6 @@
-** Simple Tasks
+** Release goals for the next release
 
-* Tests for generic functions creation
+** Simple Tasks
 
 * Make WCT types extensible via subclassing
 
@@ -10,8 +10,6 @@
 * Properly class WCTs
 
 ** More involved tasks
-
-* Write a compitibility layer offering the 1.3.4+ API
 
 * Do the metaclass simplification of types vs. values
 

@@ -51,7 +51,7 @@
    <gw-function>
    c-name
    argument-count input-argument-count optional-argument-count
-   arguments argument-types
+   arguments argument-types argument-typespecs
    return-type return-typespec
    generic-name 
    

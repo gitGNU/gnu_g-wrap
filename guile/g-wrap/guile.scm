@@ -799,7 +799,7 @@
                    ,(name func)
                    ',(map (lambda (typespec)
                             (and (not (memq 'unspecialized (options typespec)))
-                                 (class-name type)))
+                                 (class-name (type typespec))))
                           (argument-typespecs func))
                    ',gf
                    ,(- (argument-count func) (optional-argument-count func))
