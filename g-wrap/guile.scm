@@ -275,7 +275,7 @@
                    '())
                (if (>= (number param) opt-args-start)
                   (list
-                   "if (" (scm-var param) "== SCM_UNDEFINED)\n"
+                   "if (SCM_EQ_P(" (scm-var param) ", SCM_UNDEFINED))\n"
                    "  " (var param) " = " (default-value arg) ";\n")
                   (list
                    "if ((" error-var ").status != GW_ERR_NONE)"
@@ -285,12 +285,12 @@
                                       (- (number param) 1) ";\n")))))
               '())
           "\n{\n"
-          (if (>= (number param) opt-args-start)
-              '()
-              (expand-special-forms
-               (pre-call-arg-cg lang (type param) param error-var)
-               param
-               '(memory misc type range arg-type arg-range)))))
+          "if (!SCM_EQ_P(" (scm-var param) ", SCM_UNDEFINED)) {\n"
+          (expand-special-forms
+           (pre-call-arg-cg lang (type param) param error-var)
+           param
+           '(memory misc type range arg-type arg-range))
+          "}\n"))
        params (arguments function))
       
       "if ((" error-var ").status == GW_ERR_NONE)\n"
