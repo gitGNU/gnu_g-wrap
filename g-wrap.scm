@@ -722,6 +722,11 @@
 
   (define (render-client cg)
       (for-each (lambda (ws)
+                  (render (cg ws) port))
+                (wrapsets-depended-on wrapset)))
+  
+  (define (render-client-items cg)
+      (for-each (lambda (ws)
                   (for-each (lambda (item)
                               (render (cg ws item) port))
                             (reverse (slot-ref ws 'client-items))))
@@ -749,20 +754,24 @@
       "\n"))
     
     (render-items before-includes-cg)
-    (render-client before-includes-cg)
+    (render-client-items before-includes-cg)
     
     (render (global-declarations-cg wrapset) port)
     (render-items global-declarations-cg)
 
-    (render-client global-declarations-cg)
+    (render-client-items global-declarations-cg)
+    (render-client client-global-declarations-cg)
     (render-client-types client-global-declarations-cg)
 
     (dsp-list
      (list "void gw_init_wrapset_" wrapset-name-c-sym "(GWLangArena);\n"))
     
     (render (global-definitions-cg wrapset) port)
-    (render-client-types client-global-definitions-cg)
     (render-items global-definitions-cg)
+
+    (render-client-items global-definitions-cg)
+    (render-client client-global-definitions-cg)
+    (render-client-types client-global-definitions-cg)
     
     ;; The initialization function
     (dsp-list
@@ -824,6 +833,8 @@
      (lambda (port)
        (generate-wrapset-cs wrapset port)))))
 
+;;; Default implementations (no-ops)
+
 (define-method (before-includes-cg (wrapset <gw-wrapset>)
                                    (item <gw-item>))
   '())
@@ -835,6 +846,9 @@
                                        (item <gw-item>))
   '())
 
+(define-method (client-global-declarations-cg (wrapset <gw-wrapset>))
+  '())
+
 (define-method (client-global-declarations-cg (wrapset <gw-wrapset>)
                                               (item <gw-item>))
   '())
@@ -844,6 +858,9 @@
 
 (define-method (global-definitions-cg (wrapset <gw-wrapset>)
                                       (item <gw-item>))
+  '())
+
+(define-method (client-global-definitions-cg (wrapset <gw-wrapset>))
   '())
 
 (define-method (client-global-definitions-cg (wrapset <gw-wrapset>)
@@ -863,6 +880,7 @@
                                    (item <gw-item>)
                                    error-var)
   '())
+
 (define-method (client-initializations-cg (wrapset <gw-wrapset>)
                                           (item <gw-item>)
                                           error-var)

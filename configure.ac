@@ -91,7 +91,6 @@ AM_CONDITIONAL(HAVE_SRFI_35, test "$HAVE_SRFI_35" = yes)
 
 AC_OUTPUT([Makefile
            g-wrap/Makefile
-	   g-wrap/guile/Makefile
 	   test/Makefile
            guile/Makefile
 	   guile/g-wrap-2.0-guile.pc

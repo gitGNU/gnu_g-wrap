@@ -1,7 +1,5 @@
 include $(top_srcdir)/common.mk
 
-SUBDIRS = guile
-
 AM_CPPFLAGS = -I$(top_srcdir)
 
 lib_LTLIBRARIES = libgwrap-core-runtime.la
@@ -13,6 +11,6 @@ libgwrap_core_runtime_la_LIBADD = $(LIBFFI_LIBS) @ALLOCA@
 
 nobase_gwrapmodule_DATA = util.scm rti.scm enumeration.scm c-types.scm \
 		          ws/standard.scm \
-		          guile.scm
+		          guile.scm guile/ws/standard.scm
 
 EXTRA_DIST = $(nobase_gwrapmodule_DATA)

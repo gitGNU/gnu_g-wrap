@@ -45,7 +45,7 @@
   (c-info-sym #:getter c-info-sym #:init-form (gen-c-tmp "c_info"))
   (function-rti? #:getter function-rti?
                  #:init-keyword #:function-rti?
-                 #:init-value #f))
+                 #:init-value #t))
 
 (define-class <gw-rti-value> (<gw-value>))
 
@@ -104,6 +104,10 @@
   (define (gen-name action) (gen-c-tmp-name type action)) ;; Just lazy
   
   (next-method)
+
+  (if (not (slot-bound? type 'c-const-type-name))
+      (slot-set! type 'c-const-type-name (string-append "const "
+                                                        (c-type-name  type))))
   
   (slot-set! type 'wrap-value-function-name (gen-name "wrap_value"))
   (slot-set! type 'unwrap-value-function-name (gen-name "unwrap_value"))

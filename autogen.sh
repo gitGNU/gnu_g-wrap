@@ -3,7 +3,7 @@
 
 DIE=0
 package=g-wrap-tng
-srcfile=g-wrap/guile-runtime.c
+srcfile=g-wrap/guile.scm
 
 . autogen-support.sh
 
