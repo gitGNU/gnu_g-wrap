@@ -1,8 +1,28 @@
 G-Wrap NEWS -- history of user-visible changes.
-Copyright (C) 2003-2004 Andreas Rottmann
+Copyright (C) 2003-2005 Andreas Rottmann
 Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Initially created by Christopher Lee.
 See the end for copying conditions.
+
+Version 1.9.4
+
+  - Enhanced generics support: now all arguments of methods are 
+    specialized, not only the first one.
+
+  - Bugfixes
+    + Now ships with (g-wrap gw-wct) compatibilty module needed by 
+      GnuCash at runtime.
+    + Fixes for handling output arguments:
+      - Wrapped functions with void return value and output arguments 
+	now return expected results
+      - Optional argument count is now correctly computed in the 
+        presence of output arguments
+    + The libffi alignment requirements are now honored. This fixes bus 
+      errors on many non-x86 architectures.
+    + On big-endian architectures libffi-wrapped functions that return
+      char now work correctly.
+    + Some "uninitialized variable" warnings were fixed in generated code
+      which caused compiles with GCC 4.0 to fail (Debian Bug#290305).
 
 Version 1.9.3
 
