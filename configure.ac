@@ -91,4 +91,5 @@ AC_OUTPUT([Makefile
 	   guile/g-wrap/Makefile
 	   guile/g-wrap/gw/Makefile
 	   guile/test/Makefile
+	   doc/Makefile
 ])
