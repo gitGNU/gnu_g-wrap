@@ -11,6 +11,25 @@
 	Add "g-wrap-compatibility.h" #include (fixes compilation for Guile
 	1.6).
 	
+	* g-wrap.scm: Make typespecs static (fixes invalid memory references).
+	
+2003-01-01  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* configure.in: Dumped GLib/GTK+ 1.2 conditional checks.
+
+	* g-wrap/Makefile.am, test/Makefile.am: Dumped glib/GTK+ stuff,
+	along with removing sources.
+
+2003-12-30  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/g-wrap-runtime.c (gw_wrapset_add_function): Avoid
+	malloc(0).
+
+2003-12-29  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/gw-standard-spec.scm (<gw:mchars>): Fix compiler
+	warnings.
+
 2003-12-14  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* Makefile.am: Install .pc file.
@@ -22,6 +41,9 @@
 	* g-wrap.pc.in: New file.
 
 2003-12-10  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/g-wrap-runtime.c (gw_wrapset_register): Block GC during
+	wrapset registration.
 
 	* g-wrap/gw-standard-spec.scm (wrap-simple-ranged-integer-type):
 	Use scm_gc_protect_object() instead of deprecated
@@ -44,6 +66,53 @@
 
 2003-11-11  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* g-wrap/gw-standard-spec.scm, g-wrap/gw-wct-spec.scm,
+	g-wrap/gw-glib-spec.scm: Make use of dynamic types.
+
+	* g-wrap/simple-type.scm (gw:wrap-simple-type): Make simple types
+	dynamic.
+	
+	* g-wrap/Makefile.am (gwrapmodule_DATA): Added dynamic-type.scm.
+	* g-wrap/dynamic-type.scm: New file.
+	
+	* g-wrap.scm (add-wrapset-types-info-output): New helper prcoedure.
+	
+	* g-wrap.scm (gw:wrapset-use-dynamic-calls?): Dummy wrapset
+	attribute accessor, returns #t for now.
+
+	* g-wrap.scm (gw:wrap-function): Support a generic name and use
+	gw_wrapset_add_function().
+	
+	* g-wrap.scm (gw:param-visibility): New type attribute.
+	(gw:type-set-param-visibility!, gw:type-get-param-visibility): New
+	type accessors.
+	(gw:param-visible?) New predicate.
+	(gw:_generate-wrapped-func-definitions_): Added support for
+	invisible parameters.
+
+	* g-wrap.scm (gw:_generate-wrapped-func-initializers_): Removed,
+	now done by gw_wrapset_register().
+
+	* g-wrap.scm (gw:typespec-check): New macro.
+
+	* g-wrap.scm (gw:type-get-class-name, gw:type-set-class-name!):
+	New public procedures.
+	
+	* g-wrap.scm (gw:call-arg-ccg): New type CCG.
+	(gw:type-set-call-arg-ccg!): New type setter.
+	(make-c-call-param-list): Added support for the call-arg-ccg.
+	
+	* g-wrap.scm: (gw:type-dynamic?, gw:type-get-c-typespec-ccg)
+	(gw:type-set-dynamic!): New public procedures.
+	
+	* g-wrap.scm, g-wrap/enumeration.scm: Use runtime library instead
+	of spitting out all code ourselves.
+	
+	* g-wrap.scm: Remove (use-modules (g-wrap enumeration)) hackery.
+	and seemingly useless simple-format check.
+	
+	* g-wrap.scm (gw:wrapset-get-wrapsets-depended-on): Made public.
+	
 	* test/gw-test-glib-spec.scm: Use #:use-module clauses instead of
 	(use-modules ...) statements.
 	

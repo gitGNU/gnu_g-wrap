@@ -1,11 +1,10 @@
 ;; -*-scheme-*-
 
-(define-module (g-wrap gw-wct-spec))
-
-(use-modules (g-wrap))
-(use-modules (g-wrap simple-type))
-
-(use-modules (g-wrap gw-standard-spec))
+(define-module (g-wrap gw-wct-spec)
+  #:use-module (g-wrap)
+  #:use-module (g-wrap simple-type)
+  #:use-module (g-wrap dynamic-type)
+  #:use-module (g-wrap gw-standard-spec))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Wrapped C type (wct)
@@ -40,11 +39,10 @@
 
 (define-public (gw:wrap-as-wct wrapset name-sym c-type-name c-const-type-name)
 
-  (let* ((wct (gw:wrap-type wrapset name-sym))
-         (wct-var-name (gw:gen-c-tmp
-                        (string-append
-                         "wct_info_for_"
-                         (gw:any-str->c-sym-str (symbol->string name-sym))))))
+  (let ((wct-var-name (gw:gen-c-tmp
+                       (string-append
+                        "wct_info_for_"
+                        (gw:any-str->c-sym-str (symbol->string name-sym))))))
     
     (define (generate-print-func type func-name)
       (let ((func-ccg (hashq-ref type 'wct:print-ccg #f)))
@@ -82,16 +80,11 @@
               (func-ccg type "gw__result" "gw__wcp")
               "}\n")))
     
-    (define (c-type-name-func typespec)
-      (if (memq 'const (gw:typespec-get-options typespec))
-          c-const-type-name
-          c-type-name))
-
     (define (typespec-options-parser options-form wrapset)
       (let ((remainder options-form))
         (set! remainder (delq 'const options-form))
         (if (null? remainder)
-            options-form
+            (cons 'caller-owned options-form)
             (throw 'gw:bad-typespec "Bad wct options form." options-form))))
     
     (define (scm->c-ccg c-var scm-var typespec status-var)
@@ -115,12 +108,15 @@
         (list
          "if(" cv " == NULL) " sv " = SCM_BOOL_F;\n"
          "else " sv " = gw_wcp_assimilate_ptr((void *) " cv ", " wct-var ");\n")))
+
+    (define (c-destructor c-var typespec status-var force?)
+      '())
     
     (define (global-declarations-ccg type client-wrapset)    
       (if (eq? client-wrapset wrapset)
           '()
           (list "static SCM " wct-var-name " = SCM_BOOL_F;\n")))
-        
+    
     (define (global-definitions-ccg type client-wrapset)    
       (let* ((print-func-name (hashq-ref type 'wct:print-func-name #f))
              (equal?-func-name (hashq-ref type 'wct:equal?-func-name #f))
@@ -181,26 +177,6 @@
              (wct-init-ccg type client-wrapset)
              '()))))
     
-    (define (pre-call-arg-ccg param status-var)
-      (let* ((scm-name (gw:param-get-scm-name param))
-             (c-name (gw:param-get-c-name param))
-             (typespec (gw:param-get-typespec param)))
-        (list
-         (scm->c-ccg c-name scm-name typespec status-var)
-         "if(" `(gw:error? ,status-var type) ")"
-         `(gw:error ,status-var arg-type)
-         "else if(" `(gw:error? ,status-var range) ")"
-         `(gw:error ,status-var arg-range))))
-    
-    (define (call-ccg result func-call-code status-var)
-      (list (gw:result-get-c-name result) " = " func-call-code ";\n"))
-    
-    (define (post-call-result-ccg result status-var)
-      (let* ((scm-name (gw:result-get-scm-name result))
-             (c-name (gw:result-get-c-name result))
-             (typespec (gw:result-get-typespec result)))
-        (c->scm-ccg scm-name c-name typespec status-var)))
-
     ;; This is so that any wrapset that depends on any wrapset that
     ;; wraps a wct will also have the header inserted...
     (if (not (hashq-ref wrapsets-w-wct-initializers wrapset #f))
@@ -211,24 +187,21 @@
              "#include <g-wrap-wct.h>\n"))
           (hashq-set! wrapsets-w-wct-initializers wrapset #t)))
 
-        
-    (gw:type-set-c-type-name-func! wct c-type-name-func)
-    (gw:type-set-typespec-options-parser! wct typespec-options-parser)
+    
+    (let ((wct (gw:wrap-dynamic-type wrapset name-sym
+                                     c-type-name c-const-type-name
+                                     scm->c-ccg c->scm-ccg c-destructor
+                                     'pointer)))
+          
+      (gw:type-set-typespec-options-parser! wct typespec-options-parser)
 
-    (gw:type-set-scm->c-ccg! wct scm->c-ccg)
-    (gw:type-set-c->scm-ccg! wct c->scm-ccg)
+      (gw:type-set-global-declarations-ccg! wct global-declarations-ccg)
+      (gw:type-set-global-definitions-ccg! wct global-definitions-ccg)
+      (gw:type-set-global-initializations-ccg! wct global-init-ccg)
+      
+      (gw:wrapset-add-guile-module-export! wrapset name-sym)
     
-    (gw:type-set-global-declarations-ccg! wct global-declarations-ccg)
-    (gw:type-set-global-definitions-ccg! wct global-definitions-ccg)
-    (gw:type-set-global-initializations-ccg! wct global-init-ccg)
-    
-    (gw:type-set-pre-call-arg-ccg! wct pre-call-arg-ccg)
-    (gw:type-set-call-ccg! wct call-ccg)
-    (gw:type-set-post-call-result-ccg! wct post-call-result-ccg)
-    
-    (gw:wrapset-add-guile-module-export! wrapset name-sym)
-    
-    wct))
+      wct)))
 
 ;; Are all these the overrides the "right thing"?  Is there a better
 ;; approach, and/or do we need them at all?
@@ -292,14 +265,16 @@
   (gw:wrap-simple-type ws '<gw:wct> "SCM"
                        '("gw_wct_p(" scm-var ")")
                        '(c-var " = " scm-var ";\n")
-                       '(scm-var " = " c-var ";\n"))
+                       '(scm-var " = " c-var ";\n")
+                       'pointer) ;; not accurate
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <gw:wcp> - wrapped c pointer object
   (gw:wrap-simple-type ws '<gw:wcp> "SCM"
                        '("gw_wcp_p(" scm-var ")")
                        '(c-var " = " scm-var ";\n")
-                       '(scm-var " = " c-var ";\n"))
+                       '(scm-var " = " c-var ";\n")
+                       'pointer) ;; not accurate
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <gw:void*> - wrapped c pointer object

@@ -1,0 +1,65 @@
+dnl -*- m4 -*-
+dnl
+dnl Copyright (c) 2002 Andreas Rottmann
+dnl
+dnl Version 0.0.1
+dnl 
+dnl This file is distributed under the LGPL
+dnl
+dnl
+
+dnl
+dnl ar_DEFINE_LIB_CHECK(NAME, IDENTIFIER, HEADER-FILE, LIBNAMES, LIBFUNC [, EXTRALIBS])
+dnl
+define(ar_DEFINE_LIB_CHECK, `
+AC_DEFUN(`ar_WITH_LIB_'$1,
+[
+
+AC_ARG_WITH($2-prefix, AC_HELP_STRING([--with-$2-prefix],
+	                                [$1 installation prefix]), 
+	    [$2_prefix="$withval"], [$2_prefix=""])
+
+ac_orig_LIBS="$LIBS" 
+ac_orig_CPPFLAGS="$CPPFLAGS"
+
+$2_lib_prefix=""
+$2_inc_prefix=""
+
+$1_CFLAGS=""
+$1_LIBS=""
+
+if test x$$2_prefix != x ; then
+
+  $2_lib_prefix="$$2_prefix/lib"
+  $1_LIBS="-L$$2_lib_prefix"
+
+  $2_inc_prefix="$$2_prefix/include"
+  $1_CFLAGS="-I$$2_inc_prefix"
+
+fi
+
+$1_LIBS="`$'$1_LIBS $6"
+
+CPPFLAGS="$ac_orig_CPPFLAGS `$'$1_CFLAGS"
+LIBS="$ac_orig_LIBS `$'$1_LIBS"
+
+AC_CHECK_HEADER($3, [header_found=1], [header_found=0])
+if test "$header_found" = 1; then
+  for lib in $4; do
+    AC_CHECK_LIB($lib, $5, [$1_LIBS="$$1_LIBS -l$lib"], [$1_LIBS=""])
+    if test -n "$$1_LIBS"; then break; fi
+  done
+else
+  $1_LIBS=""
+fi
+if test "$$1_LIBS" != ""; then
+  `ifelse'(`$'1,, true, `$'1)
+else
+  `ifelse'(`$'2,, true, `$'2)
+fi
+
+LIBS="$ac_orig_LIBS"
+CPPFLAGS="$ac_orig_CPPFLAGS"
+])
+')
+

@@ -8,6 +8,7 @@ srcfile=g-wrap/gw-standard-spec.scm
 . autogen-support.sh
 
 CONFIGURE_DEF_OPT='--enable-maintainer-mode'
+ACLOCAL_FLAGS="-I m4 $ACLOCAL_FLAGS"
 
 autogen_options $@
 
@@ -37,6 +38,9 @@ if test -z "$*"; then
 fi
 
 toplevel_check $srcfile
+
+echo "+ creating m4/libchecks.m4"
+( cd m4 && m4 < libchecks.m4-in > libchecks.m4 )
 
 if test -f acinclude.m4; then rm acinclude.m4; fi
 tool_run "$aclocal" "$ACLOCAL_FLAGS"

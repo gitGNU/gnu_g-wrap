@@ -1,0 +1,8 @@
+dnl -*- m4 -*-
+dnl
+dnl Copyright (c) 2004 Andreas Rottmann
+dnl 
+
+include(libcheck.m4-in)
+
+ar_DEFINE_LIB_CHECK(LIBFFI, libffi, ffi.h, ffi, ffi_prep_cif)

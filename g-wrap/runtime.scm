@@ -1,3 +1,6 @@
+;;  I guess this module should provide a scheme interface to the stuff
+;;  in g-wrap-runtime.c. -- rotty
+
 (define-module (g-wrap runtime))
 
 (define gw:runtime-wrapsets-hash (make-hash-table 131))

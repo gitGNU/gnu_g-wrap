@@ -12,7 +12,7 @@ AC_ARG_WITH(modules-dir,
 [  --with-modules-dir=<dir>  Base directory for contributed Guile modules ],
   GUILEMODDIR=$withval
   G_WRAP_LOAD_DIR=$withval,
-  if test "x$prefix" = xNONE; then # what's that for? -- rotty
+  if test "x$prefix" = xNONE; then # what's that for? --rotty
     GUILEMODDIR='$(GUILE_SCMDIR)'
     G_WRAP_LOAD_DIR='$(GUILE_SCMDIR)'
   else
@@ -84,99 +84,11 @@ AC_TRY_LINK([#include <libguile/smob.h>],
 
 
 
-###########################################################################
-### Check for and set up glib
-
-AC_PATH_PROG(GW_GLIB_CONFIG, glib-config)
-AM_CONDITIONAL(GW_HAVE_GLIB, test ${GW_GLIB_CONFIG}x != x)
-if test ${GW_GLIB_CONFIG}x != x
-then
-  AC_DEFINE(GW_HAVE_GLIB,1,[Do we have glib?])
-
-  GW_OLDCFLAGS="$CFLAGS"
-  GW_OLDLIBS="$LIBS"
-  CFLAGS="`${GW_GLIB_CONFIG} --cflags | sed -f $srcdir/kill-usr-include` ${CFLAGS}"
-  LIBS="`${GW_GLIB_CONFIG} --libs` ${GUILE_LIBS} ${LIBS}"
-
-  ### Check size of long_long - some guile's are broken.
-  #
-  # long_long is deprecated by Guile 1.6 and long long exists in C99
-  # and is guaranteed to be at least 64bits, so this
-  # makes no sense anymore. The accompanying #ifdefs should be removed.
-  #  -- rotty
-  AC_DEFINE(GW_GUILE_LONG_LONG_OK, 1, is sizeof(long long) >= sizeof(gint64))
-  #AC_MSG_CHECKING(if guile long long is at least as big as gint64)
-  #AC_TRY_RUN([
-  #  #include <glib.h>
-  #  #include <libguile/__scm.h>
-  #  int main(int argc, char *argv[]) {
-  #    return(!(sizeof(long long) >= sizeof(gint64)));
-  #  }
-  #],[
-  #  AC_MSG_RESULT(yes)
-  #  AC_CHECK_LIB(guile, scm_long_long2num,
-  #               AC_DEFINE(GW_GUILE_LONG_LONG_OK,1,is sizeof(long long) >=
-  #               sizeof(gint64)))
-  #],[
-  #  AC_MSG_RESULT(no)
-  #])
-
-  # One of the places this is critical is in gnc_scm_to_gint64 and inverse.
-  # However, I'm sure we require this elsewhere, so don't remove this test
-  # unless you've done sufficient code review/testing.
-  AC_MSG_CHECKING(if unsigned long is at least as big as guint32)
-  GW_OLDCFLAGS="$CFLAGS"
-  CFLAGS="${GUILE_INCS} ${CFLAGS} `${GW_GLIB_CONFIG} --cflags`"
-  AC_TRY_RUN([
-    #include <glib.h>
-    int main(int argc, char *argv[]) {
-      return(!(sizeof(unsigned long) >= sizeof(guint32)));
-    }
-  ],[
-    AC_MSG_RESULT(yes)
-  ],[
-    AC_MSG_RESULT(no)
-    AC_MSG_ERROR(cannot continue, size of unsigned long too small.)
-  ])
-
-  CFLAGS="$GW_OLDCFLAGS"
-  LIBS="$GW_OLDLIBS"
-fi
-
-LGWRAP_GLIB_MAJOR_VER=1
-LGWRAP_GLIB_REVISION=0
-LGWRAP_GLIB_AGE=0
-
-AC_SUBST(LGWRAP_GLIB_MAJOR_VER)
-AC_SUBST(LGWRAP_GLIB_REVISION)
-AC_SUBST(LGWRAP_GLIB_AGE)
-
-###########################################################################
-### Check for and set up gtk
-
-AC_PATH_PROG(GW_GTK_CONFIG, gtk-config)
-AM_CONDITIONAL(GW_HAVE_GTK, test ${GW_GTK_CONFIG}x != x)
-if test ${GW_GTK_CONFIG}x != x
-then
-  AC_DEFINE(GW_HAVE_GTK,1,[Do we have gtk?])
-fi
-
-###########################################################################
-### Check for and set up gnome-guile/guile-gtk
-
-AC_PATH_PROG(GW_BUILD_GUILE_GTK, build-guile-gtk)
-AM_CONDITIONAL(GW_HAVE_GUILE_GTK, test ${GW_BUILD_GUILE_GTK}x != x)
-if test ${GW_BUILD_GUILE_GTK}x != x
-then
-  AC_DEFINE(GW_HAVE_GUILE_GTK,1,[Do we have guile-gtk?])
-
-  # delete any occurences of -I /usr/include or similar.  Newer gcc's
-  # don't like that at all.
-  GW_GUILE_GTK_CFLAGS=`${GW_BUILD_GUILE_GTK} cflags | sed -f $srcdir/kill-usr-include`
-  GW_GUILE_GTK_LIBFLAGS=`${GW_BUILD_GUILE_GTK} libs`
-  AC_SUBST(GW_GUILE_GTK_CFLAGS)
-  AC_SUBST(GW_GUILE_GTK_LIBFLAGS)
-fi
+############################################################################
+### Check for libffi
+ar_WITH_LIB_LIBFFI
+AC_SUBST(LIBFFI_CFLAGS)
+AC_SUBST(LIBFFI_LIBS)
 
 GW_RUNTIME_INTERFACE_MAJOR_VER=0
 GW_RUNTIME_INTERFACE_REVISION=0
