@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003 Andreas Rottmann
+Copyright (C) 2003-2004 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -163,28 +163,6 @@ static SCM sym_object = SCM_UNSPECIFIED;
 static SCM sym_args = SCM_UNSPECIFIED;
 static scm_t_bits dynproc_smob_tag = 0;
 
-#define MAX_PRECOMP_ARG_TAIL_LEN 10
-
-#define DO_PRECOMP_ARG_TAIL 0
-#define DO_BENCHMARK 1
-
-#if DO_BENCHMARK
-
-enum
-{
-  BENCH_TOTAL_PROC_CREATE,
-  BENCH_TOTAL_METHOD_CREATE,
-  BENCH_GEN_CREATE,
-  BENCH_METH_CREATE,
-  BENCH_METH_ADD,
-  BENCH_MAX
-};
-
-static clock_t bench_times[BENCH_MAX];
-static unsigned bench_counts[BENCH_MAX];
-
-#endif
-
 /* 1. methods of generic functions can come from any module.
  *    eg gst_props_entry_get and g_object_get.
  *
@@ -245,9 +223,7 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
 
   if (SCM_FALSEP (generic))
   {
-    start = clock();
-    /* whoa! scm_make is *way* slower as calling "make", but only if
-     * we don't pass a #:name... strange... */
+    /* Note that scm_make is *not* the same as calling "make". */
     if (SCM_FALSEP (default_val))
       generic = scm_call_3 (scm_sym_make, scm_class_generic,
                             k_name, generic_name);
@@ -257,10 +233,6 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
                                          k_name, generic_name,
                                          k_default, default_val));
 
-    end = clock();
-    bench_times[BENCH_GEN_CREATE] += end - start;
-    bench_counts[BENCH_GEN_CREATE]++;
-    
     scm_call_3 (module_add_x, the_root_module, generic_name,
                 scm_make_variable (generic));
   }
@@ -274,7 +246,6 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
   
   method_args = scm_cons (proc, method_formals);
 
-  start = clock();
   procm = scm_closure (scm_list_2 (method_formals, method_args),
                            scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
   
@@ -283,25 +254,7 @@ gw_function_to_method_public (SCM proc, int nargs, SCM specializers,
                                   k_specializers, specializers,
                                   k_procedure, procm));
   
-  end = clock();
-  bench_times[BENCH_METH_CREATE] += end - start;
-  bench_counts[BENCH_METH_CREATE]++;
-
-  start = end;
   scm_add_method (generic, meth);
-  end = clock();
-  bench_times[BENCH_METH_ADD] += end - start;
-  bench_counts[BENCH_METH_ADD]++;
-}
-
-static void
-bench_print (const char *title, int bench)
-{
-  double time = (double) bench_times[bench] / CLOCKS_PER_SEC;
-  unsigned iter = bench_counts[bench];
-  
-  fprintf (stderr, "%s: %g seconds total (%u * %g)\n", title, time,
-           iter, time / iter);
 }
 
 static int nregistered_wrapsets = 0;
@@ -494,10 +447,10 @@ gw_wrapset_add_function (GWWrapSet *ws,
   fi->use_extra_args = use_extra_args;
   fi->proc_name = proc_name;
   fi->generic_name = generic_name;
-
+  
   assert ((arg_types && ret_type) || !dynamic);
   
-  if (arg_types != NULL)
+  if (arg_types != NULL && fi->dynamic)
   {
     for (fi->nargs = 0; arg_types[fi->nargs] != NULL; fi->nargs++)
       ;
@@ -517,18 +470,24 @@ gw_wrapset_add_function (GWWrapSet *ws,
                         scm_list_2 (scm_makfrom0str (arg_types[i]),
                                     scm_makfrom0str (fi->proc_name)));
     }
-    /* argument must be static */
-    fi->arg_typespecs = arg_typespecs;
   }
-  if (ret_type != NULL)
-    fi->ret_type = gw_wrapset_lookup_type (ws, ret_type);
+  else
+  {
+    fi->nargs = 0;
+    fi->arg_types = NULL;
+  }
+  
+  /* argument must be static */
+  fi->arg_typespecs = arg_typespecs;
+
+  fi->ret_type = ret_type ? gw_wrapset_lookup_type (ws, ret_type) : NULL;
   fi->ret_typespec = ret_typespec;
   
   fi->data_area_size = fi->nargs * sizeof (void *);
-  fi->cif = scm_malloc (sizeof (ffi_cif));
-    
+  
   if (fi->nargs > 0)
   {
+    /* Data is used by ffi_call, so don't free it */
     arg_ffi = (ffi_type **) scm_malloc (sizeof (ffi_type *) * fi->nargs);
     for (i = 0; i < fi->nargs; i++)
     {
@@ -536,16 +495,19 @@ gw_wrapset_add_function (GWWrapSet *ws,
       assert (arg_ffi[i] != NULL);
     }
   }
+
+  if (fi->dynamic)
+  {
+    status = ffi_prep_cif (&fi->cif, FFI_DEFAULT_ABI, fi->nargs,
+                           fi->ret_type->type, arg_ffi);
+    assert (status == FFI_OK);
   
-  status = ffi_prep_cif (fi->cif, FFI_DEFAULT_ABI, fi->nargs,
-                         fi->ret_type->type, arg_ffi);
-  assert (status == FFI_OK);
-  
-  /* now we know the sizes of the types and calculate the data
-   * area size where we store the arguments' values */
-  for (i = 0; i < fi->nargs; i++)
-    fi->data_area_size += arg_ffi[i]->size;
-  fi->data_area_size += fi->ret_type->type->size;
+    /* now we know the sizes of the types and calculate the data
+     * area size where we store the arguments' values */
+    for (i = 0; i < fi->nargs; i++)
+      fi->data_area_size += arg_ffi[i]->size;
+    fi->data_area_size += fi->ret_type->type->size;
+  }
   
   ws->nfunctions++;
 }
@@ -583,7 +545,7 @@ dynproc_smob_apply (SCM smob, SCM args)
   }
   rvalue = (void *) ((unsigned char *) data + offset);
   
-  ffi_call (fi->cif, fi->proc, rvalue, values);
+  ffi_call (&fi->cif, fi->proc, rvalue, values);
 
   result = fi->ret_type->to_scm (rvalue, &fi->ret_typespec, &error);
   if (error.status != GW_ERR_NONE)
@@ -658,6 +620,17 @@ gw_runtime_init (void)
   }
 }
 
+/* Performance Note: blocking GC improves performance considerably, at
+ * the cost of increased memory usage.
+ *
+ * It was suggested that the GC slowness is caused through inproper
+ * use of some _gc_ functions, but I don't think so. Recent
+ * experiments showed that the GC is triggered by the add_method
+ * invocation.  --rotty
+ *
+ */
+  
+
 /* Note that the wrapset must not be modified once this function has
  * been called. */
 void
@@ -665,28 +638,11 @@ gw_wrapset_register (GWWrapSet *ws)
 {
   int i;
 
-#if DO_BENCHMARK
-  clock_t start, end;
-  for (i = 0; i < BENCH_MAX; i++)
-  {
-    bench_times[i] = 0;
-    bench_counts[i] = 0;
-  }
-#endif
-
-  /* Blocking GC improves performance considerably.
-   *
-   * It was suggested that the GC slowness is caused through inproper use of
-   * some _gc_ functions, but I don't think so -- rotty
-   */
-  scm_block_gc++;
-  
   for (i = 0; i < ws->nfunctions; i++)
   {
     SCM subr;
     GWFunctionInfo *fi = &ws->functions[i];
     
-    start = clock();
     if (fi->dynamic)
     {
       SCM_NEWSMOB(subr, dynproc_smob_tag, fi);
@@ -699,11 +655,6 @@ gw_wrapset_register (GWWrapSet *ws)
                                  fi->use_extra_args,
                                  (SCM (*)())fi->proc);
     
-    end = clock();
-    bench_times[BENCH_TOTAL_PROC_CREATE] += end - start;
-    bench_counts[BENCH_TOTAL_PROC_CREATE]++;
-
-    start = clock();
     if (fi->generic_name)
     {
       SCM specializers = SCM_EOL;
@@ -728,20 +679,7 @@ gw_wrapset_register (GWWrapSet *ws)
       gw_function_to_method_public (subr, fi->nargs, specializers,
                                     scm_str2symbol (fi->generic_name));
     }
-    end = clock();
-    bench_times[BENCH_TOTAL_METHOD_CREATE] += end - start;
-    bench_counts[BENCH_TOTAL_METHOD_CREATE]++;
   }
-#if 0
-  fprintf (stderr, "create_function benchmark:\n");
-  bench_print ("  procedure creation", BENCH_TOTAL_PROC_CREATE);
-  bench_print ("  method creation ", BENCH_TOTAL_METHOD_CREATE);
-  bench_print ("    GF create", BENCH_GEN_CREATE);
-  bench_print ("    method create", BENCH_METH_CREATE);
-  bench_print ("    method add", BENCH_METH_ADD);
-#else
-  (void) bench_print;
-#endif
   
   if (nallocated_wrapsets <= nregistered_wrapsets)
   {
@@ -754,8 +692,6 @@ gw_wrapset_register (GWWrapSet *ws)
                    nallocated_wrapsets * sizeof (GWWrapSet *));
   }
   registered_wrapsets[nregistered_wrapsets++] = ws;
-
-  scm_block_gc--;
 }
 
 void

@@ -1,3 +1,12 @@
+2004-02-01  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/g-wrap-runtime.c: Removed benchmark code.
+	(gw_wrapset_add_function): Fixed a missing initialization.
+	Added a few comments.
+
+	* g-wrap/g-wrap-runtime.c, g-wrap/g-wrap-runtime.h
+	(GWFunctionInfo): Inline the CIF, instead of pointing to it.
+
 2004-01-26  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* g-wrap/Makefile.am (libgwrap_runtime_la_LIBADD) 
