@@ -1,5 +1,5 @@
 ;;;; File: g-wrap.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004-2005 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -40,6 +40,7 @@
   #:export
   (&gw-bad-typespec
    raise-bad-typespec
+   raise-stacked
    
    <gw-item>
    description
@@ -113,6 +114,10 @@
 (define-class &gw-bad-typespec-option (&error &message)
   (option #:getter typespec-option))
 
+(define-class &gw-name-conflict (&error &message)
+  (name #:getter conflicting-name)
+  (namespace #:getter conflict-namespace))
+
 (define-class &gw-stacked (&message)
   (next #:getter next-condition))
 
@@ -136,6 +141,11 @@
 
 (define-method (handle-condition (c &gw-bad-element))
   (format-error "bad element ~S in tree ~S" (element c) (tree c)))
+
+(define-method (handle-condition (c &gw-name-conflict))
+  (format-error "name conflict: ~A in namespace ~A: ~A"
+                (conflicting-name c) (conflict-namespace c)
+                (condition-message c)))
 
 ;;;
 
@@ -522,10 +532,14 @@
   (slot-push! self 'client-items item))
 
 (define-method (add-type! (ws <gw-wrapset>) (type <gw-type>))
+  (if (hashq-ref (slot-ref ws 'type-hash) (name type))
+      (raise (condition
+              (&gw-name-conflict
+               (name (name type))
+               (namespace ws)
+               (message (format #f "duplicate type name ~S" type))))))
   (slot-push! ws 'types type)
   (slot-push! ws 'items type)
-  (if (hashq-ref (slot-ref ws 'type-hash) (name type))
-      (error "trying to double-register type ~S in ~S" type ws))
   (hashq-set! (slot-ref ws 'type-hash) (name type) type))
 
 (define-method (add-function! (ws <gw-wrapset>) (function <gw-function>))
