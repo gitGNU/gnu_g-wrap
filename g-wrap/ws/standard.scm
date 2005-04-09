@@ -194,7 +194,18 @@
                              #:c-type-name "uint64_t"
                              #:max "UINT64_MAX"
                              #:ffspec 'uint64)
-  
+
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'size_t
+                             #:c-type-name "size_t"
+                             #:max "SIZE_MAX"
+                             #:ffspec 'size_t)
+
+  (wrap-ranged-integer-type! wrapset
+                             #:name  'ssize_t
+                             #:c-type-name "ssize_t"
+                             #:max "SSIZE_MAX"
+                             #:ffspec 'ssize_t)
 
   (wrap-type! wrapset 'mchars
               #:name 'mchars

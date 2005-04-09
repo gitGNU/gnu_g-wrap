@@ -26,6 +26,11 @@ USA.
 extern "C" {
 #endif
 
+/* ffi type for size_t */
+#undef ffi_type_size_t
+/* ffi type for ssize_t */
+#undef ffi_type_ssize_t
+
 #ifndef WORDS_BIGENDIAN
 /* Byte order. */
 #undef WORDS_BIGENDIAN

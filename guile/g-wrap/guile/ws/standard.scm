@@ -198,6 +198,11 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 
 (define <ranged-integer-type> <gw-guile-ranged-integer-type>) ; Lazy ;)
 
+;; Returns a string, representing the guile "name" of the type. The
+;; "name" will be used to build the names of the conversion functions
+;; for that type. This means the types don't have to exactly match,
+;; but the "name" returned must indictate a type large enough to hold
+;; the type @var{type}.
 (define (ranged-integer-name type)
   (let ((special (assq-ref '((unsigned-short . "ushort")
                              (unsigned-int . "uint")
@@ -210,6 +215,8 @@ example (gw:wcp-is-a? <gw:void*> foo)")
                              (int64 . "long_long")
                              (unsigned-int8 . "ushort")
                              (unsigned-int16 . "uint")
+                             (size_t . "ulong")
+                             (ssize_t . "long")
                              (unsigned-int32 . "ulong")
                              (unsigned-int64 . "ulong_long"))
                            (name type))))
