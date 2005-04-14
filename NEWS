@@ -4,6 +4,10 @@ Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Initially created by Christopher Lee.
 See the end for copying conditions.
 
+Version 1.9.6
+
+  - Support for size_t and ssize_t data types.
+
 Version 1.9.5
 
   - Bugfixes
