@@ -94,9 +94,27 @@ GUILE_MODULE_AVAILABLE(HAVE_SRFI_35, [(srfi srfi-35)])
 AM_CONDITIONAL(HAVE_SRFI_34, test "$HAVE_SRFI_34" = yes)
 AM_CONDITIONAL(HAVE_SRFI_35, test "$HAVE_SRFI_35" = yes)
 
+dnl Allow --with-imp flag
+GW_LANGUAGES=guile
+
+AC_DEFUN([GW_ALLOW_LANG],
+[AC_ARG_ENABLE([$1],
+               AS_HELP_STRING([--enable-$1], [support $1 (default is $2)]),
+               [if test "$enableval" = yes; then
+                  GW_LANGUAGES="$GW_LANGUAGES $1"
+	        else
+	          GW_LANGUAGES=$(echo "$GW_LANGUAGES" | sed s/[ ]?$1//)
+	        fi])])
+
+GW_ALLOW_LANG(guile, YES)
+GW_ALLOW_LANG(scheme48, NO)
+
+AC_SUBST(GW_LANGUAGES)
+
 dnl Check for optional libraries
 PKG_CHECK_MODULES(GLIB, glib, [have_glib=yes], [have_glib=no])
 AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = yes)
+
 
 dnl Check for compiler flags and warnings. This should be last, since
 dnl it can infere with other checks due to changed CFLAGS.
@@ -133,6 +151,10 @@ AC_OUTPUT([Makefile
 	   guile/g-wrap/Makefile
 	   guile/g-wrap/gw/Makefile
 	   guile/test/Makefile
+	   scheme48/Makefile
+	   scheme48/g-wrap/Makefile
+	   scheme48/g-wrap/gw/Makefile
+	   scheme48/test/Makefile
 	   examples/Makefile
 	   doc/Makefile
 	   g-wrap-config

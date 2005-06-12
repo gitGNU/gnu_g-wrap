@@ -39,6 +39,7 @@
   #:use-module (g-wrap rti)
   #:use-module (g-wrap enumeration)
   #:use-module (g-wrap c-types)
+  #:use-module (g-wrap c-codegen)
 
   #:export (inline-scheme
             
@@ -131,7 +132,7 @@
 ;;; Additional methods
 
 (define-method (add-module-export! (ws <gw-guile-wrapset>) (sym <symbol>))
-  (slot-set! ws 'module-exports (cons sym (slot-ref ws 'module-exports))))
+  (slot-push! ws 'module-exports sym))
 
 (define (scm-form-str->safe-c-str name)
   (define (char->string-replacement char)

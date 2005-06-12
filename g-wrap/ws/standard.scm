@@ -1,5 +1,5 @@
 ;;;; File: standard.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004-2005 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -82,11 +82,12 @@
                      #:name 'char
                      #:c-type-name "char"
                      #:ffspec 'schar) ;; FIXME: see above
-
+#!
   (wrap-simple-type! wrapset
                      #:name 'unsigned-char
                      #:c-type-name "unsigned char"
                      #:ffspec 'uchar)
+!#
 
   (wrap-simple-type! wrapset
                      #:name 'float
