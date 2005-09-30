@@ -23,7 +23,9 @@
 
 (define-module (test test-enumeration-spec)
   #:use-module (oop goops)
+
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap guile)
   #:use-module (g-wrap enumeration)
 

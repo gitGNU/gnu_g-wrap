@@ -31,8 +31,9 @@
 (define-module (g-wrap compat)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
-  
+
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap util)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap enumeration)

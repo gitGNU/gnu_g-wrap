@@ -4,7 +4,7 @@ include $(top_srcdir)/common.mk
 
 CLEANFILES = $(wildcard gw-test-*.c gw-test-*.h gw-test-*.scm)
 noinst_HEADERS =
-noinst_LTLIBRARIES =
+check_LTLIBRARIES =
 EXTRA_DIST = 
 
 TESTS = \
@@ -33,7 +33,7 @@ std_libs = $(top_builddir)/test/libg-wrap-test-c-code.la \
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile
 AM_CFLAGS = $(GUILE_CFLAGS) $(LIBFFI_CFLAGS)
 
-noinst_LTLIBRARIES += libg-wrap-guile-test-c-code.la
+check_LTLIBRARIES += libg-wrap-guile-test-c-code.la
 libg_wrap_guile_test_c_code_la_SOURCES = guile-test-c-code.c guile-test-c-code.h
 libg_wrap_guile_test_c_code_la_LDFLAGS = -rpath $(libdir)
 libg_wrap_guile_test_c_code_la_LIBADD = $(std_libs)
@@ -41,7 +41,7 @@ libg_wrap_guile_test_c_code_la_LIBADD = $(std_libs)
 # ======================================================================
 # gw-test-standard
 
-noinst_LTLIBRARIES += libgw-guile-test-standard.la
+check_LTLIBRARIES += libgw-guile-test-standard.la
 nodist_libgw_guile_test_standard_la_SOURCES = gw-test-standard.c
 libgw_guile_test_standard_la_LDFLAGS = -rpath @libdir@ -module
 libgw_guile_test_standard_la_LIBADD = libg-wrap-guile-test-c-code.la $(std_libs)
@@ -49,7 +49,7 @@ libgw_guile_test_standard_la_LIBADD = libg-wrap-guile-test-c-code.la $(std_libs)
 # ======================================================================
 # gw-test-enumeration
 
-noinst_LTLIBRARIES += libgw-guile-test-enumeration.la
+check_LTLIBRARIES += libgw-guile-test-enumeration.la
 nodist_libgw_guile_test_enumeration_la_SOURCES = gw-test-enumeration.c
 libgw_guile_test_enumeration_la_LDFLAGS = -rpath @libdir@ -module
 libgw_guile_test_enumeration_la_LIBADD = $(std_libs)
@@ -57,7 +57,7 @@ libgw_guile_test_enumeration_la_LIBADD = $(std_libs)
 # # ======================================================================
 # # gw-test-parent
 
-noinst_LTLIBRARIES += libgw-guile-test-parent.la
+check_LTLIBRARIES += libgw-guile-test-parent.la
 nodist_libgw_guile_test_parent_la_SOURCES = gw-test-parent.c
 libgw_guile_test_parent_la_LDFLAGS = -rpath @libdir@ -module 
 libgw_guile_test_parent_la_LIBADD = $(std_libs)
@@ -65,7 +65,7 @@ libgw_guile_test_parent_la_LIBADD = $(std_libs)
 # # ======================================================================
 # # gw-test-child
 
-noinst_LTLIBRARIES += libgw-guile-test-child.la
+check_LTLIBRARIES += libgw-guile-test-child.la
 nodist_libgw_guile_test_child_la_SOURCES = gw-test-child.c
 libgw_guile_test_child_la_LDFLAGS = -rpath @libdir@ -module
 libgw_guile_test_child_la_LIBADD = $(std_libs)
@@ -74,7 +74,7 @@ libgw_guile_test_child_la_LIBADD = $(std_libs)
 # # ======================================================================
 # # gw-test-compat
 
-noinst_LTLIBRARIES += libgw-test-compat.la
+check_LTLIBRARIES += libgw-test-compat.la
 nodist_libgw_test_compat_la_SOURCES = gw-test-compat.c
 libgw_test_compat_la_LDFLAGS = -rpath @libdir@ -module
 libgw_test_compat_la_LIBADD = $(std_libs)

@@ -23,7 +23,9 @@
 
 (define-module (test test-parent-spec)
   #:use-module (oop goops)
+
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap c-types)
 
   #:export (<test-parent-wrapset>))

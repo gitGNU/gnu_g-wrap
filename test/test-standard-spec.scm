@@ -23,7 +23,9 @@
 
 (define-module (test test-standard-spec)
   #:use-module (oop goops)
+
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
 
   #:export (<test-standard-wrapset>))
 

@@ -5,6 +5,7 @@ exec ${srcdir:-.}/guile-test-env guile -s "$0" "$@"
 (use-modules (g-wrap gw standard)
              (test gw-test-child)
              (test gw-test-parent)
+	     (oop goops)
              (unit-test))
 
 (define-class <test-wct> (<test-case>))

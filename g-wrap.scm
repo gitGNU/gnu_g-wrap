@@ -59,7 +59,6 @@
    generic-name 
    
    <gw-type>
-   class-name
    needs-result-var?
    wrap-value-cg unwrap-value-cg destroy-value-cg
    pre-call-arg-cg pre-call-result-cg call-arg-cg post-call-result-cg
@@ -160,13 +159,8 @@
 (define-method (all-types-referenced (sel <gw-item>))
   '())
 
-;; Upgrade the GOOPS class-name procedure
-;; barfs with GUILE CVS: class-name not defined -- jcn
-(if (defined? 'class-name)
-    (define class-name (ensure-accessor class-name))
-    (define class-name (ensure-accessor (module-ref
-					 (resolve-module '(oop goops))
-					 'class-name))))
+;; Upgrade the GOOPS class-name procedure.
+(set! class-name (ensure-accessor class-name))
 
 ;;;
 ;;; Types

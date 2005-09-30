@@ -4,17 +4,17 @@
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
 ;;;;   Copyright (C) 1999, 2000, 2001, 2002 Rob Browning
-;;;; 
+;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
 ;;;; License as published by the Free Software Foundation; either
 ;;;; version 2, or (at your option) any later version.
-;;;; 
+;;;;
 ;;;; This program is distributed in the hope that it will be useful,
 ;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;;;; Lesser General Public License for more details.
-;;;; 
+;;;;
 ;;;; You should have received a copy of the GNU Lesser General Public
 ;;;; License along with this software; see the file COPYING.  If not,
 ;;;; write to the Free Software Foundation, 675 Mass Ave, Cambridge,
@@ -30,10 +30,10 @@
 (define-module (g-wrap guile)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-13)
-  
+
   #:use-module (oop goops)
   #:use-module (ice-9 optargs)
-  
+
   #:use-module (g-wrap)
   #:use-module (g-wrap util)
   #:use-module (g-wrap rti)
@@ -42,15 +42,15 @@
   #:use-module (g-wrap c-codegen)
 
   #:export (inline-scheme
-            
-            <gw-guile-wrapset>
-            module module-exports
-            add-module-export!
-            
-            <gw-guile-simple-type>
-            <gw-guile-simple-rti-type>
-            <gw-guile-rti-type>
-            scm-var))
+
+	    <gw-guile-wrapset>
+	    module module-exports
+	    add-module-export!
+
+	    <gw-guile-simple-type>
+	    <gw-guile-simple-rti-type>
+	    <gw-guile-rti-type>
+	    scm-var))
 
 
 ;; Utility stuff
@@ -60,7 +60,7 @@
 (define (guile-module-name->c-sym-name-strlist name-symlist)
   (separate-by
    (map (lambda (s) (gw:any-str->c-sym-str (symbol->string s)))
-        name-symlist)
+	name-symlist)
    "_"))
 
 (define-method (scm-var (value <gw-value>))
@@ -74,9 +74,9 @@
 
   (let ((c-name (c-name func)))
     (slot-set! func 'wrapper-name
-               (gen-c-tmp (string-append c-name "_wrapper")))
+	       (gen-c-tmp (string-append c-name "_wrapper")))
     (slot-set! func 'wrapper-namestr
-               (gen-c-tmp (string-append c-name "_namestr")))))
+	       (gen-c-tmp (string-append c-name "_namestr")))))
 
 
 
@@ -88,12 +88,12 @@
   (module #:init-keyword #:module #:accessor module #:init-value #f)
   (module-exports #:getter module-exports #:init-value '())
   (shlib-path #:init-keyword #:shlib-path)
-  
+
   #:language 'guile)
 
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>))
   (let ((wrapset-name-c-sym (any-str->c-sym-str
-                             (symbol->string (name wrapset)))))
+			     (symbol->string (name wrapset)))))
     (list
      (next-method)
      "void gw_init_wrapset_" wrapset-name-c-sym "(void);\n"
@@ -106,28 +106,29 @@
   (list
    (next-method)
    "#include <g-wrap/guile-runtime.h>\n"))
-  
+
 (define-method (initializations-cg (wrapset <gw-guile-wrapset>) err)
   (list
    "gw_guile_runtime_init ();\n"
    (let ((modules (fold (lambda (ws clauses)
-                          (if (module ws)
-                              (cons (module ws) clauses)
-                              clauses))
-                        '()
-                        (wrapsets-depended-on wrapset))))
+			  (if (module ws)
+			      (cons (module ws) clauses)
+			      clauses))
+			'()
+			(wrapsets-depended-on wrapset))))
      (if (null? modules)
-         '()
-         (inline-scheme wrapset `(use-modules ,@modules))))
-    (next-method)))
-  
+	 '()
+	 (inline-scheme wrapset `(use-modules ,@modules))))
+
+   (next-method)))
+
 (define-method (initialize (wrapset <gw-guile-wrapset>) initargs)
   (next-method wrapset (append (list #:function-class <gw-guile-function>)
-                               initargs))
+			       initargs))
   (if (not (slot-bound? wrapset 'shlib-path))
       (slot-set! wrapset 'shlib-path
-                 (string-append "libgw-guile-"
-                                (symbol->string (name wrapset))))))
+		 (string-append "libgw-guile-"
+				(symbol->string (name wrapset))))))
 
 ;;; Additional methods
 
@@ -150,24 +151,24 @@
   (map
    (lambda (chunk)
      (list "scm_c_eval_string(\""
-           (scm-form-str->safe-c-str
-            (call-with-output-string
-             (lambda (port)
-               (write chunk port))))
-           "\");\n"))
+	   (scm-form-str->safe-c-str
+	    (call-with-output-string
+	     (lambda (port)
+	       (write chunk port))))
+	   "\");\n"))
    code-chunks))
 
 ;;; Refined methods
 
 (define-method (initializations-cg (wrapset <gw-guile-wrapset>)
-                                   (constant <gw-constant>) error-var)
+				   (constant <gw-constant>) error-var)
   (let* ((scm-var (gen-c-tmp "scm_wrapped_value"))
-         (wrap-value-code
-          (wrap-value-cg (type constant)
-                         (make <gw-value>
-                           #:var (value constant)
-                           #:wrapped-var (string-append "&" scm-var))
-                         error-var)))
+	 (wrap-value-code
+	  (wrap-value-cg (type constant)
+			 (make <gw-value>
+			   #:var (value constant)
+			   #:wrapped-var (string-append "&" scm-var))
+			 error-var)))
     (list
      "{\n"
      "  SCM " scm-var ";\n"
@@ -176,15 +177,15 @@
      "if (!" `(gw:error? ,error-var) ")"
      "  scm_c_define (\"" (symbol->string (name constant)) "\", " scm-var ");\n"
      "}\n")))
-  
+
 (define-method (add-constant! (wrapset <gw-guile-wrapset>)
-                              (constant <gw-constant>))
+			      (constant <gw-constant>))
   (next-method)
   (add-module-export! wrapset (name constant)))
 
 (define-method (add-function! (wrapset <gw-guile-wrapset>)
-                              (func <gw-function>))
-  
+			      (func <gw-function>))
+
   (next-method)
   (add-module-export! wrapset (name func)))
 
@@ -194,12 +195,12 @@
 ;;;
 
 ;; hardcoded here, should be extracted from SCM_SUBR_MAX at configure-time
-(define *max-fixed-params* 9) 
+(define *max-fixed-params* 9)
 
 (define (make-c-wrapper-param-declarations param-list)
   (let loop ((params param-list)
 	     (index  0))
-    (cond ((null? params) 
+    (cond ((null? params)
 	   '())
 	  ((and (= index *max-fixed-params*))
 	   "SCM gw__restargs ")
@@ -215,57 +216,57 @@
 (define (make-c-call-param-list params)
   ;; TODO: Make tail-recursive
   (cond ((null? params) '())
-        (else
-         (let ((param (car params)))
-           (cons
-            (list 
-             (call-arg-cg (type param) param)
-             (if (null? (cdr params))
-                 ""
-                 ", "))
-            (make-c-call-param-list (cdr params)))))))
+	(else
+	 (let ((param (car params)))
+	   (cons
+	    (list
+	     (call-arg-cg (type param) param)
+	     (if (null? (cdr params))
+		 ""
+		 ", "))
+	    (make-c-call-param-list (cdr params)))))))
 
 (define (actual-arguments function)
   (map
    (lambda (arg number c-number out-number)
      (apply make <gw-param>
-            #:number number
-            #:typespec (typespec arg)
-            #:var (string-append "gw__c_arg" (number->string c-number))
-            (cond
-             ((>= number 0)
-                `(#:wrapped-var
-                  ,(if (< number *max-fixed-params*)
-                       (string-append "&gw__scm_arg" (number->string number))
-                       (string-append
-                        "&gw__scm_extras[" (number->string
-                                            (- number
-                                               *max-fixed-params*)) "]"))))
-             ((memq 'out (options (typespec arg)))
-              `(#:wrapped-var
-                ,(string-append "& "(out-param-name out-number))))
-             (else '()))))
+	    #:number number
+	    #:typespec (typespec arg)
+	    #:var (string-append "gw__c_arg" (number->string c-number))
+	    (cond
+	     ((>= number 0)
+		`(#:wrapped-var
+		  ,(if (< number *max-fixed-params*)
+		       (string-append "&gw__scm_arg" (number->string number))
+		       (string-append
+			"&gw__scm_extras[" (number->string
+					    (- number
+					       *max-fixed-params*)) "]"))))
+	     ((memq 'out (options (typespec arg)))
+	      `(#:wrapped-var
+		,(string-append "& "(out-param-name out-number))))
+	     (else '()))))
    (arguments function)
    (let loop ((numbers '()) (args (arguments function)) (n 0))
      (if (null? args)
-         (reverse numbers)
-         (if (and (visible? (car args))
-                  (not (memq 'out (options (typespec (car args))))))
-             (loop (cons n numbers) (cdr args) (+ n 1))
-             (loop (cons -1 numbers) (cdr args) n))))
+	 (reverse numbers)
+	 (if (and (visible? (car args))
+		  (not (memq 'out (options (typespec (car args))))))
+	     (loop (cons n numbers) (cdr args) (+ n 1))
+	     (loop (cons -1 numbers) (cdr args) n))))
    (iota (argument-count function))
    (let loop ((numbers '()) (args (arguments function)) (n 0))
      (if (null? args)
-         (reverse numbers)
-         (if (memq 'out (options (typespec (car args))))
-             (loop (cons n numbers) (cdr args) (+ n 1))
-             (loop (cons -1 numbers) (cdr args) n))))
+	 (reverse numbers)
+	 (if (memq 'out (options (typespec (car args))))
+	     (loop (cons n numbers) (cdr args) (+ n 1))
+	     (loop (cons -1 numbers) (cdr args) n))))
    ))
 
 ;; FIXME: This is too unspecialized, so that it is more generic than
 ;; the method for rti wrapsets. It should be refactored into core.
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>)
-                                      (function <gw-guile-function>))
+				      (function <gw-guile-function>))
   (if (uses-rti-for-function? wrapset function)
       '()
       (function-wrapper-cg wrapset function)))
@@ -275,25 +276,25 @@
 
 (define (function-wrapper-cg wrapset function)
   (let* ((params (actual-arguments function))
-         (c-name (c-name function))
-         (return-typespec (return-typespec function))
-         (return-type (type return-typespec))
-         (result (make <gw-value>
-                   #:typespec return-typespec
-                   #:wrapped-var "&gw__scm_result"
-                   #:var "gw__result"))
-         (scm-params (filter visible? params))
-         (scheme-sym (symbol->string (name function)))
-         (param-decl (make-c-wrapper-param-declarations scm-params))
-         (fn-c-wrapper (slot-ref function 'wrapper-name))
-         (fn-c-string (slot-ref function 'wrapper-namestr))
-         (nargs (length scm-params))
-         (error-var "gw__error")
-         (labels (make <gw-cs-labels>))
-         (out-params (filter (lambda (param)
-                               (memq 'out (options (typespec param))))
-                             params)))
-    
+	 (c-name (c-name function))
+	 (return-typespec (return-typespec function))
+	 (return-type (type return-typespec))
+	 (result (make <gw-value>
+		   #:typespec return-typespec
+		   #:wrapped-var "&gw__scm_result"
+		   #:var "gw__result"))
+	 (scm-params (filter visible? params))
+	 (scheme-sym (symbol->string (name function)))
+	 (param-decl (make-c-wrapper-param-declarations scm-params))
+	 (fn-c-wrapper (slot-ref function 'wrapper-name))
+	 (fn-c-string (slot-ref function 'wrapper-namestr))
+	 (nargs (length scm-params))
+	 (error-var "gw__error")
+	 (labels (make <gw-cs-labels>))
+	 (out-params (filter (lambda (param)
+			       (memq 'out (options (typespec param))))
+			     params)))
+
     (list
      "static char * " fn-c-string " = \"" scheme-sym "\";\n"
      "static SCM " fn-c-wrapper "  (" param-decl ") {\n"
@@ -301,131 +302,131 @@
      "  GWError gw__error = { GW_ERR_NONE, NULL, NULL };\n"
      "  unsigned int gw__arg_pos = 0;\n"
      (if (zero? nargs)
-         '()
-         (list
-          "  GWTypeSpec *typespec = NULL;\n"
-          "  GWTypeSpec typespecs[] = { " (string-join
-                                           (map
-                                            (lambda (param)
-                                              (typespec-cg (type param) (typespec param)))
-                                            scm-params)
-                                           ", ") " };\n"))
-     
+	 '()
+	 (list
+	  "  GWTypeSpec *typespec = NULL;\n"
+	  "  GWTypeSpec typespecs[] = { " (string-join
+					   (map
+					    (lambda (param)
+					      (typespec-cg (type param) (typespec param)))
+					    scm-params)
+					   ", ") " };\n"))
+
      (if (needs-result-var? return-type)
-         (list
-          (c-type-name return-type return-typespec) " " (var result) ";\n")
-         '())
-     
+	 (list
+	  (c-type-name return-type return-typespec) " " (var result) ";\n")
+	 '())
+
      (if (> nargs *max-fixed-params*)
-         (list "  SCM gw__scm_extras[" (- nargs *max-fixed-params*) "];\n")
-         '())
-     
+	 (list "  SCM gw__scm_extras[" (- nargs *max-fixed-params*) "];\n")
+	 '())
+
      (map
       (lambda (number)
-        (list "  SCM " (out-param-name number) " = SCM_UNSPECIFIED;\n"))
+	(list "  SCM " (out-param-name number) " = SCM_UNSPECIFIED;\n"))
       (iota (length out-params)))
-     
+
      "\n"
 
       (map
        (lambda (x)
-         (list
-              (c-type-name (type x)) " " (var x) ";\n"))
+	 (list
+	      (c-type-name (type x)) " " (var x) ";\n"))
        params)
-      
+
       (map
        (lambda (param arg)
-         (list
-          (if (visible? param)
-              (list
-               "/* ARG " (number param) " */\n"
-               "typespec = &typespecs[gw__arg_pos];\n"
-               "gw__arg_pos++;\n"
-               (if (>= (number param) *max-fixed-params*)
-                   (list
-                    "if (SCM_NULLP (gw__restargs))\n"
-                    (if (default-value arg)
-                        (list
-                         "  " (scm-var param) "= SCM_UNDEFINED;\n")
-                        (list
-                         "{\n"
-                         "  (" error-var ").status = GW_ERR_ARGC;\n"
-                         "  " (goto-cg labels
-                                       (if (zero? (number param))
-                                           "wrapper_exit"
-                                           (format #f "post_call_arg_~A"
-                                                   (- (number param) 1))))
-                         "}\n"))
-                    "else {\n"
-                    "  " (scm-var param) " = SCM_CAR (gw__restargs);\n"
-                    "    gw__restargs = SCM_CDR (gw__restargs);\n"
-                    "}\n")
-                   '()))
-              (list "/* ARG " (number param) " (invisible) */\n"))
-          "\n{\n"
-          (if (output-param? param)
-              '()
-              (let ((pre-call-code
-                     (expand-special-forms
-                      (pre-call-arg-cg (type param) param error-var)
-                      param
-                      '(memory misc type range arg-type arg-range)
-                      #:labels labels)))
-                (if (default-value arg)
-                    (list
-                     "if (SCM_EQ_P(" (scm-var param) ", SCM_UNDEFINED))\n"
-                     "  " (set-value-cg (type arg) param
-                                        (default-value arg))
-                     "else {\n"
-                     pre-call-code
-                     "}\n")
-                    pre-call-code)))))
+	 (list
+	  (if (visible? param)
+	      (list
+	       "/* ARG " (number param) " */\n"
+	       "typespec = &typespecs[gw__arg_pos];\n"
+	       "gw__arg_pos++;\n"
+	       (if (>= (number param) *max-fixed-params*)
+		   (list
+		    "if (SCM_NULLP (gw__restargs))\n"
+		    (if (default-value arg)
+			(list
+			 "  " (scm-var param) "= SCM_UNDEFINED;\n")
+			(list
+			 "{\n"
+			 "  (" error-var ").status = GW_ERR_ARGC;\n"
+			 "  " (goto-cg labels
+				       (if (zero? (number param))
+					   "wrapper_exit"
+					   (format #f "post_call_arg_~A"
+						   (- (number param) 1))))
+			 "}\n"))
+		    "else {\n"
+		    "  " (scm-var param) " = SCM_CAR (gw__restargs);\n"
+		    "    gw__restargs = SCM_CDR (gw__restargs);\n"
+		    "}\n")
+		   '()))
+	      (list "/* ARG " (number param) " (invisible) */\n"))
+	  "\n{\n"
+	  (if (output-param? param)
+	      '()
+	      (let ((pre-call-code
+		     (expand-special-forms
+		      (pre-call-arg-cg (type param) param error-var)
+		      param
+		      '(memory misc type range arg-type arg-range)
+		      #:labels labels)))
+		(if (default-value arg)
+		    (list
+		     "if (SCM_EQ_P(" (scm-var param) ", SCM_UNDEFINED))\n"
+		     "  " (set-value-cg (type arg) param
+					(default-value arg))
+		     "else {\n"
+		     pre-call-code
+		     "}\n")
+		    pre-call-code)))))
        params (arguments function))
-      
+
       "if ((" error-var ").status == GW_ERR_NONE)\n"
       "{\n"
       (expand-special-forms
        (pre-call-result-cg return-type result error-var)
        #f '(memory misc type range))
-      
+
       (let* ((func-call-code
-              (list c-name " (" (make-c-call-param-list params) ")"))
-             (call-code (call-cg return-type result func-call-code
-                                 error-var)))
-        (if (not (no-op? call-code))
-            (list
-             "if ((" error-var ").status != GW_ERR_NONE)"
-             "  " (goto-cg labels
-                           (if (zero? nargs)
-                               "wrapper_exit"
-                               (format #f "post_call_arg_~A" (- nargs 1))))
-             "SCM_DEFER_INTS;\n"
-             (expand-special-forms call-code #f '(memory misc type range))
-             "SCM_ALLOW_INTS;\n")
-            "/* no function call requested! */\n"))
-      
-      
+	      (list c-name " (" (make-c-call-param-list params) ")"))
+	     (call-code (call-cg return-type result func-call-code
+				 error-var)))
+	(if (not (no-op? call-code))
+	    (list
+	     "if ((" error-var ").status != GW_ERR_NONE)"
+	     "  " (goto-cg labels
+			   (if (zero? nargs)
+			       "wrapper_exit"
+			       (format #f "post_call_arg_~A" (- nargs 1))))
+	     "SCM_DEFER_INTS;\n"
+	     (expand-special-forms call-code #f '(memory misc type range))
+	     "SCM_ALLOW_INTS;\n")
+	    "/* no function call requested! */\n"))
+
+
       "{\n"
       (expand-special-forms
        (post-call-result-cg return-type result error-var)
        #f '(memory misc type range))
       "}\n"
       "}\n"
-      
+
       ;; insert the post-call args code in the opposite order
       ;; of the pre-call code
       (map
        (lambda (param arg)
-         (list
-          (label-cg labels (format #f "post_call_arg_~A" (number param)))
-          (let ((post-call-code
-                 (expand-special-forms
-                  (post-call-arg-cg (type param) param error-var)
-                  #f '(memory misc type range))))
-            (if (no-op? post-call-code)
-                '()
-                (list "{\n" post-call-code "}\n")))
-          "}\n"))
+	 (list
+	  (label-cg labels (format #f "post_call_arg_~A" (number param)))
+	  (let ((post-call-code
+		 (expand-special-forms
+		  (post-call-arg-cg (type param) param error-var)
+		  #f '(memory misc type range))))
+	    (if (no-op? post-call-code)
+		'()
+		(list "{\n" post-call-code "}\n")))
+	  "}\n"))
        (reverse params) (arguments function))
 
       " " (label-cg labels "wrapper_exit")
@@ -434,37 +435,37 @@
       "                             " fn-c-string ",\n"
       "                             gw__arg_pos);\n"
       (if (null? out-params)
-          "  return gw__scm_result;\n"
-          (list
-           "  return scm_values (scm_list_n ("
-           (if (needs-result-var? return-type)
-               "gw__scm_result, "
-               '())
-           (map (lambda (n)
-                  (string-append (out-param-name n) ", "))
-                (iota (length out-params)))
-           "SCM_UNDEFINED));\n"))
+	  "  return gw__scm_result;\n"
+	  (list
+	   "  return scm_values (scm_list_n ("
+	   (if (needs-result-var? return-type)
+	       "gw__scm_result, "
+	       '())
+	   (map (lambda (n)
+		  (string-append (out-param-name n) ", "))
+		(iota (length out-params)))
+	   "SCM_UNDEFINED));\n"))
       "}\n")))
 
 ;; RTI functions override this method
 (define-method (initializations-cg (wrapset <gw-wrapset>)
-                                   (function <gw-guile-function>)
-                                   status-var)
-  
+				   (function <gw-guile-function>)
+				   status-var)
+
   (let* ((visible-args (filter visible? (arguments function)))
-         (n-visible-args (length visible-args))
-         (n-optional-visible-args (length (filter identity
-                                                  (map default-value visible-args))))
-         (n-req-args (- n-visible-args n-optional-visible-args))
-         (fn-c-wrapper (slot-ref function 'wrapper-name))
-         (fn-c-string  (slot-ref function 'wrapper-namestr)))
+	 (n-visible-args (length visible-args))
+	 (n-optional-visible-args (length (filter identity
+						  (map default-value visible-args))))
+	 (n-req-args (- n-visible-args n-optional-visible-args))
+	 (fn-c-wrapper (slot-ref function 'wrapper-name))
+	 (fn-c-string  (slot-ref function 'wrapper-namestr)))
     (list
      "   gw_wrapset_add_function(" (c-info-sym wrapset) ", "
      fn-c-wrapper ", " n-req-args ", " n-optional-visible-args ", "
      "NULL, 0, NULL, NULL, " fn-c-string ", "
      (if (generic-name function)
-         (list "\"" (symbol->string (generic-name function)) "\"")
-         "NULL")
+	 (list "\"" (symbol->string (generic-name function)) "\"")
+	 "NULL")
      ");\n")))
 
 
@@ -479,44 +480,44 @@
 
 (define-method (wrap-value-function-cg (type <gw-guile-rti-type>))
   (let* ((type-name (c-type-name type))
-         (value (make <gw-rti-value>
-                  #:var (string-append "(*(" type-name "*)instance)")
-                  #:typespec #f ;; the typespec is passed in the function
-                  #:wrapped-var "value")))
+	 (value (make <gw-rti-value>
+		  #:var (string-append "(*(" type-name "*)instance)")
+		  #:typespec #f ;; the typespec is passed in the function
+		  #:wrapped-var "value")))
     (list
      "static void " (wrap-value-function-name type)
      "(GWLangLocative value, GWLangArena arena, const GWTypeSpec *typespec, void *instance, GWError *error) {\n"
      "  " (expand-special-forms (wrap-value-cg type value "*error")
-                                #f '(type arg-type range memory misc))
+				#f '(type arg-type range memory misc))
      "}\n")))
 
 
 (define-method (unwrap-value-function-cg (type <gw-guile-rti-type>))
   (let* ((type-name (c-type-name type))
-         (value (make <gw-rti-value>
-                  #:var (string-append "(*(" type-name "*)instance)")
-                  #:typespec #f ;; the typespec is passed in the function
-                  #:wrapped-var "value")))
+	 (value (make <gw-rti-value>
+		  #:var (string-append "(*(" type-name "*)instance)")
+		  #:typespec #f ;; the typespec is passed in the function
+		  #:wrapped-var "value")))
     (list
      "static void " (unwrap-value-function-name type)
      "(void *instance, GWLangArena arena, const GWTypeSpec *typespec, GWLangLocative value, GWError *error) {\n"
      "  " (expand-special-forms (unwrap-value-cg type value "*error")
-                                #f '(type arg-type range memory misc))
+				#f '(type arg-type range memory misc))
      "}\n")))
 
 (define-method (destroy-value-function-cg (type <gw-guile-rti-type>))
-  
+
   (let* ((type-name (c-type-name type))
-         (value (make <gw-rti-value>
-                  #:var (string-append "(*(" type-name "*)instance)")
-                  #:typespec #f ;; the typespec is passed in the function
-                  #:wrapped-var "value")))
+	 (value (make <gw-rti-value>
+		  #:var (string-append "(*(" type-name "*)instance)")
+		  #:typespec #f ;; the typespec is passed in the function
+		  #:wrapped-var "value")))
     (list
      "static void " (destroy-value-function-name type)
      "(GWLangArena arena, void *instance, const GWTypeSpec *typespec, GWError *error) {\n"
      "  " (expand-special-forms
-           (destroy-value-cg type value "*error")
-           #f '(type arg-type range memory misc))
+	   (destroy-value-cg type value "*error")
+	   #f '(type arg-type range memory misc))
      "}\n")))
 
 ;;;
@@ -533,24 +534,24 @@
   (next-method)
   (let-keywords
    initargs #t ((prefix "enum-"))
-   
+
    (define (gen-name action) (gen-c-tmp-name enum action)) ;; Just lazy
    (define (enum-prefix)
      (string-append prefix (symbol->string (name enum))))
-   
+
    (slot-set! enum 'val->int-c-func (gen-name "val_to_int"))
    (slot-set! enum 'val->int-scm-func
-              (string-append (enum-prefix) "-val->int"))
-  
+	      (string-append (enum-prefix) "-val->int"))
+
    (slot-set! enum 'val->sym-c-func (gen-name "val_to_sym"))
    (slot-set! enum 'val->sym-scm-func
-              (string-append (enum-prefix) "-val->sym"))))
+	      (string-append (enum-prefix) "-val->sym"))))
 
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>)
-                                      (enum <gw-enumeration-type>))
+				      (enum <gw-enumeration-type>))
   (list
    (next-method)
-   
+
    "static SCM " (slot-ref enum 'val->sym-c-func)
    "(SCM gw__scm_val, SCM gw__scm_show_all_p) {\n"
    "  return gw_guile_enum_val2sym(" (val-array-name enum) ", "
@@ -562,39 +563,39 @@
    "}\n"))
 
 (define-method (initializations-cg (wrapset <gw-guile-wrapset>)
-                                   (enum <gw-enumeration-type>)
-                                   error-var)
+				   (enum <gw-enumeration-type>)
+				   error-var)
   (list
    (next-method)
-   
+
    "scm_c_define_gsubr (\"" (slot-ref enum 'val->int-scm-func) "\", 1, 0, 0,\n"
    "                      " (slot-ref enum 'val->int-c-func) ");\n"
    "scm_c_define_gsubr (\"" (slot-ref enum 'val->sym-scm-func) "\", 2, 0, 0,\n"
    "                      " (slot-ref enum 'val->sym-c-func) ");\n"))
 
 (define-method (wrap-value-cg (type <gw-guile-enum>)
-                              (value <gw-value>)
-                              status-var)
+			      (value <gw-value>)
+			      status-var)
   (list (scm-var value) " = scm_long2num(" (var value) ");\n"))
 
 (define-method (unwrap-value-cg (enum <gw-guile-enum>)
-                                (value <gw-value>)
-                                status-var)
+				(value <gw-value>)
+				status-var)
   (let ((scm-var (scm-var value))
-        (c-var (var value))
-        (val-sym-array-name (val-array-name enum)))
+	(c-var (var value))
+	(val-sym-array-name (val-array-name enum)))
     (list
      scm-var " = gw_guile_enum_val2int(" val-sym-array-name ", " scm-var ");\n"
      "if(SCM_FALSEP(scm_integer_p(" scm-var ")))"
      `(gw:error ,status-var type ,(wrapped-var value))
      "else " c-var " = scm_num2long(" scm-var
      ", 0, \"%gw:enum->scm->c-ccg\");\n")))
-  
+
 (define-method (wrap-enum! (wrapset <gw-guile-wrapset>) . args)
-  
+
   (define (slot-sym-ref v slot)
     (string->symbol (slot-ref v slot)))
-  
+
   (let ((enum (apply make <gw-guile-enum> args)))
     (add-type! wrapset enum)
     (add-module-export! wrapset (slot-sym-ref enum 'val->int-scm-func))
@@ -620,38 +621,38 @@
    ((symbol? tree)
     (let ((expansion (assq-ref alist tree)))
       (if (string? expansion)
-          expansion
-          (error
-           (string-append
-            "g-wrap expected string for expansion "
-            "while processing  ~S\n.") expansion))))
+	  expansion
+	  (error
+	   (string-append
+	    "g-wrap expected string for expansion "
+	    "while processing  ~S\n.") expansion))))
    (else tree)))
 
 (define-method (unwrap-value-cg (type <gw-guile-simple-type-base>)
-                                (value <gw-value>)
-                                status-var)
+				(value <gw-value>)
+				status-var)
   (let* ((scm-var (scm-var value))
-         (c-var (var value))
-         (unwrap-code (replace-syms (slot-ref type 'unwrap)
-                                    `((c-var . ,c-var)
-                                      (scm-var . ,scm-var))))
-         (type-check (slot-ref type 'type-check)))
+	 (c-var (var value))
+	 (unwrap-code (replace-syms (slot-ref type 'unwrap)
+				    `((c-var . ,c-var)
+				      (scm-var . ,scm-var))))
+	 (type-check (slot-ref type 'type-check)))
     (if type-check
-        (list "if (!(" (replace-syms type-check `((scm-var . ,scm-var))) "))"
-              `(gw:error ,status-var type ,(wrapped-var value))
-              "else {" unwrap-code "}")
-        unwrap-code)))
+	(list "if (!(" (replace-syms type-check `((scm-var . ,scm-var))) "))"
+	      `(gw:error ,status-var type ,(wrapped-var value))
+	      "else {" unwrap-code "}")
+	unwrap-code)))
 
 (define-method (wrap-value-cg (type <gw-guile-simple-type-base>)
-                              (value <gw-value>)
-                              status-var)
+			      (value <gw-value>)
+			      status-var)
   (replace-syms (slot-ref type 'wrap)
-                `((c-var . ,(var value))
-                  (scm-var . ,(scm-var value)))))
+		`((c-var . ,(var value))
+		  (scm-var . ,(scm-var value)))))
 
 (define-class <gw-guile-simple-rti-type> (<gw-simple-rti-type>
-                                          <gw-guile-simple-type-base>
-                                          <gw-guile-rti-type>))
+					  <gw-guile-simple-type-base>
+					  <gw-guile-rti-type>))
 
 ;; This class is mainly for compatibility: it's like
 ;; <gw-guile-simple-rti-type>, but doesn't require an ffspec
@@ -660,16 +661,16 @@
   (c-const-type-name #:init-keyword #:c-const-type-name))
 
 (define-method (c-type-name (type <gw-guile-simple-type>)
-                            (typespec <gw-typespec>))
+			    (typespec <gw-typespec>))
   (slot-ref type (if (memq 'const (options typespec))
-                     'c-const-type-name
-                     'c-type-name)))
+		     'c-const-type-name
+		     'c-type-name)))
 
 (define-method (wrap-simple-type! (wrapset <gw-guile-wrapset>) . args)
   (let* ((class (if (member #:ffspec args)
-                   <gw-guile-simple-rti-type>
-                   <gw-guile-simple-type>))
-         (type (apply make class args)))
+		   <gw-guile-simple-rti-type>
+		   <gw-guile-simple-type>))
+	 (type (apply make class args)))
     (add-type! wrapset type)
     type))
 
@@ -690,27 +691,27 @@
 (define-method (initialize (wct <gw-guile-wct>) initargs)
   (next-method)
   (slot-set! wct 'wct-var-name
-             (gen-c-tmp (string-append
-                         "wct_info_for"
-                         (any-str->c-sym-str (symbol->string (name wct)))))))
+	     (gen-c-tmp (string-append
+			 "wct_info_for"
+			 (any-str->c-sym-str (symbol->string (name wct)))))))
 
 (define-method (wrap-value-cg (wct <gw-guile-wct>)
-                              (value <gw-value>)
-                              status-var)
+			      (value <gw-value>)
+			      status-var)
   (let ((wct-var (slot-ref wct 'wct-var-name))
-        (sv (scm-var value))
-        (cv (var value)))
+	(sv (scm-var value))
+	(cv (var value)))
     (list
      "if(" cv " == NULL) " sv " = SCM_BOOL_F;\n"
      "else " sv " = gw_wcp_assimilate_ptr((void *) " cv ", " wct-var ");\n")))
 
 
 (define-method (unwrap-value-cg (wct <gw-guile-wct>)
-                                (value <gw-value>)
-                                status-var)
+				(value <gw-value>)
+				status-var)
   (let ((wct-var (slot-ref wct 'wct-var-name))
-        (sv (scm-var value))
-        (c-var (var value)))
+	(sv (scm-var value))
+	(c-var (var value)))
     (list
      "if (SCM_FALSEP(" sv "))\n"
      "  " c-var " = NULL;\n"
@@ -720,13 +721,13 @@
      `(gw:error ,status-var type ,(wrapped-var value)))))
 
 (define-method (initializations-cg (wrapset <gw-wrapset>)
-                                   (wct <gw-guile-wct>)
-                                   error-var)
+				   (wct <gw-guile-wct>)
+				   error-var)
   (let ((wct-var (slot-ref wct 'wct-var-name))
-        (wcp-type-name (symbol->string (name wct))))
+	(wcp-type-name (symbol->string (name wct))))
   (list
    (next-method)
-   
+
    wct-var "= gw_wct_create(\"" wcp-type-name "\", NULL, NULL, NULL, NULL);\n"
    "scm_c_define(\"" wcp-type-name "\", " wct-var ");\n")))
 
@@ -734,18 +735,18 @@
   (list "static SCM "  (slot-ref wct 'wct-var-name) " = SCM_BOOL_F;\n"))
 
 (define-method (global-declarations-cg (wrapset <gw-wrapset>)
-                                       (wct <gw-guile-wct>))
+				       (wct <gw-guile-wct>))
   (wct-var-decl-cg wct))
 
 (define-method (client-global-declarations-cg (wrapset <gw-wrapset>)
-                                              (wct <gw-guile-wct>))
+					      (wct <gw-guile-wct>))
   (wct-var-decl-cg wct))
 
 (define-method (client-initializations-cg (wrapset <gw-wrapset>)
-                                          (wct <gw-guile-wct>)
-                                          error-var)
+					  (wct <gw-guile-wct>)
+					  error-var)
   (let ((wct-var (slot-ref wct 'wct-var-name))
-        (wcp-type-name (symbol->string (name wct))))
+	(wcp-type-name (symbol->string (name wct))))
     (list
      "    " wct-var " = scm_c_eval_string(\"" wcp-type-name "\");\n")))
 
@@ -757,82 +758,82 @@
 (define (generate-wrapset-scm wrapset port)
   (define (dsp-list lst)
     (for-each (lambda (s) (display s port)) lst))
-  
+
   (let* ((wrapset-name (name wrapset))
-         (wrapset-name-c-sym (any-str->c-sym-str
-                              (symbol->string wrapset-name)))
-         (guile-module (module wrapset)))
-    
+	 (wrapset-name-c-sym (any-str->c-sym-str
+			      (symbol->string wrapset-name)))
+	 (guile-module (module wrapset)))
+
     (flatten-display
      (list
       ";; Generated by G-Wrap-TNG: an experimental Guile C API-wrapper engine.\n"
       "\n"
       (format #f "(define-module ~S\n" guile-module)
       (format #f "  #:use-module (oop goops)\n")
-;;      "  #:export (" (map
-;;                      (lambda (sym)
-;;                        (list "    " sym "\n"))
-;;                      (module-exports wrapset))
-;;     "))\n"
-      ")\n"
+      "  #:export (" (map
+		      (lambda (sym)
+			(list "    " sym "\n"))
+		      (module-exports wrapset))
+      "))\n"
       "\n"
       "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
       "              (dynamic-link \"" (slot-ref wrapset 'shlib-path) "\"))\n"
-      "(module-use! (module-public-interface (current-module)) (current-module))\n")
+;;      "(module-use! (module-public-interface (current-module)) (current-module))\n"
+      )
      port)
     (let ((gf-hash (make-hash-table 67)))
       (fold-functions
        (lambda (func rest)
-         (let ((gf-name (generic-name func)))
-           (if (and gf-name
-                    (> (argument-count func) 0)
-                    (class-name (first (argument-types func)))
-                    (not (uses-rti-for-function? wrapset func)))
-               (let ((handle
-                      (hashq-create-handle! gf-hash gf-name '())))
-                 (set-cdr! handle (cons func (cdr handle)))))))
+	 (let ((gf-name (generic-name func)))
+	   (if (and gf-name
+		    (> (argument-count func) 0)
+		    (class-name (first (argument-types func)))
+		    (not (uses-rti-for-function? wrapset func)))
+	       (let ((handle
+		      (hashq-create-handle! gf-hash gf-name '())))
+		 (set-cdr! handle (cons func (cdr handle)))))))
        #f wrapset)
-          (hash-fold
-           (lambda (gf funcs rest)
-             (for-each 
-              (lambda (func)
-                (write
-                 `(%gw:procedure->method-public
-                   ,(name func)
-                   ;; Specializers
-                   ',(map (lambda (arg)
-                            (let ((typespec (typespec arg)))
-                              (and (not (memq 'unspecialized
-                                              (options typespec)))
-                                   (class-name (type typespec)))))
-                          (filter visible? (arguments func)))
-                   ',gf
-                   ;; Required argument count
-                   ,(- (input-argument-count func)
-                       (optional-argument-count func))
-                   ;; Optional arguments?
-                   ,(not (zero? (optional-argument-count func))))
-                 port)
-                (newline port))
-              funcs)
-             (newline port))
-           #f gf-hash))))
+	  (hash-fold
+	   (lambda (gf funcs rest)
+	     (for-each
+	      (lambda (func)
+		(write
+		 `(%gw:procedure->method-public
+		   ,(name func)
+		   ;; Specializers
+		   ',(map (lambda (arg)
+			    (let ((typespec (typespec arg)))
+			      (and (not (memq 'unspecialized
+					      (options typespec)))
+				   (class-name (type typespec)))))
+			  (filter visible? (arguments func)))
+		   ',gf
+		   ;; Required argument count
+		   ,(- (input-argument-count func)
+		       (optional-argument-count func))
+		   ;; Optional arguments?
+		   ,(not (zero? (optional-argument-count func))))
+		 port)
+		(newline port))
+	      funcs)
+	     (newline port))
+	   #f gf-hash))))
 
 (define (make-header-def-sym filename)
   (string-append "__"
-                 (string-map
-                  (lambda (ch)
-                    (case ch
-                      ((#\space #\. #\-) #\_)
-                      (else ch)))
-                  (string-upcase filename))
-                 "__"))
+		 (string-map
+		  (lambda (ch)
+		    (case ch
+		      ((#\space #\. #\-) #\_)
+		      (else ch)))
+		  (string-upcase filename))
+		 "__"))
 
 (define (generate-wrapset-h wrapset port)
   (let* ((wrapset-name (symbol->string (name wrapset)))
-         (wrapset-header-name (string-append wrapset-name ".h"))
-         (wrapset-name-c-sym (any-str->c-sym-str wrapset-name))
-         (wrapset-header-def-sym (make-header-def-sym wrapset-header-name)))
+	 (wrapset-header-name (string-append wrapset-name ".h"))
+	 (wrapset-name-c-sym (any-str->c-sym-str wrapset-name))
+	 (wrapset-header-def-sym (make-header-def-sym wrapset-header-name)))
     (flatten-display
      (list
       "/* Generated by G-Wrap: an experimental C->Guile wrapper engine */\n"
@@ -851,19 +852,19 @@
       "#endif\n"
       "#endif\n")
      port)))
-    
+
 (define-method (generate-wrapset (lang <symbol>)
-                                 (wrapset <gw-guile-wrapset>)
-                                 (basename <string>))
+				 (wrapset <gw-guile-wrapset>)
+				 (basename <string>))
   (next-method)
 
   (call-with-output-file/cleanup
    (string-append basename ".h")
    (lambda (port)
      (generate-wrapset-h wrapset port)))
-  
+
   (if (module wrapset)
-      (call-with-output-file/cleanup        
+      (call-with-output-file/cleanup
        (string-append basename ".scm")
        (lambda (port)
-           (generate-wrapset-scm wrapset port)))))
+	   (generate-wrapset-scm wrapset port)))))

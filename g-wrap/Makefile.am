@@ -9,7 +9,8 @@ libgwrap_core_runtime_la_SOURCES = core-runtime.c
 libgwrap_core_runtime_la_LDFLAGS =  -version-info $(GW_CORE_RUNTIME_VINFO)
 libgwrap_core_runtime_la_LIBADD = $(LIBFFI_LIBS)
 
-nobase_gwrapmodule_DATA = \
-  util.scm rti.scm enumeration.scm c-types.scm ws/standard.scm
+nobase_gwrapmodule_DATA =					\
+  util.scm rti.scm enumeration.scm c-types.scm ws/standard.scm	\
+  c-codegen.scm scm-codegen.scm
 
 EXTRA_DIST = $(nobase_gwrapmodule_DATA) ffi-support.h.in

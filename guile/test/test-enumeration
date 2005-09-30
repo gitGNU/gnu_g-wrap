@@ -3,6 +3,7 @@ exec ${srcdir:-.}/guile-test-env guile -s "$0" "$@"
 !#
 
 (use-modules (gw-test-enumeration)
+	     (oop goops)
              (unit-test))
 
 (define-class <test-enumeration> (<test-case>))

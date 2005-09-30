@@ -4,6 +4,7 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
 
 (use-modules (gw-test-compat)
              (unit-test)
+	     (oop goops)
              (srfi srfi-11))
 
 (define-class <test-compat> (<test-case>))

@@ -5,12 +5,12 @@
 ;;;; modify it under the terms of the GNU Lesser General Public
 ;;;; License as published by the Free Software Foundation; either
 ;;;; version 2, or (at your option) any later version.
-;;;; 
+;;;;
 ;;;; This program is distributed in the hope that it will be useful,
 ;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;;;; Lesser General Public License for more details.
-;;;; 
+;;;;
 ;;;; You should have received a copy of the GNU Lesser General Public
 ;;;; License along with this software; see the file COPYING.  If not,
 ;;;; write to the Free Software Foundation, 675 Mass Ave, Cambridge,
@@ -31,6 +31,7 @@
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap util)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap guile)
@@ -41,7 +42,7 @@
 
 (define-method (client-global-declarations-cg (ws <glib-wrapset>))
   '("#include <glib.h>\n"))
-  
+
 (define-method (global-declarations-cg (ws <glib-wrapset>))
   (list
    (next-method)
@@ -49,12 +50,12 @@
 
 (define-method (initialize (ws <glib-wrapset>) initargs)
   (next-method ws (append '(#:module (g-wrap gw-glib)) initargs))
-  
+
   (add-type! ws (make <glist-of-type> #:name 'glist-of
-                      #:type-cname "GList*" #:func-prefix "g_list"))
+		      #:type-cname "GList*" #:func-prefix "g_list"))
 
   (add-type! ws (make <glist-of-type> #:name 'gslist-of
-                      #:type-cname "GSList*" #:func-prefix "g_slist")))
+		      #:type-cname "GSList*" #:func-prefix "g_slist")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ((glist-of (<gtk-window> gw:const) gw:const) win-list)
@@ -74,7 +75,7 @@
   (type-cname type))
 
 (define-method (c-type-name (type <glist-of-type>)
-                            (typespec <gw-collection-typespec>))
+			    (typespec <gw-collection-typespec>))
   (if (memq 'const (options typespec))
       (list "const " (type-cname type))
       (type-cname type)))
@@ -84,77 +85,77 @@
 (define-method (make-typespec (type <glist-of-type>) (options <list>))
   (if (null? options)
       (raise (condition
-              (&gw-bad-typespec
-               (type type) (options options)
-               (message "Missing glist-of options form.")))))
+	      (&gw-bad-typespec
+	       (type type) (options options)
+	       (message "Missing glist-of options form.")))))
   (if (< (length options) 2)
       (raise
        (condition
-        (&gw-bad-typespec
-         (type type) (options options)
-         (message "glist-of options form must have at least 2 options.")))))
+	(&gw-bad-typespec
+	 (type type) (options options)
+	 (message "glist-of options form must have at least 2 options.")))))
   (let ((sub-typespec (car options))
-        (glist-options (cdr options))
-        (remainder (cdr options)))
-    
-    (if (not (is-a? sub-typespec <gw-typespec>))
-        (raise (condition
-                (&gw-bad-typespec
-                 (type type) (options options)
-                 (message "glist-of options form must have a sub-typespec as first option.")))))
+	(glist-options (cdr options))
+	(remainder (cdr options)))
 
-    
+    (if (not (is-a? sub-typespec <gw-typespec>))
+	(raise (condition
+		(&gw-bad-typespec
+		 (type type) (options options)
+		 (message "glist-of options form must have a sub-typespec as first option.")))))
+
+
     (set! remainder (delq 'const remainder))
     (if (and (memq 'caller-owned remainder)
-             (memq 'callee-owned remainder))
-        (raise (condition
-                (&gw-bad-typespec
-                 (type type) (options options)
-                 (message
-                  "Bad glist-of options form (caller and callee owned!).")))))
-    
+	     (memq 'callee-owned remainder))
+	(raise (condition
+		(&gw-bad-typespec
+		 (type type) (options options)
+		 (message
+		  "Bad glist-of options form (caller and callee owned!).")))))
+
     (if (not (or (memq 'caller-owned remainder)
-                 (memq 'callee-owned remainder)))
-        (raise
-         (condition
-          (&gw-bad-typespec
-           (type type) (options options)
-           (message
-            "Bad glist-of options form (must be caller or callee owned!).")))))
+		 (memq 'callee-owned remainder)))
+	(raise
+	 (condition
+	  (&gw-bad-typespec
+	   (type type) (options options)
+	   (message
+	    "Bad glist-of options form (must be caller or callee owned!).")))))
     (set! remainder (delq 'caller-owned remainder))
     (set! remainder (delq 'callee-owned remainder))
     (if (null? remainder)
-        (make <gw-collection-typespec>
-          #:type type
-          #:sub-typespec sub-typespec
-          #:options glist-options)
-        (raise (condition
-                (&gw-bad-typespec
-                 (type type) (options options)
-                 (message
-                  (format #f "Bad glist-of options form - spurious options: ~S"
-                          remainder))))))))
+	(make <gw-collection-typespec>
+	  #:type type
+	  #:sub-typespec sub-typespec
+	  #:options glist-options)
+	(raise (condition
+		(&gw-bad-typespec
+		 (type type) (options options)
+		 (message
+		  (format #f "Bad glist-of options form - spurious options: ~S"
+			  remainder))))))))
 
 (define-method (unwrap-value-cg (glist-type <glist-of-type>)
-                                (value <gw-value>)
-                                status-var)
+				(value <gw-value>)
+				status-var)
 
   (let* ((c-var (var value))
-         (scm-var (scm-var value))
-         (sub-typespec (sub-typespec (typespec value)))
-         (sub-type (type sub-typespec))
-         (tmp-rest-var (gen-c-tmp "scm_rest"))
-         (func-prefix (func-prefix glist-type))
-         (sub-item-c-type (c-type-name sub-type sub-typespec))
-         (tmp-sub-item-c-var (gen-c-tmp "c_item"))
-         (tmp-sub-item-scm-var (gen-c-tmp "scm_item"))
-         (tmp-sub-item (make <gw-value>
-                         #:typespec sub-typespec
-                         #:var tmp-sub-item-c-var
-                         #:wrapped-var (string-append
-                                        "&" tmp-sub-item-scm-var)))
-         (tmp-cursor (gen-c-tmp "cursor")))
-      
+	 (scm-var (scm-var value))
+	 (sub-typespec (sub-typespec (typespec value)))
+	 (sub-type (type sub-typespec))
+	 (tmp-rest-var (gen-c-tmp "scm_rest"))
+	 (func-prefix (func-prefix glist-type))
+	 (sub-item-c-type (c-type-name sub-type sub-typespec))
+	 (tmp-sub-item-c-var (gen-c-tmp "c_item"))
+	 (tmp-sub-item-scm-var (gen-c-tmp "scm_item"))
+	 (tmp-sub-item (make <gw-value>
+			 #:typespec sub-typespec
+			 #:var tmp-sub-item-c-var
+			 #:wrapped-var (string-append
+					"&" tmp-sub-item-scm-var)))
+	 (tmp-cursor (gen-c-tmp "cursor")))
+
       (list
        "{\n"
        "  SCM " tmp-rest-var " = " scm-var ";\n"
@@ -186,7 +187,7 @@
        "      " tmp-sub-item-c-var " = ( " sub-item-c-type ") "
        (string-append tmp-cursor "->data") ";\n"
        ;; FIMXE: had force #t here
-       (destroy-value-cg sub-type tmp-sub-item status-var) 
+       (destroy-value-cg sub-type tmp-sub-item status-var)
        tmp-cursor " = " (string-append tmp-cursor "->next") ";\n"
        "    }\n"
        "    " func-prefix "_free(" c-var ");\n"
@@ -195,22 +196,22 @@
        "}\n")))
 
 (define-method (wrap-value-cg (glist-type <glist-of-type>)
-                              (value <gw-value>)
-                              status-var)
+			      (value <gw-value>)
+			      status-var)
   (let* ((c-var (var value))
-         (scm-var (scm-var value))
-         (sub-typespec (sub-typespec (typespec value)))
-         (sub-type (type sub-typespec))
-         (tmp-rest-var (gen-c-tmp "c_rest"))
-         (sub-item-c-type (c-type-name sub-type sub-typespec))
-         (tmp-sub-item-c-var (gen-c-tmp "c_item"))
-         (tmp-sub-item-scm-var (gen-c-tmp "scm_item"))
-         (tmp-sub-item (make <gw-value>
-                         #:typespec sub-typespec
-                         #:var tmp-sub-item-c-var
-                         #:wrapped-var (string-append
-                                        "&" tmp-sub-item-scm-var))))
-                         
+	 (scm-var (scm-var value))
+	 (sub-typespec (sub-typespec (typespec value)))
+	 (sub-type (type sub-typespec))
+	 (tmp-rest-var (gen-c-tmp "c_rest"))
+	 (sub-item-c-type (c-type-name sub-type sub-typespec))
+	 (tmp-sub-item-c-var (gen-c-tmp "c_item"))
+	 (tmp-sub-item-scm-var (gen-c-tmp "scm_item"))
+	 (tmp-sub-item (make <gw-value>
+			 #:typespec sub-typespec
+			 #:var tmp-sub-item-c-var
+			 #:wrapped-var (string-append
+					"&" tmp-sub-item-scm-var))))
+
     (list
      (c-type-name glist-type (typespec value)) tmp-rest-var " = " c-var ";\n"
      scm-var "= SCM_EOL;\n"
@@ -236,20 +237,20 @@
      "}\n")))
 
 (define-method (destroy-value-cg (glist-type <glist-of-type>)
-                                  (value <gw-value>)
-                                  status-var)
+				  (value <gw-value>)
+				  status-var)
   (let* ((c-var (var value))
-         (scm-var (scm-var value))
-         (options (options (typespec value)))
-         (sub-typespec (sub-typespec (typespec value)))
-         (sub-type (type sub-typespec))
-         (func-prefix (func-prefix glist-type))
-         (sub-item-c-type (c-type-name sub-type sub-typespec))
-         (tmp-sub-item-c-var (gen-c-tmp "c_item"))
-         (tmp-sub-item (make <gw-value>
-                     #:typespec sub-typespec
-                     #:var tmp-sub-item-c-var))
-         (tmp-cursor (gen-c-tmp "cursor")))
+	 (scm-var (scm-var value))
+	 (options (options (typespec value)))
+	 (sub-typespec (sub-typespec (typespec value)))
+	 (sub-type (type sub-typespec))
+	 (func-prefix (func-prefix glist-type))
+	 (sub-item-c-type (c-type-name sub-type sub-typespec))
+	 (tmp-sub-item-c-var (gen-c-tmp "c_item"))
+	 (tmp-sub-item (make <gw-value>
+		     #:typespec sub-typespec
+		     #:var tmp-sub-item-c-var))
+	 (tmp-cursor (gen-c-tmp "cursor")))
     (list
      "{\n"
      "  " (c-type-name glist-type (typespec value)) tmp-cursor " = " c-var ";\n"
@@ -262,13 +263,13 @@
      tmp-cursor " = " (string-append tmp-cursor "->next") ";\n"
      "  }\n"
      (if (memq 'caller-owned options)
-         (list "  if(" c-var ")\n"
-               "  {\n"
-               "    " func-prefix "_free(" c-var ");\n"
-               "    " c-var " = NULL;\n"
-               "  }\n")
-         '())
+	 (list "  if(" c-var ")\n"
+	       "  {\n"
+	       "    " func-prefix "_free(" c-var ");\n"
+	       "    " c-var " = NULL;\n"
+	       "  }\n")
+	 '())
      "}\n")))
-  
+
 
 (gw:register-wrapset "gw-glib" 'gw-glib)
