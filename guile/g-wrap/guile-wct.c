@@ -135,9 +135,19 @@ wcp_data_mark (SCM wcp)
 {
   wrapped_c_pointer_data *data;
   wrapped_c_type_data *type_data;
-  
+
   data = (wrapped_c_pointer_data *) SCM_SMOB_DATA(wcp);
   type_data = (wrapped_c_type_data *) SCM_SMOB_DATA(data->type);
+
+  if (type_data->mark)
+    {
+      /* Invoke the user-defined mark function.  */
+      SCM ret;
+
+      ret = type_data->mark (wcp);
+      if (ret != SCM_BOOL_F)
+	scm_gc_mark (ret);
+    }
 
   scm_gc_mark (data->type);
   return data->scm_data;
@@ -235,6 +245,7 @@ static SCM
 wct_data_mark(SCM smob)
 {
   wrapped_c_type_data *data = (wrapped_c_type_data *) SCM_SMOB_DATA(smob);
+
   return data->name;
 }
 
@@ -318,10 +329,15 @@ gw_wct_create (const char *type_name,
     scm_gc_malloc(sizeof(wrapped_c_type_data),
                     "gw_wct_create_and_register: type_data");
 
+#if (SCM_MAJOR_VERSION <= 1) && (SCM_MINOR_VERSION < 7)
   type_data->name = scm_makfrom0str (type_name);
-  
+#else
+  type_data->name = scm_from_locale_string (type_name);
+#endif
+
   type_data->equal_p = equal_p;
   type_data->print = print;
+  type_data->mark = mark;
   type_data->cleanup = cleanup;
 
   SCM_RETURN_NEWSMOB (wct_smob_id, type_data);
