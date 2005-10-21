@@ -84,29 +84,30 @@ gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
   else
     scm_result = SCM_BOOL_F;
 
-  if (SCM_SYMBOLP (scm_val))
+  if (scm_is_symbol (scm_val))
   {
     SCM scm_int_value = gw_guile_enum_val2int (enum_pairs, scm_val);
     if (SCM_FALSEP (scm_int_value))
       return SCM_EOL;
     if (!return_all_syms)
       return scm_val;
-    enum_val = scm_num2long (scm_int_value, 0, "gw:enum-val->sym");
+    enum_val = scm_to_long (scm_int_value);
   }
   else
   {
     /* this better be an int */
-    enum_val = scm_num2long (scm_val, 0, "gw:enum-val->sym");
+    enum_val = scm_to_long (scm_val);
   }
   
   for (epair = enum_pairs; epair->sym != NULL; epair++)
   {
     if (enum_val == epair->val)
     {
-      if (!return_all_syms) 
-        return scm_str2symbol (epair->sym);
-      
-      scm_result = scm_cons (scm_str2symbol(epair->sym), scm_result);
+      if (!return_all_syms)
+        return scm_from_locale_symbol (epair->sym);
+
+      scm_result = scm_cons (scm_from_locale_symbol (epair->sym),
+			     scm_result);
     }
   }
   return scm_result;
@@ -136,30 +137,30 @@ gw_guile_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
     
     for (tail = scm_val; tail != SCM_EOL; tail = SCM_CDR (tail))
     {
-      if (!SCM_CONSP (tail) || !SCM_SYMBOLP (SCM_CAR (tail)))
+      if (!SCM_CONSP (tail) || (!scm_is_symbol (SCM_CAR (tail))))
         scm_wrong_type_arg("gw:enum-val->int", 1, scm_val);
       
       s_val = gw_guile_enum_val2int (enum_pairs, SCM_CAR (tail));
       if (SCM_FALSEP (s_val))
         return s_val;
       
-      value |= scm_num2long (s_val, 1, "gw:enum-val->int");
+      value |= scm_to_long (s_val);
     }
-    return scm_long2num (value);
+    return scm_from_long (value);
   }
   
-  if (!SCM_SYMBOLP (scm_val))
+  if (!scm_is_symbol (scm_val))
   {
     scm_wrong_type_arg("gw:enum-val->int", 1, scm_val);
     return SCM_UNDEFINED;
   }
-  
-  symstr = SCM_SYMBOL_CHARS(scm_val);
+
+  GW_ACCESS_SYMBOL (symstr, scm_val);
 
   for (epair = enum_pairs; epair->sym != NULL; epair++)
   {
     if (strcmp (symstr, epair->sym) == 0)
-       return scm_long2num (epair->val);
+       return scm_from_long (epair->val);
   }
 
   return SCM_BOOL_F;
@@ -205,15 +206,17 @@ gw_guile_make_latent_variable (SCM sym, SCM proc, SCM arg)
                                latent_variables_hash);
     /* Also need to hack the module: */
     if (SCM_FALSEP (SCM_MODULE_BINDER (module)))
-      scm_struct_set_x (module, SCM_MAKINUM (scm_module_index_binder),
+      scm_struct_set_x (module, SCM_I_MAKINUM (scm_module_index_binder),
                         scm_c_make_gsubr ("%gw-user-module-binder", 3, 0, 0,
                                           gw_user_module_binder_proc));
   }
   
   if (SCM_NFALSEP (scm_hashq_ref (latent_variables_hash, sym, SCM_BOOL_F)))
   {
-    gw_raise_error (NULL, "Latent var already registered: %s",
-                    SCM_SYMBOL_CHARS (sym));
+    char *symstr;
+
+    GW_ACCESS_SYMBOL (symstr, sym);
+    gw_raise_error (NULL, "latent var already registered: %s", symstr);
     return;
   }
 
@@ -262,7 +265,7 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
   
   if (use_optional_args)
   {
-    rest_sym = scm_str2symbol ("rest");
+    rest_sym = scm_from_locale_symbol ("rest");
     specializers = scm_append_x (scm_list_2 (specializers, scm_class_top));
   }
   
@@ -270,7 +273,7 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
   for (i = n_req_args; i > 0; i--)
   {
     sprintf (buffer, "arg%d", i);
-    formals = scm_cons (scm_str2symbol (buffer), formals);
+    formals = scm_cons (scm_from_locale_symbol (buffer), formals);
   }
 
   if (use_optional_args)
@@ -325,14 +328,16 @@ gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
   while (!SCM_NULLP (proc_list))
   {
     SCM entry;
-    const SCM *velts;
+
     entry = SCM_CAR (proc_list);
     /* entry := #(proc class_name module n_req_args use_optional_args) */
-    velts = SCM_VELTS (entry);
 
     gw_guile_add_subr_method (generic,
-                              velts[0], velts[1], velts[2],
-                              SCM_INUM (velts[3]), SCM_NFALSEP (velts[4]));
+			      SCM_SIMPLE_VECTOR_REF (entry, 0),
+			      SCM_SIMPLE_VECTOR_REF (entry, 1),
+			      SCM_SIMPLE_VECTOR_REF (entry, 2),
+                              scm_to_int (SCM_SIMPLE_VECTOR_REF (entry, 3)),
+			      SCM_NFALSEP (SCM_SIMPLE_VECTOR_REF (entry, 4)));
 
     proc_list = SCM_CDR (proc_list);
   }
@@ -359,7 +364,7 @@ ensure_scm_module_hacked (void)
     scm_module_hacked = 1;
     old_binder_proc = scm_permanent_object (
             SCM_MODULE_BINDER (the_scm_module));
-    scm_struct_set_x (the_scm_module, SCM_MAKINUM (scm_module_index_binder),
+    scm_struct_set_x (the_scm_module, SCM_I_MAKINUM (scm_module_index_binder),
                       scm_c_make_gsubr ("%gw-scm-module-binder", 3, 0,
                                         0, gw_scm_module_binder_proc));
   }
@@ -407,11 +412,11 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
     SCM entry = scm_c_make_vector (5, SCM_BOOL_F);
     /* entry := #(proc specializers module n_req_args use_optional_args) */
     
-    SCM_VECTOR_SET (entry, 0, proc);
-    SCM_VECTOR_SET (entry, 1, specializers);
-    SCM_VECTOR_SET (entry, 2, scm_current_module ());
-    SCM_VECTOR_SET (entry, 3, n_req_args);
-    SCM_VECTOR_SET (entry, 4, use_optional_args);
+    SCM_SIMPLE_VECTOR_SET (entry, 0, proc);
+    SCM_SIMPLE_VECTOR_SET (entry, 1, specializers);
+    SCM_SIMPLE_VECTOR_SET (entry, 2, scm_current_module ());
+    SCM_SIMPLE_VECTOR_SET (entry, 3, n_req_args);
+    SCM_SIMPLE_VECTOR_SET (entry, 4, use_optional_args);
     
     scm_hashq_set_x (latent_generics_hash, generic_name,
                      scm_cons (entry, existing_latents));
@@ -450,13 +455,19 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
       else
       {
         /* We can't extend the binding, have to use a different name. */
-        int old_len = SCM_SYMBOL_LENGTH (generic_name);
-        char *new_name = (char *) scm_malloc (old_len + 2);
+	char *c_generic_name;
+        size_t old_len;
+        char *new_name;
+
+	GW_ACCESS_SYMBOL (c_generic_name, generic_name);
+	old_len = strlen (c_generic_name);
+	new_name = alloca (old_len + 2);
+
         new_name[0] = '.';
-        memcpy (new_name + 1, SCM_SYMBOL_CHARS (generic_name), old_len);
+        memcpy (new_name + 1, c_generic_name, old_len);
         new_name[old_len + 1] = '\0';
-        generic_name = scm_str2symbol (new_name);
-        free (new_name);
+        generic_name = scm_from_locale_symbol (new_name);
+
         generic = scm_call_3 (scm_sym_make, scm_class_generic,
                               k_name, generic_name);
       }
@@ -541,11 +552,11 @@ dynproc_smob_print (SCM smob, SCM port, scm_print_state *pstate)
 {
   GWFunctionInfo *fi = (GWFunctionInfo *)SCM_SMOB_DATA (smob);
 
-  scm_display (scm_makfrom0str ("#<gw:dynproc "), port);
-  scm_display (scm_makfrom0str (fi->proc_name), port);
-  scm_display (scm_makfrom0str (" ("), port);
-  scm_display (SCM_MAKINUM (fi->n_req_args), port);
-  scm_display (scm_makfrom0str (")>"), port);
+  scm_display (scm_from_locale_string ("#<gw:dynproc "), port);
+  scm_display (scm_from_locale_string (fi->proc_name), port);
+  scm_display (scm_from_locale_string (" ("), port);
+  scm_display (SCM_I_MAKINUM (fi->n_req_args), port);
+  scm_display (scm_from_locale_string (")>"), port);
   
   return 1;
 }
@@ -595,7 +606,7 @@ gw_guile_handle_wrapper_error(GWLangArena arena,
                 SCM_BOOL_F);
       break;
     case GW_ERR_ARGC:
-      scm_wrong_num_args(scm_makfrom0str(func_name)); break;
+      scm_wrong_num_args (scm_from_locale_string (func_name)); break;
     case GW_ERR_ARG_RANGE:
       /* scm_data is the bad arg */
       scm_out_of_range(func_name, *(SCM *)error->data); break;
@@ -605,7 +616,7 @@ gw_guile_handle_wrapper_error(GWLangArena arena,
     default:
       scm_misc_error(func_name,
                      "asked to handle nonexistent gw:error type: ~S",
-                     scm_cons(scm_long2num(error->status), SCM_EOL));    
+                     scm_cons (scm_from_long (error->status), SCM_EOL));
     break;
   };
   exit(1);
@@ -662,15 +673,15 @@ gw_guile_register_wrapset (GWWrapSet *ws)
         GWTypeInfo *arg_type = fi->arg_types[j];
         SCM class_name = ((arg_type->class_name &&
                            !(fi->arg_typespecs[j] & GW_TYPESPEC_UNSPECIALIZED))
-                          ? scm_str2symbol(arg_type->class_name) 
+                          ? scm_from_locale_symbol (arg_type->class_name)
                           : SCM_BOOL_F);
         specializers = scm_cons (class_name, specializers);
       }
       
       gw_guile_procedure_to_method_public (
               subr, specializers,
-              scm_str2symbol (fi->generic_name),
-              SCM_MAKINUM (fi->n_req_args),
+              scm_from_locale_symbol (fi->generic_name),
+              SCM_I_MAKINUM (fi->n_req_args),
               (fi->n_optional_args ? SCM_BOOL_T : SCM_BOOL_F));
     }
   }
@@ -723,8 +734,8 @@ gw_guile_runtime_init (void)
             scm_c_make_keyword ("procedure"));
     k_name = scm_permanent_object( scm_c_make_keyword ("name"));
     k_default = scm_permanent_object (scm_c_make_keyword ("default"));
-    sym_object = scm_permanent_object (scm_str2symbol("object"));
-    sym_args = scm_permanent_object (scm_str2symbol("args"));
+    sym_object = scm_permanent_object (scm_from_locale_symbol ("object"));
+    sym_args = scm_permanent_object (scm_from_locale_symbol ("args"));
     
     dynproc_smob_tag = scm_make_smob_type("%gw:dynamic-procedure",
                                           sizeof(GWFunctionInfo *));

@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2004 Andreas Rottmann
+Copyright (C) 2003-2005 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -16,6 +16,8 @@ License along with this software; see the file COPYING.  If not, write
 to the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139,
 USA.
 **********************************************************************/
+#include <string.h>
+
 #include "g-wrap/guile-compatibility.h"
 
 #ifndef SCM_VERSION_17X
@@ -41,10 +43,39 @@ scm_realloc(void *mem, size_t size)
   scm_memory_error("scm_realloc");
 }
 
-void scm_gc_free(void *mem, size_t size, const char *what)
+void
+scm_gc_free(void *mem, size_t size, const char *what)
 {
   scm_must_free (mem);
   scm_done_free (size);
+}
+
+
+/* Strings.  */
+
+char *
+scm_to_locale_string (SCM str)
+{
+  char *result;
+  size_t len = SCM_STRING_LENGTH (str);
+
+  result = scm_malloc (len + 1);
+  memcpy (result, SCM_STRING_CHARS (str), len);
+  result[len] = '\0';
+
+  return result;
+}
+
+size_t
+scm_to_locale_stringbuf (SCM str, char *buf, size_t buf_len)
+{
+  size_t len = SCM_STRING_LENGTH (str);
+
+  /* Note:  No terminating `\0' will be stored.  */
+  len = (len > buf_len) ? buf_len : len;
+  memcpy (buf, SCM_STRING_CHARS (str), len);
+
+  return len;
 }
 
 #endif

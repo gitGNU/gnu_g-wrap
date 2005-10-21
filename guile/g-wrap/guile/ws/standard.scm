@@ -1,5 +1,5 @@
 ;;;; File: standard.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004-2005 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -135,34 +135,32 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 (define-method (add-type! (wrapset <standard-wrapset>)
 			  (type <gw-guile-simple-rti-type>))
   (let ((info (assq-ref
-	       '((scm) (<gw:wct>) (<gw:wcp>)
-		 (bool #f
-		       (c-var "= SCM_NFALSEP(" scm-var ");\n")
-		       (scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n")
-		       <boolean>)
-
-		 (char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
-		       (c-var "= SCM_CHAR(" scm-var ");\n")
-		       (scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
-		       <char>)
-
-		 (unsigned-char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
-				(c-var "= SCM_CHAR(" scm-var ");\n")
-				(scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
-				<char>)
-
-		 (float ("SCM_NFALSEP(scm_number_p(" scm-var "))")
-			(c-var "= scm_num2float(" scm-var ", 1,"
-			       " \"gw:scm->float\");\n")
-			(scm-var "= scm_float2num(" c-var ");\n")
-			<real>)
-
-		 (double ("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
-			 (c-var "= scm_num2double(" scm-var ", 1,"
-				" \"gw:scm->double\");\n")
-			 (scm-var "= scm_double2num(" c-var ");\n")
-			 <real>))
-	       (name type))))
+               '((scm) (<gw:wct>) (<gw:wcp>)
+                 (bool #f
+                       (c-var "= SCM_NFALSEP(" scm-var ");\n")
+                       (scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n")
+                       <boolean>)
+                 
+                 (char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
+                       (c-var "= SCM_CHAR(" scm-var ");\n")
+                       (scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
+                       <char>)
+                 
+                 (unsigned-char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
+                                (c-var "= SCM_CHAR(" scm-var ");\n")
+                                (scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
+                                <char>)
+                 
+                 (float ("SCM_NFALSEP(scm_number_p(" scm-var "))")
+                        (c-var "= (float) scm_to_double(" scm-var ");\n")
+                        (scm-var "= scm_from_double(" c-var ");\n")
+                        <real>)
+                 
+                 (double ("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
+                         (c-var "= scm_to_double(" scm-var ");\n")
+                         (scm-var "= scm_from_double(" c-var ");\n")
+                         <real>))
+               (name type))))
     (cond ((null? info)
 	   (next-method))
 	  ((not info)
@@ -316,6 +314,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 					  error-var)
   (minmax-var-init-cg type))
 
+
 ;;;
 ;;; <gw-guile-ctype-mchars>
 ;;;
@@ -361,3 +360,17 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 	     unwrap-code
 	     "}\n")
        unwrap-code))))
+
+(define-method (destroy-value-cg (type <gw-guile-ctype-mchars>)
+				 (value <gw-value>)
+				 error-var)
+  (if-typespec-option
+   value 'caller-owned
+
+   (list "\n{\n"
+	 "/* Free the string that was allocated by `scm_to_locale_string ()' \n"
+	 "   in `unwrap-value'.  */\n"
+	 "free ("(var value)");\n"
+	 "}\n")
+
+   '()))

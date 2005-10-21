@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2004 Andreas Rottmann
+Copyright (C) 2003-2005 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -24,6 +24,7 @@ USA.
 
 #include <g-wrap/ffi-support.h>
 #include <g-wrap/core-runtime.h>
+#include <g-wrap/guile-compatibility.h>
 
 #ifdef __cplusplus
 extern "C" {
