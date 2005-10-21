@@ -27,12 +27,14 @@
 @author Christopher Lee <chrislee@@ri.cmu.edu>
 @author Rob Browning <rlb@@defaultvalue.org>
 @author Andreas Rottmann <rotty@@debian.org>
+@author Ludovic Court�s <ludovic.courtes@@laas.fr>
 
 @page
 @vskip 0pt plus 1filll
 Copyright @copyright{} 1996, 1997, 1998 Christopher Lee
 Copyright @copyright{} 2000-2001 Rob Browning
 Copyright @copyright{} 2004 Andreas Rottmann
+Copyright @copyright{} 2005 Ludovic Court�s
 
 Permission is granted to make and distribute verbatim copies of this
 manual provided the copyright notice and this permission notice are
@@ -60,6 +62,9 @@ This is the info manual for G-Wrap, covering versions 1.9.*.
 * Copying::                     
 * Introduction::                
 * Usage::                       
+* API Reference::               
+* Concept Index::               
+* Procedure and Method Index::  
 
 @detailmenu
  --- The Detailed Node Listing ---
@@ -71,9 +76,27 @@ Introduction
 
 Usage
 
-* A More Detailed Example::    
+* A More Detailed Example::     
 * Creating a Wrapper Module::   
 * Defining New Wrapped Types::  
+
+API Reference
+
+* G-Wrap's High-level API::     
+* G-Wrap's Code Generation API::  
+
+G-Wrap's High-level Interface
+
+* Wrapping a C Function::       
+* Wrapping a C Constant::       
+* Wrapping an Enumerate Type::  
+* Wrapping a C Pointer Type::   
+* C Types Provided in the Standard Wrapset::  
+
+G-Wrap's Code Generation Interface
+
+* Overview of the Code Generation Methods::  
+* The Top-Level Methods::       
 
 @end detailmenu
 @end menu
@@ -127,7 +150,7 @@ OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 * Why Create a Wrapper Generator?::  
 @end menu
 
-@node Overview
+@node Overview, Why Create a Wrapper Generator?, Introduction, Introduction
 @section Overview
 
 Given a definition of the types and prototypes for a given C interface,
@@ -324,11 +347,15 @@ just have a translator from that to native G-Wrap calls.
 G-Wrap can be found at @url{http://www.nongnu.org/g-wrap/}.
 
 @c Chapter ==================================================================
-@node Usage, , Introduction, Top
+@node Usage, API Reference, Introduction, Top
 @chapter Usage
 
+This section is a guided tour through G-Wrap programmatic interface
+that will get you started quickly by looking at practical examples.
+For a more detailed view of the API, please see @xref{API Reference}.
+
 @menu
-* A More Detailed Example::    
+* A More Detailed Example::     
 * Creating a Wrapper Module::   
 * Defining New Wrapped Types::  
 @end menu
@@ -493,7 +520,7 @@ these C functions normally.  You could use it like this:
   guile>
 @end example
 
-@node Defining New Wrapped Types, , Creating a Wrapper Module, Usage
+@node Defining New Wrapped Types,  , Creating a Wrapper Module, Usage
 @section Defining New Wrapped Types
 
 Though G-Wrap already provides a number of wrapped types in the
@@ -555,6 +582,7 @@ following code is inside the body of the @code{initialize} method of
 our previous examples;  i.e. @code{ws} is bound to the miscutils
 wrapset you're creating.
 
+@findex add-type!
 @lisp
     (add-type! ws (make <timespec64-type>
                         #:name '<miscutils:timespec-64>
@@ -567,6 +595,7 @@ codegen methods.  Let's start with one that will tell G-Wrap how to
 ``unwrap'' instances of this type that are passed in as arguments from
 the Scheme side.
 
+@findex unwrap-value-cg
 @lisp
   (define-method (unwrap-value-cg (type <gw-ctype-void>)
                                   (value <gw-value>) error-var)
@@ -618,6 +647,321 @@ There are a bunch of codegens you can define for a type but if you do
 nothing overly fancy, you can get away with just @code{wrap-value-cg},
 @code{unwrap-value-cg}. For C values that need deconstruction, there
 is also @code{destruct-value-cg}.
+
+@c Chapter ==================================================================
+@node API Reference, Concept Index, Usage, Top
+@chapter API Reference
+
+This section is trying to provide a reference for the most important
+parts for G-Wrap's programming.  Since G-Wrap uses a programmatic
+approach to interface wrapping, its API is really what allows users to
+describe interfaces and types to be wrapped and is a crucial point.
+
+G-Wrap's API can be divided in a higher-level API and a lower-level
+code generation interface.  The former is simple, expressive, and
+sufficient for many uses of G-Wrap.  The latter gives access to the
+full code generation mechanisms of G-Wrap and allows for fine-grain
+customization.  Each of these APIs will be exposed in detail in the
+following sections.
+
+@menu
+* G-Wrap's High-level API::     
+* G-Wrap's Code Generation API::  
+@end menu
+
+@node G-Wrap's High-level API, G-Wrap's Code Generation API, API Reference, API Reference
+@section G-Wrap's High-level Interface
+
+G-Wrap's high-level API lives in the @code{(g-wrap)} module, and
+partly in the @code{(g-wrap c-types)} module.  These may be loaded
+using:
+
+@lisp
+(use-modules (g-wrap)
+             (g-wrap c-types))
+@end lisp
+
+The procedure it provides have a rather declarative style.  This makes
+them easy to use.  On the other hand, it does not leave much room for
+customization.  Fine-grain customization of the wrapping generation,
+however, may be achieved using the lower-level code generation API
+(@pxref{G-Wrap's Code Generation API}).
+
+@menu
+* Wrapping a C Function::       
+* Wrapping a C Constant::       
+* Wrapping an Enumerate Type::  
+* Wrapping a C Pointer Type::   
+* C Types Provided in the Standard Wrapset::  
+@end menu
+
+@node Wrapping a C Function, Wrapping a C Constant, G-Wrap's High-level API, G-Wrap's High-level API
+@subsection Wrapping a C Function
+
+As seen in @xref{Overview}, wrapping a C function using G-Wrap's
+high-level functions is relatively simple.  Essentially, it boils down
+to a call to the @code{wrap-function!} GOOPS method.
+
+@deffn method wrap-function! (wrapset <gw-wrapset>) . args
+Add the C function described by @var{args} to the list of functions to
+be wrapped by @var{wrapset}.  The arguments in @var{args} must contain
+the following named parameters (@inforef{Optional Arguments,
+@code{(ice-9 optargs)}, guile}, for more information):
+
+@c FIXME: This is copied from the `Overview' section.
+@itemize
+@item @code{#:name}
+the symbol which should be bound to the wrapped function in Scheme at
+runtime.
+@item @code{#:returns}
+the symbol naming the G-Wrap wrapped type of the C function result.
+@item @code{#:c-name}
+a string giving the C function's name.
+@item @code{#:arguments}
+a list of the C function's arguments where each element is of the form
+(g-wrapped-type arg-name-symbol).
+@item @code{#:description}
+a string describing the function.
+@end itemize
+
+@end deffn
+
+@node Wrapping a C Constant, Wrapping an Enumerate Type, Wrapping a C Function, G-Wrap's High-level API
+@subsection Wrapping a C Constant
+
+@deffn method wrap-constant! (wrapset <gw-wrapset>) . args
+Add the C constant (either a macro or an enumerate value) defined by
+@var{args} to the list of constants to be wrapped by @var{wrapset}.
+The arguments in @var{args} must contain the following named
+parameters:
+
+@itemize
+@item @code{#:name}
+a symbol that is name given to the C constant in the target language
+binding;
+@item @code{#:type}
+a symbol denoting the type of this constant, more precisely the name
+of the wrapped-type for the constant's type;
+@item @code{#:value}
+a string representing the constant in C (e.g. @code{"ENOMEM"});
+@item @code{#:description}
+a string describing this constant.
+@end itemize
+
+@end deffn
+
+@node Wrapping an Enumerate Type, Wrapping a C Pointer Type, Wrapping a C Constant, G-Wrap's High-level API
+@subsection Wrapping an Enumerate Type
+
+When wrapping a whole C enumerate type, G-Wrap proposes an interface
+which is more convenient than @code{wrap-constant!} (@pxref{Wrapping a
+C Constant}).
+
+@deffn method wrap-enum! (wrapset <gw-wrapset>) . args
+Add the enumerate values defined by @var{args} to the list of
+constants to be wrapped by @var{wrapset}.  The arguments in @var{args}
+must contain the following named parameters:
+
+@itemize
+@item @code{#:name}
+a symbol that is the name for this wrapped type as used within the
+G-Wrap framework;
+@item @code{#:c-type-name}
+a string that is the C name of this enumerate type;
+@item @code{#:values}
+a list of symbol/string pairs defining the mapping between C values
+and their counterpart in the target language; each pair's @code{car}
+is a symbol representing the name for this value in the target
+language; each pair's @code{cdr} is a string representing this value
+in C;
+@item @code{#:description}
+an optional description of this enumerate type.
+@end itemize
+
+This can be used as follows:
+
+@example
+(wrap-enum! my-wrapset
+            #:name 'errcode
+            #:c-type-name "errcode_t"
+            #:description "The libchbouib error codes."
+            #:values '((chbouib/no-memory . "ERR_NO_MEM")
+                       (chbouib/not-found . "ERR_NOT_FOUND")
+                       (chbouib/invalid   . "ERR_INVALID")))
+@end example
+
+@end deffn
+
+
+@node Wrapping a C Pointer Type, C Types Provided in the Standard Wrapset, Wrapping an Enumerate Type, G-Wrap's High-level API
+@subsection Wrapping a C Pointer Type
+
+@cindex wrapped C type
+@cindex WCT
+@cindex wrapped C pointer
+@cindex WCP
+@c FIXME: Introductory paragraph here.
+
+@deffn method wrap-as-wct! (wrapset <gw-wrapset>) . args
+Adds the C pointer type defined by @var{args} to the list of types to
+be wrapped by @var{wrapset}.  The arguments in @var{args} must contain
+the following named parameters:
+
+@itemize
+@item @code{#:name}
+@end itemize
+
+Optionally, @var{args} may contain the following parameters:
+
+@itemize
+@item @code{#:wcp-free-function}
+@item @code{#:wcp-mark-function}
+@item @code{#:description}
+@end itemize
+
+FIXME: Finish it.
+
+@end deffn
+
+@node C Types Provided in the Standard Wrapset,  , Wrapping a C Pointer Type, G-Wrap's High-level API
+@subsection C Types Provided in the Standard Wrapset
+
+
+@node G-Wrap's Code Generation API,  , G-Wrap's High-level API, API Reference
+@section G-Wrap's Code Generation Interface
+
+When creating Scheme bindings for a C programming interface with
+G-Wrap, one first needs to create a @dfn{wrapset} (@pxref{Overview}).
+A wrapset is roughly an object that holds a representation of all the
+C types, constants, and functions what one is willing to ``wrap''.
+Wrapset specifications as seen in @xref{Overview}, are in fact a piece
+of Scheme code that creates a wrapset object, adds a number of C
+functions, types, etc. to be wrapped and then generates code for this
+wrapset.
+
+In the following sections, we will detail the @dfn{protocol} that is
+used to perform this last step: code generation.  G-Wrap heavily uses
+GOOPS, Guile's object orientation framework, to this end
+(@inforef{Top, GOOPS, goops}).  This is what makes G-Wrap highly
+customizable: each of these code generation methods may be overloaded
+or redefined in order to meet the user's particular needs.
+
+Most of the classes and methods involved in generation of C code are
+defined in the @code{(g-wrap c-codegen)}.
+
+@menu
+* Overview of the Code Generation Methods::  
+* The Top-Level Methods::       
+@end menu
+
+@node Overview of the Code Generation Methods, The Top-Level Methods, G-Wrap's Code Generation API, G-Wrap's Code Generation API
+@subsection Overview of the Code Generation Methods
+
+@cindex code generation methods
+Unless stated otherwise, the code generation methods all have a name
+ending in @code{-cg}.  Most of them take a wrapset as their first
+argument (i.e. instances of a sub-class of @code{<gw-wrapset>}), some
+of them don't.
+
+@cindex code tree
+All code generation methods must return a @dfn{code tree}, that is a
+list whose elements are either strings, lists of strings, or a special
+forms.  The strings and list of strings must be valid C code.  Special
+forms are lists that are automatically expanded to produce C code when
+a tree is written to a file.  The valid special forms are the
+following:
+
+@deffn {Special CG Form} gw:error? c-error-var [error-value]
+This special form expands to C code that tests whether the C variable
+named @var{c-error-var} (a string) denotes a G-Wrap error status.  If
+@var{error-value} is provided, it must be a symbol denoting one of the
+various G-Wrap run-time error conditions:
+
+@itemize
+@item @code{misc}, an error condition that does not fit in the other
+names;
+@item @code{memory}, a memory management exception;
+@item @code{range}, a range exception (e.g. for integer
+conversion);
+@item @code{type}, a type exception (e.g. wrong return type);
+@item @code{argc}, a wrong-number-of-arguments exception;
+@item @code{arg-range}, a range exception for one of the arguments;
+@item @code{arg-type}, a type exception for one of the arguments.
+@end itemize
+
+If @var{error-value} is provided, this special form expands to code
+that checks whether the C variable named @var{c-error-var} denotes an
+error condition equal to @var{error-value}.
+@end deffn
+
+@deffn {Special CG Form} gw:error error-type [args]
+Expands to C code that raises a G-Wrap run-time error of type
+@var{error-type}, with error-specific arguments @var{args}.
+@var{error-type} must be a symbol whose value is one of those
+described above.
+@end deffn
+
+
+@node The Top-Level Methods,  , Overview of the Code Generation Methods, G-Wrap's Code Generation API
+@subsection The Top-Level Methods
+
+As we have just seen, wrapset objects (i.e. instances of a sub-class
+of @code{<gw-wrapset>}) are the most complex objects manipulated when
+using G-Wrap: they aggregate a number of objects providing information
+about what is to be wrapped.  Consequently, the top-level code
+generation methods are those that apply to wrapset themselves.
+
+@deffn method generate-wrapset (lang <symbol>) (wrapset <gw-wrapset>) (basename <string>)
+Generate wrapper code for the wrapset @var{wrapset} for language
+run-time @var{lang}.  The generated files will named using
+@var{basename} as a base name: the name of C source files will be the
+concatenation of @var{basename} and @code{".c"}, etc.  Currently,
+@var{lang} may be either @code{guile} (when generating wrappers for
+GNU Guile) or @code{scheme48} (when generating wrappers for the
+Scheme48 system).
+@end deffn
+
+The default implementation of @code{generate-wrapset} will in turn
+call a number of methods whose purpose is to generate the necessary
+file includes, global declarations and definitions for each C file.
+These methods are listed below in the order in which they are
+invoked at code-generation time.
+
+@deffn method before-includes-cg
+Return a tree of C code to be inserted before any @code{#include}
+directive.
+@end deffn
+
+@deffn method global-declarations-cg (wrapset <gw-wrapset>)
+Return a tree of C code that contains global declarations needed for
+wrapset @var{wrapset}.
+@end deffn
+
+@deffn method global-definitions-cg (wrapset <gw-wrapset>)
+Return a tree of C code that contains global definitions needed for
+wrapset @var{wrapset}.
+@end deffn
+
+@deffn method declarations-cg (wrapset <gw-wrapset>)
+Return a tree of C code that contains declarations of local variables
+for the wrapset run-time initialization function.  By default, the
+generated wrapset run-time initialization function is named
+@code{gw_initialize_wrapset_WRAPSET} where @code{WRAPSET} is the name
+of the wrapset it initializes (actually a C-compatible representation
+of it).
+@end deffn
+
+FIXME: To be continued.
+
+@node Concept Index, Procedure and Method Index, API Reference, Top
+@unnumbered Concept Index
+
+@printindex cp
+
+@node Procedure and Method Index,  , Concept Index, Top
+@unnumbered Procedure and Method Index
+
+@printindex fn
 
 @contents
 @bye
