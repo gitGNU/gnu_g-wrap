@@ -351,7 +351,9 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 	     (list c-var " = SCM_STRING_CHARS (" scm-var ");\n")
 	      (list c-var " = strdup (SCM_STRING_CHARS (" scm-var "));\n"))
 	    "} else\n"
-	    `(gw:error ,error-var type ,(wrapped-var value)))))
+	    "{  " c-var " = NULL;\n"
+	    `(gw:error ,error-var type ,(wrapped-var value))
+	    "\n}\n")))
       (if-typespec-option
        value 'null-ok
        (list "if (SCM_FALSEP(" scm-var "))\n"
@@ -370,7 +372,8 @@ example (gw:wcp-is-a? <gw:void*> foo)")
    (list "\n{\n"
 	 "/* Free the string that was allocated by `scm_to_locale_string ()' \n"
 	 "   in `unwrap-value'.  */\n"
-	 "free ("(var value)");\n"
+	 "if ("(var value)" != NULL)\n"
+	 "  free ("(var value)");\n"
 	 "}\n")
 
    '()))

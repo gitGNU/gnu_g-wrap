@@ -709,26 +709,35 @@
 (define-method (unwrap-value-cg (wct <gw-guile-wct>)
 				(value <gw-value>)
 				status-var)
-  (let ((wct-var (slot-ref wct 'wct-var-name))
-	(sv (scm-var value))
-	(c-var (var value)))
+  (let* ((wct-var (slot-ref wct 'wct-var-name))
+	 (sv (scm-var value))
+	 (c-var (var value))
+	 (unwrap-code
+	  (list "if (gw_wcp_is_of_type_p (" wct-var ", " sv "))\n"
+		"  " c-var " = gw_wcp_get_ptr (" sv ");\n"
+		"else\n"
+		`(gw:error ,status-var type ,(wrapped-var value)))))
+
     (list
-     "if (SCM_FALSEP(" sv "))\n"
-     "  " c-var " = NULL;\n"
-     "else if (gw_wcp_is_of_type_p(" wct-var ", " sv "))\n"
-     "  " c-var " = gw_wcp_get_ptr(" sv ");\n"
-     "else\n"
-     `(gw:error ,status-var type ,(wrapped-var value)))))
+     (if-typespec-option value 'null-ok
+			 (list "if (SCM_FALSEP (" sv "))\n"
+			       "  " c-var " = NULL;\n"
+			       "else " unwrap-code)
+			 unwrap-code))))
+
 
 (define-method (initializations-cg (wrapset <gw-wrapset>)
 				   (wct <gw-guile-wct>)
 				   error-var)
   (let ((wct-var (slot-ref wct 'wct-var-name))
-	(wcp-type-name (symbol->string (name wct))))
+	(wcp-type-name (symbol->string (name wct)))
+	(wcp-mark (wcp-mark-function wct))
+	(wcp-free (wcp-free-function wct)))
   (list
    (next-method)
 
-   wct-var "= gw_wct_create(\"" wcp-type-name "\", NULL, NULL, NULL, NULL);\n"
+   wct-var "= gw_wct_create(\"" wcp-type-name "\", NULL, NULL, "
+   wcp-mark ", " wcp-free ");\n"
    "scm_c_define(\"" wcp-type-name "\", " wct-var ");\n")))
 
 (define (wct-var-decl-cg wct)

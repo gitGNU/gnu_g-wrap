@@ -47,10 +47,12 @@
 	    <gw-ctype-void> <gw-ctype-mchars>
 
 	    <gw-wct>
-	    wrap-as-wct!))
+	    wrap-as-wct!
+	    wcp-mark-function wcp-free-function))
 
 (define-generic wrap-simple-type!)
 
+
 ;;;
 ;;; Ranged integers
 ;;;
@@ -124,11 +126,23 @@
       (list (var lvalue) " = NULL;\n")
       (list (var lvalue) " = strdup(" rvalue ");\n")))
 
+
 ;;;
 ;;; Wrapped C Types
 ;;;
 
-(define-class <gw-wct> (<gw-rti-type>))
+(define-class <gw-wct> (<gw-rti-type>)
+  ;; Pointer to the C function that should be called during the GC mark phase
+  ;; (if any) of a wrapped C pointer.
+  (wcp-mark-function #:accessor wcp-mark-function
+		     #:init-keyword #:wcp-mark-function
+		     #:init-value "NULL")
+
+  ;; Pointer to the C function that should be called when a wrapped C pointer
+  ;; (WCP) is about to be garbage collected.
+  (wcp-free-function #:accessor wcp-free-function
+		     #:init-keyword #:wcp-free-function
+		     #:init-value "NULL"))
 
 (define-method (initialize (wct <gw-wct>) initargs)
   (next-method wct (cons #:ffspec (cons 'pointer initargs))))

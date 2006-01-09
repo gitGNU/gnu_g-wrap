@@ -92,6 +92,7 @@ G-Wrap's High-level Interface
 * Wrapping an Enumerate Type::  
 * Wrapping a C Pointer Type::   
 * C Types Provided in the Standard Wrapset::  
+* Wrapping Another Simple C Type::  
 
 G-Wrap's Code Generation Interface
 
@@ -693,6 +694,7 @@ however, may be achieved using the lower-level code generation API
 * Wrapping an Enumerate Type::  
 * Wrapping a C Pointer Type::   
 * C Types Provided in the Standard Wrapset::  
+* Wrapping Another Simple C Type::  
 @end menu
 
 @node Wrapping a C Function, Wrapping a C Constant, G-Wrap's High-level API, G-Wrap's High-level API
@@ -708,23 +710,145 @@ be wrapped by @var{wrapset}.  The arguments in @var{args} must contain
 the following named parameters (@inforef{Optional Arguments,
 @code{(ice-9 optargs)}, guile}, for more information):
 
-@c FIXME: This is copied from the `Overview' section.
-@itemize
-@item @code{#:name}
+@c FIXME: This is (mostly) copied from the `Overview' section.
+@table @code
+@item #:name
 the symbol which should be bound to the wrapped function in Scheme at
 runtime.
-@item @code{#:returns}
+@item #:returns
 the symbol naming the G-Wrap wrapped type of the C function result.
-@item @code{#:c-name}
+@item #:c-name
 a string giving the C function's name.
-@item @code{#:arguments}
+@item #:arguments
 a list of the C function's arguments where each element is of the form
-(g-wrapped-type arg-name-symbol).
-@item @code{#:description}
+(more details below).
+@item #:description
 a string describing the function.
+@end table
+
+@cindex argument specifier
+The argument list which is passed as the @code{#:arguments} named
+parameter consists of a list of @dfn{argument specifiers}.  Each
+argument specifier is itself a two-element list where:
+
+@cindex type specifier
+@itemize
+@item the first element is a @dfn{type specifier};
+@item the second element is a symbol that names the parameter.
 @end itemize
 
+The type specifier may in turn be one of the following:
+
+@cindex type qualifier
+@cindex typespec
+@cindex wrapped type
+@itemize
+@item a symbol naming a wrapped type;
+@item a list containing a symbol naming a wrapped type and @dfn{type
+qualifier} (in G-Wrap's code, this is usually referred to as a
+@dfn{typespec}, although this name is quite unfortunate); the type
+qualifier may be one of:
+
+@table @code
+@item in
+if the parameter in question is an input parameter;
+@item out
+if the parameter in question is an output parameter;
+@item caller-owned
+if the parameter in question is a C pointer that points to memory
+controlled by the caller;
+@item callee-owned
+if the parameter in question is a C pointer that points to memory
+whose control is passed to the callee (FIXME: give an example);
+@item null-ok
+if the Scheme input parameter is to be converted to a C pointer, then
+let G-Wrap know that @code{#f} is a valid value for this parameter;
+@code{#f} will translate to the @code{NULL} pointer in C;
+@item aggregated
+if the parameter in question points to a C object that is
+@dfn{aggregated} by the object returned by the function being wrapped
+(more on this below).
+@end table
+
+@end itemize
+
+To illustrate this, here is an example of a valid argument description
+list:
+
+@smalllisp
+'(((mchars null-ok caller-owned) input-string)
+  (long input-integer)
+  ((double out) output-floating-point))
+@end smalllisp
+
 @end deffn
+
+Examples of valid usage patterns of @code{wrap-function!} are
+available in @xref{Creating a Wrapper Module}.
+
+@cindex aggregated object
+@cindex constructor
+The @code{aggregated} type qualifier is mostly useful when wrapping C
+functions (constructors) that return a new object which aggregates
+objects passed as its input parameters.  In order to illustrate the
+need for this typespec, let's imagine the following C API:
+
+@smallexample
+/* Return a new stuff.  */
+stuff_t *make_stuff (void);
+
+/* Return a stuff container that contains a pointer to CONTAINED.
+   Note that the container returned is _not_ responsible for
+   deallocating the resources attached to CONTAINED.  */
+stuff_container_t *make_stuff_container (stuff_t *contained);
+@end smallexample
+
+And now, imagine the following Scheme code that uses bindings of the
+above functions:
+
+@smalllisp
+(define c (make-stuff-container (make-stuff)))
+@end smalllisp
+
+Suppose the two C types are wrapped as WCTs (@pxref{Wrapping a C
+Pointer Type}).  The call to @code{make-stuff} will create a new
+Scheme object (a WCP, or a ``SMOB'' in Guile terms, @inforef{Defining
+New Types (Smobs), SMOBs, guile}, for details) for the underlying C
+object.  However, as soon as @code{make-stuff-container} has returned,
+the Scheme code no longer holds any SMOB representing the value that
+was returned by @code{make-stuff}.  Consequently, the SMOB returned by
+@code{make-stuff} may soon be garbage-collected by Guile, and its
+underlying C object (originally returned by @code{make_stuff ()}) may
+soon get freed as well.
+
+But, here is the problem: the C @code{stuff_container_t} object still
+contains a pointer to that @code{stuff_t} object that has just been
+deleted!  The goal of the @code{aggregated} typespec is to solve
+situations like this one.  In the example above, the wrapped function
+and the container type should be specified as follows:
+
+@lisp
+(wrap-as-wct! ws
+              #:name '<stuff>
+              #:c-type-name "stuff_t *"
+              #:c-const-type-name "const stuff_t *"
+              #:allowed-options '(aggregated))
+
+...
+
+(wrap-function! ws
+                #:name 'make-stuff-container
+                #:c-name "make_stuff_container"
+                #:returns '<stuff-container>
+                #:arguments '(((<stuff> aggregated) stuff)))
+@end lisp
+
+Literally, this means: ``the argument @var{stuff} of
+@code{make-stuff-container} is @emph{aggregated} by the object
+returned by @code{make-stuff-container}; therefore, it may not be GC'd
+unless the object returned by @code{make-stuff-container} is GC'd
+too.''
+
 
 @node Wrapping a C Constant, Wrapping an Enumerate Type, Wrapping a C Function, G-Wrap's High-level API
 @subsection Wrapping a C Constant
@@ -735,18 +859,18 @@ Add the C constant (either a macro or an enumerate value) defined by
 The arguments in @var{args} must contain the following named
 parameters:
 
-@itemize
-@item @code{#:name}
+@table @code
+@item #:name
 a symbol that is name given to the C constant in the target language
 binding;
-@item @code{#:type}
+@item #:type
 a symbol denoting the type of this constant, more precisely the name
 of the wrapped-type for the constant's type;
-@item @code{#:value}
+@item #:value
 a string representing the constant in C (e.g. @code{"ENOMEM"});
-@item @code{#:description}
+@item #:description
 a string describing this constant.
-@end itemize
+@end table
 
 @end deffn
 
@@ -762,21 +886,21 @@ Add the enumerate values defined by @var{args} to the list of
 constants to be wrapped by @var{wrapset}.  The arguments in @var{args}
 must contain the following named parameters:
 
-@itemize
-@item @code{#:name}
+@table @code
+@item #:name
 a symbol that is the name for this wrapped type as used within the
 G-Wrap framework;
-@item @code{#:c-type-name}
+@item #:c-type-name
 a string that is the C name of this enumerate type;
-@item @code{#:values}
+@item #:values
 a list of symbol/string pairs defining the mapping between C values
 and their counterpart in the target language; each pair's @code{car}
 is a symbol representing the name for this value in the target
 language; each pair's @code{cdr} is a string representing this value
 in C;
-@item @code{#:description}
+@item #:description
 an optional description of this enumerate type.
-@end itemize
+@end table
 
 This can be used as follows:
 
@@ -807,24 +931,99 @@ Adds the C pointer type defined by @var{args} to the list of types to
 be wrapped by @var{wrapset}.  The arguments in @var{args} must contain
 the following named parameters:
 
-@itemize
-@item @code{#:name}
-@end itemize
+@table @code
+@item #:name
+@end table
 
 Optionally, @var{args} may contain the following parameters:
 
-@itemize
-@item @code{#:wcp-free-function}
-@item @code{#:wcp-mark-function}
-@item @code{#:description}
-@end itemize
+@table @code
+@item #:wcp-free-function
+@item #:wcp-mark-function
+@item #:description
+@end table
 
 FIXME: Finish it.
 
 @end deffn
 
-@node C Types Provided in the Standard Wrapset,  , Wrapping a C Pointer Type, G-Wrap's High-level API
+@node C Types Provided in the Standard Wrapset, Wrapping Another Simple C Type, Wrapping a C Pointer Type, G-Wrap's High-level API
 @subsection C Types Provided in the Standard Wrapset
+
+Beside the generic wrapped C pointer type (WCT) and wrapped enumerate
+type, G-Wrap comes with a @dfn{standard wrapset} that includes a
+number of commonly used wrappers for C types.
+
+
+@node Wrapping Another Simple C Type,  , C Types Provided in the Standard Wrapset, G-Wrap's High-level API
+@subsection Wrapping Another Simple C Type
+
+If you want to wrap a simple C type which is does not fit in any of
+the categories above, then G-Wrap provides a simple high-level
+function for that purpose.
+
+@deffn method wrap-simple-type! (wrapset . <gw-wrapset>) . args
+Add the type described by @var{args} to the list of types to be
+wrapped by @var{wrapset}.  The arguments in @var{args} must contain
+the following named parameters:
+
+@table @code
+@item #:name
+a symbol that is the name for this wrapped type as used within the
+G-Wrap framework;
+@item #:c-type-name
+a string that is the C name of this enumerate type;
+@item #:type-check
+a list representing C expression that returns true if the given Scheme
+value's type is this type; this list may contain strings (representing
+part of the C expression) and the @code{scm-var} symbol which will be
+expanded to the name of the C variable that holds the Scheme value;
+@item #:ffspec
+@cindex libffi
+a symbol representing the libffi type name that describes this type
+best; it may be, for instance, @code{pointer} for pointer types,
+@code{long} for long integers, etc. (FIXME: document this further in
+another section);
+@item #:unwrap
+a list representing a C statement that assigns (and converts) the
+value of a C variable holding a Scheme value to a C variable holding
+the corresponding C value; as for @code{#:type-check}, this list may
+only contain strings and symbols; the symbol @code{scm-var} will be
+expanded to the name of the C variable that holds the Scheme value,
+while the symbol @code{c-var} will be expanded to the C variables that
+will hold the corresponding C value;
+@item #:wrap
+a list representing a C statement that assigns (and converts) the
+value of a C variable holding a C value to a C variable holding the
+corresponding Scheme value; the content and interpretation of the list
+as the same as for @code{#:unwrap};
+@item #:description
+an optional description of this type.
+@end table
+
+@end deffn
+
+@cindex SCM
+@cindex scm
+As an example, the simple @code{scm} wrapped type which lets the user
+wrap C functions that take or return raw @code{SCM} objects (see
+@inforef{The SCM Type, Guile's SCM type, guile}, for a description of
+Guile's C type for Scheme objects) is defined as follows:
+
+@lisp
+(wrap-simple-type! wrapset
+                   #:name 'scm
+                   #:c-type-name "SCM"
+                   #:type-check '("1") ;; any Scheme value is correct
+                   #:ffspec 'pointer
+                   ;; no conversion is needed
+                   #:unwrap '(c-var " = " scm-var ";\n")
+                   #:wrap '(scm-var " = " c-var ";\n"))
+@end lisp
+
+If @code{wrap-simple-type!} is still not good enough for what you want
+to do, then you may have a look at the details of G-Wrap's code
+generation interface, @xref{G-Wrap's Code Generation API}.
 
 
 @node G-Wrap's Code Generation API,  , G-Wrap's High-level API, API Reference
@@ -877,17 +1076,22 @@ named @var{c-error-var} (a string) denotes a G-Wrap error status.  If
 @var{error-value} is provided, it must be a symbol denoting one of the
 various G-Wrap run-time error conditions:
 
-@itemize
-@item @code{misc}, an error condition that does not fit in the other
-names;
-@item @code{memory}, a memory management exception;
-@item @code{range}, a range exception (e.g. for integer
-conversion);
-@item @code{type}, a type exception (e.g. wrong return type);
-@item @code{argc}, a wrong-number-of-arguments exception;
-@item @code{arg-range}, a range exception for one of the arguments;
-@item @code{arg-type}, a type exception for one of the arguments.
-@end itemize
+@table @code
+@item misc
+an error condition that does not fit in the other names;
+@item memory
+a memory management exception;
+@item range
+a range exception (e.g. for integer conversion);
+@item type
+a type exception (e.g. wrong return type);
+@item argc
+a wrong-number-of-arguments exception;
+@item arg-range
+a range exception for one of the arguments;
+@item arg-type
+a type exception for one of the arguments.
+@end table
 
 If @var{error-value} is provided, this special form expands to code
 that checks whether the C variable named @var{c-error-var} denotes an
@@ -965,3 +1169,7 @@ FIXME: To be continued.
 
 @contents
 @bye
+
+@c Local Variables:
+@c ispell-local-dictionary: "american"
+@c End:

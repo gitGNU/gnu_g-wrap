@@ -144,7 +144,7 @@
 	(raise (condition
 		(&gw-bad-typespec
 		 (type type) (options options)
-		 (message "bothe caller and callee owned")))))
+		 (message "both caller and callee owned")))))
     (if (not (or (memq 'caller-owned remainder)
 		 (memq 'callee-owned remainder)))
 	(raise (condition
