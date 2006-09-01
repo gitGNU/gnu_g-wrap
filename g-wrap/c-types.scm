@@ -1,5 +1,6 @@
 ;;;; File: c-types.scm
 ;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2005, 2006 Ludovic Court�s
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -48,7 +49,7 @@
 
 	    <gw-wct>
 	    wrap-as-wct!
-	    wcp-mark-function wcp-free-function))
+	    wcp-mark-function wcp-free-function wcp-equal-predicate))
 
 (define-generic wrap-simple-type!)
 
@@ -73,6 +74,10 @@
     (slot-set! type 'max-var
 	       (gen-c-tmp (string-append "range_minval" c-sym-name)))))
 
+(define-method (default-c-value-for-type (type <gw-ranged-integer-type>))
+  ;; Default value to initialize C variables of such types.
+  "0")
+
  ;; void is class of its, own, of course ;-)
 (define-class <gw-ctype-void> (<gw-simple-rti-type>))
 
@@ -80,7 +85,8 @@
   (next-method void (append '(#:needs-result-var? #f) initargs)))
 
 (define-method (unwrap-value-cg (type <gw-ctype-void>)
-				(value <gw-value>) error-var)
+				(value <gw-value>) error-var
+				(inlined? <boolean>))
   '())
 
 (define-method (pre-call-arg-cg (type <gw-ctype-void>)
@@ -104,8 +110,9 @@
   #:allowed-options '(null-ok))
 
 (define-method (destroy-value-cg (type <gw-ctype-mchars>)
-				  (value <gw-value>)
-				  error-var)
+				 (value <gw-value>)
+				 error-var
+				 (inlined? <boolean>))
   (next-method)) ;; no need, we already strdup'd it if necessary
 
 (define-method (global-declarations-cg (wrapset <gw-wrapset>)
@@ -118,6 +125,18 @@
 (define-method (client-global-declarations-cg (wrapset <gw-wrapset>)
 					      (mchars <gw-ctype-mchars>))
   (list "#include <string.h>\n"))
+
+
+(define-method (global-declarations-cg (wrapset <gw-wrapset>)
+				       (integer <gw-ranged-integer-type>))
+  (list
+   (next-method)
+   "#include <limits.h>\n"
+   "#if (__STDC_VERSION__ >= 199901L)\n"
+   "/* <stdint.h> is a C99 header.  It defines SIZE_MAX among\n"
+   "   other things.  */\n"
+   "# include <stdint.h>\n"
+   "#endif\n"))
 
 
 (define-method (set-value-cg (type <gw-ctype-mchars>)
@@ -142,7 +161,13 @@
   ;; (WCP) is about to be garbage collected.
   (wcp-free-function #:accessor wcp-free-function
 		     #:init-keyword #:wcp-free-function
-		     #:init-value "NULL"))
+		     #:init-value "NULL")
+
+  ;; Pointer to a C function that returns an non-zero integer when passed two
+  ;; C pointers that are `equal'  in the sense of that type.
+  (wcp-equal-predicate #:accessor wcp-equal-predicate
+		       #:init-keyword #:wcp-equal-predicate
+		       #:init-value "NULL"))
 
 (define-method (initialize (wct <gw-wct>) initargs)
   (next-method wct (cons #:ffspec (cons 'pointer initargs))))
@@ -153,6 +178,10 @@
 (define-method (check-typespec-options (type <gw-wct>) (options <list>))
   (let ((remainder options))
     (set! remainder (delq 'caller-owned (delq 'const remainder)))
+
+    (for-each (lambda (opt) (set! remainder (delq opt remainder)))
+	      (slot-ref type 'allowed-options))
+
     (if (not (null? remainder))
 	(raise (condition
 		(&gw-bad-typespec

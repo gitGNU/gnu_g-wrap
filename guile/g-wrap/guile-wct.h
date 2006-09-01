@@ -77,6 +77,12 @@ int gw_wct_p(SCM obj);
 /* create a wrapped C pointer of the given type, wrapping ptr */
 SCM gw_wcp_assimilate_ptr(void *ptr, SCM type);
 
+/* Before returning WCP, a <gw:wcp> SMOB, set DEPS as its list of
+   dependencies.  DEPS should be a list of Scheme objects WCP depends on.
+   This is to prevent garbage-collection of the objects being used by
+   OBJECT.  */
+void gw_wcp_set_dependencies (SCM wcp, SCM deps);
+
 /* see if the given obj is really a wcp */
 int gw_wcp_p(SCM obj);
 /* return the C pointer in the given wrapped C pointer object. */

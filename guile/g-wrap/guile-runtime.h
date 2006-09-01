@@ -57,12 +57,12 @@ void gw_guile_procedure_to_method_public (SCM proc, SCM class_name,
 
 SCM
 gw_wct_create (const char *type_name,
-               SCM (*equal_p)(SCM wcp_a, SCM wcp_b),
+               int (*equal_p)(void *wcp_a, void *wcp_b),
                int (*print)(SCM wcp, SCM port,
                             char writing_p,
                             int *use_default_printer_p),
                SCM (*mark)(SCM wcp),
-               size_t (*cleanup)(SCM wcp));
+               size_t (*cleanup)(void *wcp));
 
 int gw_wct_p(SCM obj);
 
@@ -70,6 +70,12 @@ int gw_wct_p(SCM obj);
 
 /* create a wrapped C pointer of the given type, wrapping ptr */
 SCM gw_wcp_assimilate_ptr(void *ptr, SCM type);
+
+/* Before returning WCP, a <gw:wcp> SMOB, set DEPS as its list of
+   dependencies.  DEPS should be a list of Scheme objects WCP depends on.
+   This is to prevent garbage-collection of the objects being used by
+   OBJECT.  */
+void gw_wcp_set_dependencies (SCM wcp, SCM deps);
 
 /* see if the given obj is really a wcp */
 int gw_wcp_p(SCM obj);

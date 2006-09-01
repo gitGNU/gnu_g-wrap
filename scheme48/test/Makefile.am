@@ -2,6 +2,11 @@ include $(top_srcdir)/common.mk
 
 WRAPSETS = test-standard
 
+dist_noinst_DATA = s48-test-standard-spec.scm
+
+clean-local:
+	rm -f packages.scm test-standard.scm
+
 all-local:
 	guile $(GUILE_FLAGS) -c \
 	  $(SETGWPATH)" \

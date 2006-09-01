@@ -1,8 +1,21 @@
 G-Wrap NEWS -- history of user-visible changes.
-Copyright (C) 2003-2005 Andreas Rottmann
+Copyright (C) 2003-2006 Andreas Rottmann
 Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
+Copyright (C) 2006 Ludovic Court�s <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
 See the end for copying conditions.
+
+Version 1.9.7
+
+  - New feature: aggregated typespecs.  See the node `Wrapping a C
+    Function' of the manual for details.
+
+  - Users can now specify a free and a mark function, as well as an
+    equality predicate for wrapped C types (WCTs) in `wrap-as-wct!'.
+
+  - Improved documentation with an API reference (yet to be finished).
+
+  - Several bugfixes.
 
 Version 1.9.6
 

@@ -1,5 +1,5 @@
 ;;;; File: guile.scm
-;;;; Copyright (C) 2004-2005 Andreas Rottmann
+;;;; Copyright (C) 2004-2006 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -53,7 +53,11 @@
 	    scm-var))
 
 
-;; Utility stuff
+
+;;;
+;;; Utilities
+;;;
+
 (define (guile-module-name->c-registration-strlist name-symlist)
   (separate-by (map symbol->string name-symlist) " "))
 
@@ -168,7 +172,8 @@
 			 (make <gw-value>
 			   #:var (value constant)
 			   #:wrapped-var (string-append "&" scm-var))
-			 error-var)))
+			 error-var
+			 #t)))
     (list
      "{\n"
      "  SCM " scm-var ";\n"
@@ -267,9 +272,9 @@
 ;; the method for rti wrapsets. It should be refactored into core.
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>)
 				      (function <gw-guile-function>))
-  (if (uses-rti-for-function? wrapset function)
-      '()
-      (function-wrapper-cg wrapset function)))
+   (if (uses-rti-for-function? wrapset function)
+       '()
+       (function-wrapper-cg wrapset function)))
 
 (define (out-param-name number)
   (string-append "gw__scm_out_arg" (number->string number)))
@@ -284,6 +289,14 @@
 		   #:wrapped-var "&gw__scm_result"
 		   #:var "gw__result"))
 	 (scm-params (filter visible? params))
+
+	 (function-has-wcp-args?
+	  (or (any (lambda (p) (is-a? (type p) <gw-wct>)) params)
+	      (is-a? return-type <gw-wct>)))
+	 (function-has-aggregated-args?
+	  (any (lambda (p) (memq 'aggregated (options (typespec p))))
+	       params))
+
 	 (scheme-sym (symbol->string (name function)))
 	 (param-decl (make-c-wrapper-param-declarations scm-params))
 	 (fn-c-wrapper (slot-ref function 'wrapper-name))
@@ -298,6 +311,10 @@
     (list
      "static char * " fn-c-string " = \"" scheme-sym "\";\n"
      "static SCM " fn-c-wrapper "  (" param-decl ") {\n"
+     (if (and function-has-wcp-args? function-has-aggregated-args?)
+	 "  SCM gw__scm_deps = SCM_EOL;\n"
+	 (format #f "  /* no WCP arguments: ret=~a */\n"
+		 return-type))
      "  SCM gw__scm_result = SCM_UNSPECIFIED;\n"
      "  GWError gw__error = { GW_ERR_NONE, NULL, NULL };\n"
      "  unsigned int gw__arg_pos = 0;\n"
@@ -313,8 +330,13 @@
 					   ", ") " };\n"))
 
      (if (needs-result-var? return-type)
-	 (list
-	  (c-type-name return-type return-typespec) " " (var result) ";\n")
+         (let ((c-value (default-c-value-for-type return-type)))
+           (list
+            ;; Initialize the C variable if possible.
+            (c-type-name return-type return-typespec) " " (var result)
+            (if (string? c-value)
+                (string-append " = " c-value ";\n")
+                ";\n")))
 	 '())
 
      (if (> nargs *max-fixed-params*)
@@ -329,9 +351,17 @@
      "\n"
 
       (map
-       (lambda (x)
-	 (list
-	      (c-type-name (type x)) " " (var x) ";\n"))
+       (lambda (param)
+	 (list (c-type-name (type param)) " " (var param)
+               (if (memq 'out (options (typespec param)))
+                   ;; Initialize the C variable for the `out' parameter if
+                   ;; possible.
+                   (let ((c-value
+                          (default-c-value-for-type (type param))))
+                     (if (string? c-value)
+                         (string-append " = " c-value ";\n")
+                         ";\n"))
+                   ";\n")))
        params)
 
       (map
@@ -340,6 +370,16 @@
 	  (if (visible? param)
 	      (list
 	       "/* ARG " (number param) " */\n"
+	       (if (memq 'aggregated (options (typespec param)))
+		   ;; Arguments that are aggregated by a return value are a
+		   ;; dependency of this return value and need to be marked
+		   ;; as such.
+		   (string-append "/* arg " (number->string (number param))
+				  " will be aggregated by the result"
+				  " (further referred to) */\n"
+				  "gw__scm_deps = scm_cons ("
+				  (scm-var param) ", gw__scm_deps);\n")
+		   "")
 	       "typespec = &typespecs[gw__arg_pos];\n"
 	       "gw__arg_pos++;\n"
 	       (if (>= (number param) *max-fixed-params*)
@@ -374,7 +414,7 @@
 		      #:labels labels)))
 		(if (default-value arg)
 		    (list
-		     "if (SCM_EQ_P(" (scm-var param) ", SCM_UNDEFINED))\n"
+		     "if (scm_is_eq (" (scm-var param) ", SCM_UNDEFINED))\n"
 		     "  " (set-value-cg (type arg) param
 					(default-value arg))
 		     "else {\n"
@@ -405,8 +445,7 @@
 	     "SCM_ALLOW_INTS;\n")
 	    "/* no function call requested! */\n"))
 
-
-      "{\n"
+      "{\n/* post-call-result-cg */\n"
       (expand-special-forms
        (post-call-result-cg return-type result error-var)
        #f '(memory misc type range))
@@ -428,6 +467,20 @@
 		(list "{\n" post-call-code "}\n")))
 	  "}\n"))
        (reverse params) (arguments function))
+
+      (if (and function-has-wcp-args? function-has-aggregated-args?)
+	  ;; Since some of the input arguments are aggregated by the output
+	  ;; arguments or the return value, iterate over the each output
+	  ;; argument and generate code that marks the aggregated objects as
+	  ;; its dependencies.  Same for the return value.
+	  (append (mark-dependencies-cg (scm-var result))
+		  (map (lambda (param)
+			 (if-typespec-option param 'out
+					     (mark-dependencies-cg
+					      (scm-var param))
+					     '()))
+		       params))
+	  '())
 
       " " (label-cg labels "wrapper_exit")
       "  if(gw__error.status != GW_ERR_NONE)\n"
@@ -487,8 +540,10 @@
     (list
      "static void " (wrap-value-function-name type)
      "(GWLangLocative value, GWLangArena arena, const GWTypeSpec *typespec, void *instance, GWError *error) {\n"
-     "  " (expand-special-forms (wrap-value-cg type value "*error")
-				#f '(type arg-type range memory misc))
+     "  "
+     ;; Invoke `wrap-value-cg' so that it produces non-inlined code.
+     (expand-special-forms (wrap-value-cg type value "*error" #f)
+			   #f '(type arg-type range memory misc))
      "}\n")))
 
 
@@ -501,8 +556,10 @@
     (list
      "static void " (unwrap-value-function-name type)
      "(void *instance, GWLangArena arena, const GWTypeSpec *typespec, GWLangLocative value, GWError *error) {\n"
-     "  " (expand-special-forms (unwrap-value-cg type value "*error")
-				#f '(type arg-type range memory misc))
+     "  "
+     ;; Invoke `unwrap-value-cg' so that it produces non-inlined code.
+     (expand-special-forms (unwrap-value-cg type value "*error" #f)
+			   #f '(type arg-type range memory misc))
      "}\n")))
 
 (define-method (destroy-value-function-cg (type <gw-guile-rti-type>))
@@ -515,9 +572,10 @@
     (list
      "static void " (destroy-value-function-name type)
      "(GWLangArena arena, void *instance, const GWTypeSpec *typespec, GWError *error) {\n"
-     "  " (expand-special-forms
-	   (destroy-value-cg type value "*error")
-	   #f '(type arg-type range memory misc))
+     "  "
+     ;; Invoke `destroy-value-cg' so that it produces non-inlined code.
+     (expand-special-forms (destroy-value-cg type value "*error" #f)
+			   #f '(type arg-type range memory misc))
      "}\n")))
 
 ;;;
@@ -575,12 +633,14 @@
 
 (define-method (wrap-value-cg (type <gw-guile-enum>)
 			      (value <gw-value>)
-			      status-var)
+			      status-var
+			      (inlined? <boolean>))
   (list (scm-var value) " = scm_long2num(" (var value) ");\n"))
 
 (define-method (unwrap-value-cg (enum <gw-guile-enum>)
 				(value <gw-value>)
-				status-var)
+				status-var
+				(inlined? <boolean>))
   (let ((scm-var (scm-var value))
 	(c-var (var value))
 	(val-sym-array-name (val-array-name enum)))
@@ -630,7 +690,8 @@
 
 (define-method (unwrap-value-cg (type <gw-guile-simple-type-base>)
 				(value <gw-value>)
-				status-var)
+				status-var
+				(inlined? <boolean>))
   (let* ((scm-var (scm-var value))
 	 (c-var (var value))
 	 (unwrap-code (replace-syms (slot-ref type 'unwrap)
@@ -645,18 +706,19 @@
 
 (define-method (wrap-value-cg (type <gw-guile-simple-type-base>)
 			      (value <gw-value>)
-			      status-var)
+			      status-var
+			      (inlined? <boolean>))
   (replace-syms (slot-ref type 'wrap)
 		`((c-var . ,(var value))
 		  (scm-var . ,(scm-var value)))))
 
-(define-class <gw-guile-simple-rti-type> (<gw-simple-rti-type>
-					  <gw-guile-simple-type-base>
+(define-class <gw-guile-simple-rti-type> (<gw-guile-simple-type-base>
+                                          <gw-simple-rti-type>
 					  <gw-guile-rti-type>))
 
 ;; This class is mainly for compatibility: it's like
 ;; <gw-guile-simple-rti-type>, but doesn't require an ffspec
-(define-class <gw-guile-simple-type> (<gw-type> <gw-guile-simple-type-base>)
+(define-class <gw-guile-simple-type> (<gw-guile-simple-type-base> <gw-type>)
   (c-type-name #:getter c-type-name #:init-keyword #:c-type-name)
   (c-const-type-name #:init-keyword #:c-const-type-name))
 
@@ -697,18 +759,22 @@
 
 (define-method (wrap-value-cg (wct <gw-guile-wct>)
 			      (value <gw-value>)
-			      status-var)
+			      status-var
+			      (inlined? <boolean>))
   (let ((wct-var (slot-ref wct 'wct-var-name))
 	(sv (scm-var value))
 	(cv (var value)))
     (list
      "if(" cv " == NULL) " sv " = SCM_BOOL_F;\n"
-     "else " sv " = gw_wcp_assimilate_ptr((void *) " cv ", " wct-var ");\n")))
+     "else {\n"
+     sv " = gw_wcp_assimilate_ptr((void *) " cv ", " wct-var ");\n"
+     "}\n")))
 
 
 (define-method (unwrap-value-cg (wct <gw-guile-wct>)
 				(value <gw-value>)
-				status-var)
+				status-var
+				(inlined? <boolean>))
   (let* ((wct-var (slot-ref wct 'wct-var-name))
 	 (sv (scm-var value))
 	 (c-var (var value))
@@ -726,17 +792,35 @@
 			 unwrap-code))))
 
 
+(define (mark-dependencies-cg out-scm-var)
+  ;; Set the dependencies of OUT-SCM-VAR, a WCP being returned.
+  (list "\n{\n"
+	"if ((gw__scm_deps != SCM_EOL) && (SCM_NIMP ("out-scm-var")))\n"
+	"  gw_wcp_set_dependencies (" out-scm-var ", "
+	"gw__scm_deps);\n"
+	"}\n"))
+
+(define-method (post-call-result-cg (return-type <gw-guile-wct>)
+				    (result <gw-value>) error-var)
+  (next-method))
+
+(define-method (post-call-arg-cg (arg-type <gw-guile-wct>)
+				 (arg <gw-value>) error-var)
+  (next-method))
+
+
 (define-method (initializations-cg (wrapset <gw-wrapset>)
 				   (wct <gw-guile-wct>)
 				   error-var)
   (let ((wct-var (slot-ref wct 'wct-var-name))
 	(wcp-type-name (symbol->string (name wct)))
 	(wcp-mark (wcp-mark-function wct))
-	(wcp-free (wcp-free-function wct)))
+	(wcp-free (wcp-free-function wct))
+	(wcp-equal? (wcp-equal-predicate wct)))
   (list
    (next-method)
 
-   wct-var "= gw_wct_create(\"" wcp-type-name "\", NULL, NULL, "
+   wct-var "= gw_wct_create (\"" wcp-type-name "\", " wcp-equal? ", NULL, "
    wcp-mark ", " wcp-free ");\n"
    "scm_c_define(\"" wcp-type-name "\", " wct-var ");\n")))
 
@@ -779,14 +863,14 @@
       "\n"
       (format #f "(define-module ~S\n" guile-module)
       (format #f "  #:use-module (oop goops)\n")
-      "  #:export (" (map
-		      (lambda (sym)
-			(list "    " sym "\n"))
-		      (module-exports wrapset))
-      "))\n"
+      ")\n"
       "\n"
       "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
       "              (dynamic-link \"" (slot-ref wrapset 'shlib-path) "\"))\n"
+      "(export " (map (lambda (sym)
+			(list "    " sym "\n"))
+		      (module-exports wrapset))
+      ")"
 ;;      "(module-use! (module-public-interface (current-module)) (current-module))\n"
       )
      port)

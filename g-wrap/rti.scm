@@ -92,7 +92,8 @@
     class 'allowed-options allowed-options)))
 
 (define-class <gw-rti-type> (<gw-type>)
-  (allowed-options #:init-value '() #:allocation #:each-subclass)
+  (allowed-options #:init-value '() #:allocation #:each-subclass
+		   #:init-keyword #:allowed-options)
   (c-type-name #:getter c-type-name #:init-keyword #:c-type-name)
   (c-const-type-name #:init-keyword #:c-const-type-name)
   (ffspec #:getter ffspec #:init-keyword #:ffspec)
@@ -121,6 +122,19 @@
   (slot-set! type 'wrap-value-function-name (gen-name "wrap_value"))
   (slot-set! type 'unwrap-value-function-name (gen-name "unwrap_value"))
   (slot-set! type 'destroy-value-function-name (gen-name "destruct_value")))
+
+(define-method (default-c-value-for-type (type <gw-rti-type>))
+  ;; Default value for variables of such types.
+  (define %number-types
+    (append-map (lambda (type)
+                  (list (symbol-append 's type)
+                        (symbol-append 'u type)))
+                '(char short int long long_long)))
+
+  (let ((ffspec (ffspec type)))
+    (cond ((eq? ffspec 'pointer)       "NULL")
+          ((memq ffspec %number-types) "0")
+          (else                        #f))))
 
 (define-generic wrap-value-function-cg)
 (define-generic unwrap-value-function-cg)

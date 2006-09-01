@@ -1,5 +1,5 @@
 ;;;; File: g-wrap.scm
-;;;; Copyright (C) 2004-2005 Andreas Rottmann
+;;;; Copyright (C) 2004-2006 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -60,14 +60,15 @@
    
    <gw-type>
    needs-result-var?
+   default-c-value-for-type
    wrap-value-cg unwrap-value-cg destroy-value-cg
    pre-call-arg-cg pre-call-result-cg call-arg-cg post-call-result-cg
    post-call-arg-cg call-cg set-value-cg
-   
+
    gen-c-tmp-name
-   
+
    <gw-typespec>
-   type options c-type-name all-types add-option!
+   type options c-type-name all-types add-option! typespec-options
    make-typespec check-typespec-options parse-typespec-option!
    
    <gw-value>
@@ -162,6 +163,7 @@
 ;; Upgrade the GOOPS class-name procedure.
 (set! class-name (ensure-accessor class-name))
 
+
 ;;;
 ;;; Types
 ;;;
@@ -185,6 +187,14 @@
     (display #\space port)
     (display (name type) port)
     (display #\> port)))
+
+;; Return a default C value for type (a string), or `#f' so that C variables
+;; (in particular those for the result and `out' arguments) are not left
+;; uninitialized.  In the general case, we aren't able to provide such a
+;; value.
+(define-generic default-c-value-for-type)
+(define-method (default-c-value-for-type (type <gw-type>))
+  #f)
 
 (define-method (gen-c-tmp-name (type <gw-type>) (suffix <string>))
   (gen-c-tmp (string-append (any-str->c-sym-str
@@ -221,7 +231,7 @@
 ;;;
 
 (define-class <gw-value> ()
-  (typespec #:getter typespec #:init-keyword #:typespec)
+  (typespec #:getter typespec #:init-keyword #:typespec #:init-value #f)
   (var #:getter var #:init-keyword #:var)
   (wrapped-var #:getter wrapped-var #:init-keyword #:wrapped-var))
 
@@ -234,19 +244,48 @@
                      ((and (list? code2-opt) (= (length code2-opt) 1))
                       (car code2-opt))
                      (else (error "bogus parameters")))))
-    (if (memq option (options (typespec value)))
-        code1
-        (if code2 code2 '()))))
+    (if (typespec value)
+	(if (memq option (options (typespec value)))
+	    code1
+	    (if code2 code2 '()))
+	(if code2 code2 '()))))
 
 (define-generic wrap-value-cg)
 (define-generic unwrap-value-cg)
 (define-generic destroy-value-cg)
 
-(define-method (destroy-value-cg (type <gw-type>) (value <gw-value>) err)
+(define-method (wrap-value-cg (type <gw-type>) (value <gw-value>) error-var
+			      (inlined? <boolean>))
+  ;; This method allows to support `wrap-value-cg' methods that do _not_
+  ;; support the INLINED? argument.
+  (wrap-value-cg type value error-var))
+
+(define-method (wrap-value-cg (type <gw-type>) (value <gw-value>) error-var)
+  (wrap-value-cg type value error-var #f))
+
+(define-method (unwrap-value-cg (type <gw-type>) (value <gw-value>) error-var
+				(inlined? <boolean>))
+  ;; Likewise.
+  (unwrap-value-cg type value error-var))
+
+(define-method (unwrap-value-cg (type <gw-type>) (value <gw-value>) error-var)
+  (unwrap-value-cg type value error-var #f))
+
+(define-method (destroy-value-cg (type <gw-type>) (value <gw-value>) error-var
+				 (inlined? <boolean>))
+  ;; Likewise.
+  (destroy-value-cg type value error-var))
+
+(define-method (destroy-value-cg (type <gw-type>) (value <gw-value>) error-var)
+  (destroy-value-cg type value error-var #f))
+
+(define-method (destroy-value-cg (type <gw-type>) (value <gw-value>) err
+				 (inlined? <boolean>))
   '())
 
 (define-method (pre-call-arg-cg (type <gw-type>) (param <gw-value>) err)
-  (unwrap-value-cg type param err))
+  ;; Call `unwrap-value-cg' in such a way that inlined code is generated.
+  (unwrap-value-cg type param err #t))
 
 ;; What was that for?
 ;;    "if (" `(gw:error? ,status-var type) ")"
@@ -269,17 +308,21 @@
 (define-method (post-call-result-cg (type <gw-type>)
                                     (result <gw-value>)
                                     status-var)
+  ;; Call `wrap-value-cg' and `destroy-value-cg' in such a way that inlined
+  ;; code is generated.
   (list
-   (wrap-value-cg type result status-var)
-   (destroy-value-cg type result status-var)))
+   (wrap-value-cg type result status-var #t)
+   (destroy-value-cg type result status-var #t)))
 
 
 (define-method (post-call-arg-cg (type <gw-type>) (param <gw-value>) err)
+  ;; Call `wrap-value-cg' and `destroy-value-cg' in such a way that inlined
+  ;; code is generated.
   (list
    (if (memq 'out (options (typespec param)))
-       (wrap-value-cg type param err)
+       (wrap-value-cg type param err #t)
        '())
-  (destroy-value-cg type param err)))
+  (destroy-value-cg type param err #t)))
 
 (define-method (set-value-cg (type <gw-type>) (lvalue <gw-value>) rvalue)
   (list (var lvalue) " = " rvalue ";\n"))
@@ -299,6 +342,9 @@
 (define-class <gw-typespec> ()
   (type #:init-keyword #:type #:getter type)
   (options #:init-keyword #:options #:getter options #:init-value '()))
+
+(define-method (typespec-options (typespec <gw-typespec>))
+  (options typespec))
 
 (define-method (write (self <gw-typespec>) port)
   (let ((class (class-of self)))
@@ -898,3 +944,10 @@
 ;; Hook in compat layer
 (module-use! (resolve-interface '(g-wrap))
              (resolve-interface '(g-wrap compat)))
+
+;; The (g-wrap {c,scm}-codegen) code originally was here; this is needed for
+;; backwards-compatibility.
+(module-use! (resolve-interface '(g-wrap))
+             (resolve-interface '(g-wrap c-codegen)))
+(module-use! (resolve-interface '(g-wrap))
+             (resolve-interface '(g-wrap scm-codegen)))

@@ -102,6 +102,13 @@
                   #:description "Get LONG_MIN.")
 
   (wrap-function! ws
+                  #:name 'gw-test-gw-standard-get-ssize-min
+                  #:returns 'ssize_t
+                  #:c-name "gw_test_gw_standard_get_ssize_min"
+                  #:arguments '()
+                  #:description "Get the minimum of @code{ssize_t}.")
+
+  (wrap-function! ws
                   #:name 'gw-test-gw-standard-get-long-max
                   #:returns 'long
                   #:c-name "gw_test_gw_standard_get_long_max"
@@ -114,6 +121,13 @@
                   #:c-name "gw_test_gw_standard_get_ulong_max"
                   #:arguments '()
                   #:description "Get ULONG_MAX.")
+
+  (wrap-function! ws
+                  #:name 'gw-test-gw-standard-get-ssize-max
+                  #:returns 'ssize_t
+                  #:c-name "gw_test_gw_standard_get_ssize_max"
+                  #:arguments '()
+                  #:description "Get SSIZE_MAX.")
 
   (wrap-function! ws
                   #:name 'gw-test-gw-standard-echo-float
@@ -156,7 +170,14 @@
                   #:c-name "gw_test_gw_standard_echo_unsigned_long"
                   #:arguments '((unsigned-long arg))
                   #:description "Return arg.")
-  
+
+  (wrap-function! ws
+                  #:name 'gw-test-gw-standard-echo-ssize
+                  #:returns 'ssize_t
+                  #:c-name "gw_test_gw_standard_echo_ssize"
+                  #:arguments '((ssize_t arg))
+                  #:description "Return arg.")
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;; mchars
 

@@ -1,5 +1,5 @@
 ;;;; File: gw-glib-spec.scm
-;;;; Copyright (C) 2004-2005 Andreas Rottmann
+;;;; Copyright (C) 2004-2006 Andreas Rottmann
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -138,7 +138,8 @@
 
 (define-method (unwrap-value-cg (glist-type <glist-of-type>)
 				(value <gw-value>)
-				status-var)
+				status-var
+				(inlined? <boolean>))
 
   (let* ((c-var (var value))
 	 (scm-var (scm-var value))
@@ -166,7 +167,7 @@
        "    " sub-item-c-type " " tmp-sub-item-c-var ";\n"
        "    SCM " tmp-sub-item-scm-var " = SCM_CAR(" tmp-rest-var ");\n"
        "\n"
-       (unwrap-value-cg sub-type tmp-sub-item status-var)
+       (unwrap-value-cg sub-type tmp-sub-item status-var #t)
        "\n"
        "    if(! " `(gw:error? ,status-var) " )\n"
        "    {\n"
@@ -187,7 +188,7 @@
        "      " tmp-sub-item-c-var " = ( " sub-item-c-type ") "
        (string-append tmp-cursor "->data") ";\n"
        ;; FIMXE: had force #t here
-       (destroy-value-cg sub-type tmp-sub-item status-var)
+       (destroy-value-cg sub-type tmp-sub-item status-var #t)
        tmp-cursor " = " (string-append tmp-cursor "->next") ";\n"
        "    }\n"
        "    " func-prefix "_free(" c-var ");\n"
@@ -197,7 +198,8 @@
 
 (define-method (wrap-value-cg (glist-type <glist-of-type>)
 			      (value <gw-value>)
-			      status-var)
+			      status-var
+                              (inlined? <boolean>))
   (let* ((c-var (var value))
 	 (scm-var (scm-var value))
 	 (sub-typespec (sub-typespec (typespec value)))
@@ -223,7 +225,7 @@
      "  " tmp-sub-item-c-var " = ( " sub-item-c-type ") "
      (string-append tmp-rest-var "->data") ";\n"
      "\n"
-     (wrap-value-cg sub-type tmp-sub-item status-var)
+     (wrap-value-cg sub-type tmp-sub-item status-var #t)
      "\n"
      "  if(! " `(gw:error? ,status-var) " )\n"
      "  {\n"
@@ -237,8 +239,9 @@
      "}\n")))
 
 (define-method (destroy-value-cg (glist-type <glist-of-type>)
-				  (value <gw-value>)
-				  status-var)
+				 (value <gw-value>)
+				 status-var
+				 (inlined? <boolean>))
   (let* ((c-var (var value))
 	 (scm-var (scm-var value))
 	 (options (options (typespec value)))
@@ -259,7 +262,7 @@
      "    " sub-item-c-type " " tmp-sub-item-c-var ";\n"
      "    " tmp-sub-item-c-var " = ( " sub-item-c-type ") "
      (string-append tmp-cursor "->data") ";\n"
-     (destroy-value-cg sub-type tmp-sub-item status-var)
+     (destroy-value-cg sub-type tmp-sub-item status-var #t)
      tmp-cursor " = " (string-append tmp-cursor "->next") ";\n"
      "  }\n"
      (if (memq 'caller-owned options)

@@ -1,12 +1,13 @@
-### -*-m4-*-
+dnl -*- Autoconf -*-
 
+AC_PREREQ(2.60)
 AC_INIT(g-wrap.scm)
 
 dnl Program version
 
 GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
 AC_SUBST(GW_BRANCH)
-GW_VERSION=1.9.6
+GW_VERSION=1.9.7
 
 AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
 AC_CONFIG_HEADERS(config.h g-wrap/ffi-support.h)
@@ -16,8 +17,8 @@ AM_MAINTAINER_MODE
 AC_SUBST(ACLOCAL_FLAGS,$ACLOCAL_FLAGS)
 
 dnl Shared library versions
-GW_RUNTIME_VINFO(CORE, 0, 1, 0)
-GW_RUNTIME_VINFO(GUILE, 0, 2, 0)
+GW_RUNTIME_VINFO(CORE, 1, 0, 0)
+GW_RUNTIME_VINFO(GUILE, 1, 0, 0)
 
 dnl
 dnl Checks for user options
@@ -26,7 +27,7 @@ dnl
 AC_ARG_WITH(modules-dir,
 [  --with-modules-dir=<dir>  Base directory for contributed Guile modules ],
   GUILEMODDIR=$withval,
-  GUILEMODDIR=${datadir}/guile/site)
+  GUILEMODDIR='${prefix}/share/guile/site')
 AC_SUBST(GUILEMODDIR)
 
 dnl
@@ -86,6 +87,7 @@ AC_DEFINE_UNQUOTED(ffi_type_ssize_t, ffi_type_${ffi_ssize_type},
 		   [ffi type for ssize_t])
 
 dnl Guile
+GUILE_PROGS
 GUILE_FLAGS
 
 GUILE_MODULE_AVAILABLE(HAVE_SRFI_34, [(srfi srfi-34)])
@@ -112,7 +114,12 @@ GW_ALLOW_LANG(scheme48, NO)
 AC_SUBST(GW_LANGUAGES)
 
 dnl Check for optional libraries
-PKG_CHECK_MODULES(GLIB, glib, [have_glib=yes], [have_glib=no])
+AC_CHECK_PROG(have_glib, glib-config, yes, no)
+if test "$have_glib" = yes; then
+  PKG_CHECK_MODULES(GLIB, glib, [echo building GLib 1.2 support])
+else
+  echo Not building Glib 1.2 support
+fi
 AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = yes)
 
 
@@ -142,7 +149,7 @@ fi
 
 AC_SUBST(STD_CFLAGS)
 
-AC_OUTPUT([Makefile
+AC_CONFIG_FILES([Makefile
 	   lib/Makefile
            g-wrap/Makefile
 	   test/Makefile
@@ -151,6 +158,7 @@ AC_OUTPUT([Makefile
 	   guile/g-wrap/Makefile
 	   guile/g-wrap/gw/Makefile
 	   guile/test/Makefile
+	   guile/test/guile-test-env
 	   scheme48/Makefile
 	   scheme48/g-wrap/Makefile
 	   scheme48/g-wrap/gw/Makefile
@@ -159,3 +167,7 @@ AC_OUTPUT([Makefile
 	   doc/Makefile
 	   g-wrap-config
 ])
+
+AC_CONFIG_COMMANDS([guile-test-env-exec], [chmod +x guile/test/guile-test-env])
+
+AC_OUTPUT

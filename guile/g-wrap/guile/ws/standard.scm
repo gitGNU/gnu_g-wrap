@@ -1,5 +1,5 @@
 ;;;; File: standard.scm
-;;;; Copyright (C) 2004-2005 Andreas Rottmann
+;;;; Copyright (C) 2004-2006 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -135,32 +135,32 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 (define-method (add-type! (wrapset <standard-wrapset>)
 			  (type <gw-guile-simple-rti-type>))
   (let ((info (assq-ref
-               '((scm) (<gw:wct>) (<gw:wcp>)
-                 (bool #f
-                       (c-var "= SCM_NFALSEP(" scm-var ");\n")
-                       (scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n")
-                       <boolean>)
-                 
-                 (char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
-                       (c-var "= SCM_CHAR(" scm-var ");\n")
-                       (scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
-                       <char>)
-                 
-                 (unsigned-char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
-                                (c-var "= SCM_CHAR(" scm-var ");\n")
-                                (scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
-                                <char>)
-                 
-                 (float ("SCM_NFALSEP(scm_number_p(" scm-var "))")
-                        (c-var "= (float) scm_to_double(" scm-var ");\n")
-                        (scm-var "= scm_from_double(" c-var ");\n")
-                        <real>)
-                 
-                 (double ("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
-                         (c-var "= scm_to_double(" scm-var ");\n")
-                         (scm-var "= scm_from_double(" c-var ");\n")
-                         <real>))
-               (name type))))
+	       '((scm) (<gw:wct>) (<gw:wcp>)
+		 (bool #f
+		       (c-var "= SCM_NFALSEP(" scm-var ");\n")
+		       (scm-var "= (" c-var ") ? SCM_BOOL_T : SCM_BOOL_F;\n")
+		       <boolean>)
+
+		 (char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
+		       (c-var "= SCM_CHAR(" scm-var ");\n")
+		       (scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
+		       <char>)
+
+		 (unsigned-char ("SCM_NFALSEP(scm_char_p(" scm-var "))")
+				(c-var "= SCM_CHAR(" scm-var ");\n")
+				(scm-var "= SCM_MAKE_CHAR(" c-var ");\n")
+				<char>)
+
+		 (float ("SCM_NFALSEP(scm_number_p(" scm-var "))")
+			(c-var "= (float)scm_to_double (" scm-var ");\n")
+			(scm-var "= scm_from_double((double)" c-var ");\n")
+			<real>)
+
+		 (double ("SCM_NFALSEP(scm_number_p(" scm-var "))\n")
+			 (c-var "= scm_to_double (" scm-var ");\n")
+			 (scm-var "= scm_from_double (" c-var ");\n")
+			 <real>))
+	       (name type))))
     (cond ((null? info)
 	   (next-method))
 	  ((not info)
@@ -179,7 +179,8 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 ;;;
 
 (define-method (wrap-value-cg (type <gw-guile-ctype-void>)
-			      (value <gw-value>) error-var)
+			      (value <gw-value>) error-var
+			      (inlined? <boolean>))
   (list (scm-var value) " = SCM_UNSPECIFIED;\n"))
 
 (define-method (post-call-result-cg (type <gw-guile-ctype-void>)
@@ -226,8 +227,8 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 (define-method (wrap-ranged-integer-type! (wrapset <standard-wrapset>) . args)
   (let* ((type (apply make <ranged-integer-type> args))
 	 (name (ranged-integer-name type)))
-    (slot-set! type 'wrap (string-append "scm_" name "2num"))
-    (slot-set! type 'unwrap (string-append "scm_num2" name))
+    (slot-set! type 'wrap (string-append "scm_from_" name))
+    (slot-set! type 'unwrap (string-append "scm_to_" name))
     (slot-set! type 'class-name '<integer>)
     (add-type! wrapset type)))
 
@@ -246,13 +247,14 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 
 (define-method (wrap-value-cg (type <ranged-integer-type>)
 			      (value <gw-value>)
-			      error-var)
+			      error-var
+			      (inlined? <boolean>))
   (list (scm-var value) " = " (slot-ref type 'wrap) "(" (var value) ");\n"))
 
-(define-method (unwrap-value-cg
-				(type <ranged-integer-type>)
+(define-method (unwrap-value-cg (type <ranged-integer-type>)
 				(value <gw-value>)
-				error-var)
+				error-var
+				(inlined? <boolean>))
   (let ((scm-var (scm-var value))
 	(c-var (var value))
 	(minvar (slot-ref type 'min-var))
@@ -270,7 +272,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 	  "else {\n"
 	  ;; here we pass NULL and 0 as the callers because we've already
 	  ;; checked the bounds on the argument
-	  "  " c-var " = " (slot-ref type 'unwrap) "(" scm-var ", 0, NULL);\n"
+	  "  " c-var " = " (slot-ref type 'unwrap) "(" scm-var ");\n"
 	  "}\n")))
 
 
@@ -329,27 +331,51 @@ example (gw:wcp-is-a? <gw:void*> foo)")
   (if (eq? 'null-ok option)
       (add-option! typespec 'unspecialized))) ;; can't pass #f for <string>
 
-;; FIXME: need to see if we actually own the string
 (define-method (wrap-value-cg (type <gw-guile-ctype-mchars>)
 			      (value <gw-value>)
-			      error-var)
-    (list
-     "if(" (var value) " == NULL) " (scm-var value) " = SCM_BOOL_F;\n"
-     "else "
-     (scm-var  value) " = scm_makfrom0str( " (var value) ");\n"))
+			      error-var
+			      (inlined? <boolean>))
+  (list
+   "if (" (var value) " == NULL) " (scm-var value) " = SCM_BOOL_F;\n"
+   "else "
+   (scm-var  value)
+   (let* ((ts (typespec value))
+	  (opts (if ts (options ts) '())))
+     ;; When the string is `out' and `caller-owned', we must take the C
+     ;; string, i.e., take control over its underlying memory.
+     (if (and (memq 'caller-owned opts) (memq 'out opts))
+	 " = scm_take_locale_string ("
+	 " = scm_from_locale_string ("))
+   (var value) ");\n"))
 
 (define-method (unwrap-value-cg (type <gw-guile-ctype-mchars>)
 				(value <gw-value>)
-				error-var)
+				error-var
+				(inlined? <boolean>))
   (let ((c-var (var value))
-	(scm-var (scm-var value)))
+	(scm-var (scm-var value))
+	(c-size-var (gen-c-tmp "_size")))
     (let ((unwrap-code
 	   (list
-	    "if(SCM_STRINGP(" scm-var ")) {\n"
-	    (if-typespec-option
-	     value 'caller-owned
-	     (list c-var " = SCM_STRING_CHARS (" scm-var ");\n")
-	      (list c-var " = strdup (SCM_STRING_CHARS (" scm-var "));\n"))
+	    "if (scm_is_string (" scm-var ")) {\n"
+	    ;; We can't use `scm_i_string_chars ()' here because it returns a
+	    ;; non-zero terminated string.  So, no matter whether VALUE is
+	    ;; caller-owned or not, we have to allocate a new string a free
+	    ;; it afterwards.
+	    (if (not inlined?)
+		;; allocate a new C string on the heap.
+		(list c-var " = scm_to_locale_string ("scm-var");\n")
+
+		;; allocate a new C string on the stack rather.
+		(list "{\n"
+		      "size_t "c-size-var " = "
+		      "scm_c_string_length ("scm-var");\n"
+		      c-var " = alloca ("c-size-var" + 1);\n"
+		      "scm_to_locale_stringbuf ("scm-var", "c-var",\n"
+		      "                         "c-size-var");\n"
+		      c-var"["c-size-var"] = '\\0';\n"
+		      "}\n"))
+
 	    "} else\n"
 	    "{  " c-var " = NULL;\n"
 	    `(gw:error ,error-var type ,(wrapped-var value))
@@ -365,15 +391,18 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 
 (define-method (destroy-value-cg (type <gw-guile-ctype-mchars>)
 				 (value <gw-value>)
-				 error-var)
-  (if-typespec-option
-   value 'caller-owned
-
-   (list "\n{\n"
-	 "/* Free the string that was allocated by `scm_to_locale_string ()' \n"
-	 "   in `unwrap-value'.  */\n"
-	 "if ("(var value)" != NULL)\n"
-	 "  free ("(var value)");\n"
-	 "}\n")
-
-   '()))
+				 error-var
+				 (inlined? <boolean>))
+  ;; `destroy-value-cg' is not called on `out' values that have just been
+  ;; passed to `wrap-value-cg', so we don't have to worry about this case.
+  (if-typespec-option value 'caller-owned
+		      (if (not inlined?)
+			  (list "\n{\n"
+				"/* Free the string that was allocated "
+				"by `scm_to_locale_string ()' \n"
+				"   in `unwrap-value'.  */\n"
+				"if ("(var value)" != NULL)\n"
+				"  free ("(var value)");\n"
+				"}\n")
+			  '())
+		      '()))

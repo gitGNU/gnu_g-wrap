@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2002 Rob Browning
+Copyright (C) 2002, 2006 Rob Browning
 Copyright (C) 2003-2004 Andreas Rottmann
 Copyright (C) 2005 Ludovic Court�s
 
@@ -46,6 +46,10 @@ extern "C" {
 /* Support for coding against Guile 1.7 */
 #ifndef SCM_VERSION_17X
 
+/* Equality.  */
+#define scm_is_eq(_x, _y)           (SCM_EQ_P (_x, _y))
+#define scm_is_null(_l)             (SCM_NULLP (_l))
+
 /* Garbage collection.  */
 void *  scm_malloc(size_t size);
 void *  scm_realloc(void *mem, size_t size);
@@ -53,10 +57,15 @@ void *  scm_realloc(void *mem, size_t size);
 #define scm_gc_malloc(size, what) scm_must_malloc((size), (what))
 void    scm_gc_free(void *mem, size_t size, const char *what);
 
+/* Pairs */
+
+#define scm_is_pair(x) SCM_CONSP(x)
+
 /* Strings.  */
-#define scm_is_string(_str)                (SCM_STRINGP (_str) != SCM_BOOL_F)
+#define scm_is_string(_str)                SCM_STRINGP (_str)
 #define scm_c_string_length(_str)          (SCM_STRING_LENGTH (_str))
 #define scm_from_locale_string(_str)       (scm_makfrom0str (_str))
+SCM     scm_take_locale_string(char *_str);
 char   *scm_to_locale_string (SCM str);
 size_t  scm_to_locale_stringbuf (SCM str, char *buf, size_t buf_size);
 
@@ -70,6 +79,11 @@ size_t  scm_to_locale_stringbuf (SCM str, char *buf, size_t buf_size);
 #define GW_ACCESS_SYMBOL(_c_ptr, _sym)		\
   { (_c_ptr) = SCM_SYMBOL_CHARS (_sym); }
 
+
+/* Booleans.  */
+#define scm_from_bool(_b)                (SCM_BOOL (_b))
+#define scm_is_false(_b)                 (SCM_FALSEP (_b))
+#define scm_is_true(_b)                  (SCM_NFALSEP (_b))
 
 /* Numbers.  */
 #ifndef SCM_I_MAKINUM
@@ -103,7 +117,6 @@ size_t  scm_to_locale_stringbuf (SCM str, char *buf, size_t buf_size);
 
 
 #else /* SCM_VERSION_17X */
-
 
 /* Have C_PTR point to a local copy of STR.  */
 #define GW_ACCESS_STRING(_c_ptr, _str)			\

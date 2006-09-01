@@ -70,8 +70,8 @@
      "{"
      "  " (c-type-name type) " " result-var " = " func-call-code ";"
      "  if (" func-call-code " != 0)"
-     "    scm_throw (scm_str2symbol (\"error-code\"), "
-     "               scm_int2num (" result-var "));"
+     "    scm_throw (scm_from_locale_symbol (\"error-code\"), "
+     "               scm_from_int (" result-var "));"
      "}")))
 
 (define-method (post-call-result-cg (type <error-code-type>)

@@ -1,6 +1,7 @@
 /**********************************************************************
-Copyright (C) 2003-2005 Andreas Rottmann
- 
+Copyright (C) 2003-2006 Andreas Rottmann
+Copyright (C) 2005 Ludovic Court�s
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation; either version 2.1, or (at
@@ -52,6 +53,13 @@ scm_gc_free(void *mem, size_t size, const char *what)
 
 
 /* Strings.  */
+
+SCM scm_take_locale_string (char *str)
+{
+  SCM result = scm_makfrom0str (str);
+  free (str);
+  return result;
+}
 
 char *
 scm_to_locale_string (SCM str)

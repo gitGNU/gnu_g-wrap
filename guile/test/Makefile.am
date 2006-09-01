@@ -12,6 +12,7 @@ TESTS = \
  test-enumeration \
  test-wct \
  test-compat
+TESTS_ENVIRONMENT = builddir=$(top_builddir)/guile/test
 
 check_SCRIPTS = guile-test-env $(TESTS)
 
@@ -69,6 +70,15 @@ check_LTLIBRARIES += libgw-guile-test-child.la
 nodist_libgw_guile_test_child_la_SOURCES = gw-test-child.c
 libgw_guile_test_child_la_LDFLAGS = -rpath @libdir@ -module
 libgw_guile_test_child_la_LIBADD = $(std_libs)
+
+
+# # ======================================================================
+# # gw-test-aggregating
+
+check_LTLIBRARIES += libgw-guile-test-aggregating.la
+nodist_libgw_guile_test_aggregating_la_SOURCES = gw-test-aggregating.c
+libgw_guile_test_aggregating_la_LDFLAGS = -rpath @libdir@ -module
+libgw_guile_test_aggregating_la_LIBADD = $(std_libs)
 
 
 # # ======================================================================

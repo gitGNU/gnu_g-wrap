@@ -36,22 +36,27 @@
 
 (define-method* (test-integer-types (self <test-standard>))
   (let ((int-min (gw-test-gw-standard-get-int-min))
-        (long-min (gw-test-gw-standard-get-long-min)))
-    
+        (long-min (gw-test-gw-standard-get-long-min))
+        (ssize-min (gw-test-gw-standard-get-ssize-min)))
+
     (for-each check-integer-type
-              (list '<gw:int> '<gw:unsigned-int> '<gw:long> '<gw:unsigned-long>)
+              (list '<gw:int> '<gw:unsigned-int> '<gw:long>
+                    '<gw:unsigned-long> '<gw:ssize_t>)
               (list gw-test-gw-standard-echo-int
                     gw-test-gw-standard-echo-unsigned-int
                     gw-test-gw-standard-echo-long
-                    gw-test-gw-standard-echo-unsigned-long)
+                    gw-test-gw-standard-echo-unsigned-long
+                    gw-test-gw-standard-echo-ssize)
               (list int-min
                     0
                     long-min
-                    0)
+                    0
+                    ssize-min)
               (list (gw-test-gw-standard-get-int-max)
                     (gw-test-gw-standard-get-uint-max)
                     (gw-test-gw-standard-get-long-max)
-                    (gw-test-gw-standard-get-ulong-max)))))
+                    (gw-test-gw-standard-get-ulong-max)
+                    (gw-test-gw-standard-get-ssize-max)))))
   
 ;; TODO add more demanding checks for <gw:mchars> allocation issues.
 

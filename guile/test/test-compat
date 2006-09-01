@@ -1,5 +1,5 @@
 #!/bin/sh
-exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
+exec ${builddir-.}/guile-test-env ${GUILE_FLAGS} -s "$0" "$@"
 !#
 
 (use-modules (gw-test-compat)

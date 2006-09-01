@@ -1,0 +1,12 @@
+#!/bin/sh
+
+GUILE_LOAD_PATH="@abs_top_srcdir@/guile:@abs_top_srcdir@/guile/test:@abs_top_builddir@/guile:${GUILE_LOAD_PATH}"
+export GUILE_LOAD_PATH
+
+exec @abs_top_builddir@/libtool --mode=execute \
+       -dlopen "@abs_top_builddir@/g-wrap/libgwrap-core-runtime.la" \
+       -dlopen "@abs_top_builddir@/guile/g-wrap/libgwrap-guile-runtime.la" \
+       -dlopen "@abs_top_builddir@/guile/g-wrap/gw/libgw-guile-standard.la" \
+       -dlopen "@abs_top_builddir@/guile/test/libgw-test-compat.la" \
+       -dlopen "@abs_top_builddir@/test/libg-wrap-test-c-code.la" \
+     "@GUILE@" "$@"

@@ -2,6 +2,9 @@
 #ifndef __G_WRAP_TEST_C_CODE_H__
 #define __G_WRAP_TEST_C_CODE_H__
 
+#include <unistd.h> /* for ssize_t */
+#include <stdlib.h>
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -51,10 +54,14 @@ long gw_test_gw_standard_get_long_max(void);
 long gw_test_gw_standard_get_long_min(void);
 unsigned long gw_test_gw_standard_get_ulong_max(void);
 
+ssize_t gw_test_gw_standard_get_ssize_max(void);
+ssize_t gw_test_gw_standard_get_ssize_min(void);
+
 int gw_test_gw_standard_echo_int (int arg);
 unsigned int gw_test_gw_standard_echo_unsigned_int (unsigned int arg);
 long gw_test_gw_standard_echo_long (long arg);
 unsigned long gw_test_gw_standard_echo_unsigned_long (unsigned long arg);
+ssize_t gw_test_gw_standard_echo_ssize(ssize_t arg);
 
 char *gw_test_gw_standard_echo_mchars_caller_owned (char *arg);
 const char *gw_test_gw_standard_echo_const_mchars_caller_owned (const char *arg);
@@ -66,6 +73,7 @@ const char *gw_test_gw_standard_echo_const_mchars_callee_owned (const char *arg)
 
 typedef struct _gwTestParentObj gwTestParentObj;
 typedef struct _gwTestChildObj gwTestChildObj;
+typedef struct _gwTestAggregatingObj gwTestAggregatingObj;
 
 gwTestParentObj *gw_test_parent_make_obj(const char *name);
 gwTestParentObj *gw_test_parent_same_obj(gwTestParentObj *f);
@@ -76,5 +84,13 @@ gwTestChildObj *gw_test_child_make_obj(const char *name);
 gwTestChildObj *gw_test_child_same_obj(gwTestChildObj *f);
 void gw_test_child_display_obj(const gwTestChildObj* f);
 gwTestParentObj* gw_test_child_pass_back_parent_obj(gwTestParentObj* x);
+
+gwTestAggregatingObj *gw_test_make_simple_aggregating_obj (void);
+gwTestAggregatingObj *gw_test_make_aggregating_obj (gwTestAggregatingObj *);
+void gw_test_make_aggregating_obj_alt (gwTestAggregatingObj *aggregated,
+				       gwTestAggregatingObj **result);
+gwTestAggregatingObj *gw_test_get_aggregated_obj (gwTestAggregatingObj *);
+
+size_t gw_test_cleanup_aggregating_obj (void *);
 
 #endif

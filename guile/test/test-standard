@@ -1,5 +1,5 @@
 #!/bin/sh
-exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
+exec ${builddir-.}/guile-test-env ${GUILE_FLAGS} -s "$0" "$@"
 !#
 
 (use-modules (gw-test-standard)
@@ -58,33 +58,39 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
                     (zero? (echo-func 0))
                     (= max (echo-func max)))))
 
-(let ((int-min (gw-test-gw-standard-get-int-min))
-      (long-min (gw-test-gw-standard-get-long-min)))
-  
-  (for-each check-integer-type
-            (list '<gw:int> '<gw:unsigned-int> '<gw:long> '<gw:unsigned-long>)
-            (list gw-test-gw-standard-echo-int
-                  gw-test-gw-standard-echo-unsigned-int
-                  gw-test-gw-standard-echo-long
-                  gw-test-gw-standard-echo-unsigned-long)
-            (list int-min
-                  0
-                  long-min
-                  0)
-            (list (gw-test-gw-standard-get-int-max)
-                  (gw-test-gw-standard-get-uint-max)
-                  (gw-test-gw-standard-get-long-max)
-                  (gw-test-gw-standard-get-ulong-max))))
-  
+(define-method (test-integer-types (self <test-standard>))
+  (let ((int-min (gw-test-gw-standard-get-int-min))
+        (long-min (gw-test-gw-standard-get-long-min))
+        (ssize-min (gw-test-gw-standard-get-ssize-min)))
+
+    (for-each check-integer-type
+              (list '<gw:int> '<gw:unsigned-int> '<gw:long>
+                    '<gw:unsigned-long> '<gw:ssize_t>)
+              (list gw-test-gw-standard-echo-int
+                    gw-test-gw-standard-echo-unsigned-int
+                    gw-test-gw-standard-echo-long
+                    gw-test-gw-standard-echo-unsigned-long
+                    gw-test-gw-standard-echo-ssize)
+              (list int-min
+                    0
+                    long-min
+                    0
+                    ssize-min)
+              (list (gw-test-gw-standard-get-int-max)
+                    (gw-test-gw-standard-get-uint-max)
+                    (gw-test-gw-standard-get-long-max)
+                    (gw-test-gw-standard-get-ulong-max)
+                    (gw-test-gw-standard-get-ssize-max)))))
+
 ;; TODO add more demanding checks for <gw:mchars> allocation issues.
 
 (define-method (test-mchars-caller-owned-type (self <test-standard>))
   (let* ((test-str "xyzzy")
          (result-str (gw-test-gw-standard-echo-mchars-caller-owned test-str)))
-  (assert-true (and (string? result-str)
-                    (string=? test-str result-str)
-                    (not (eq? test-str result-str))
-                    (not (gw-test-gw-standard-echo-mchars-caller-owned #f))))))
+    (assert-true (and (string? result-str)
+                      (string=? test-str result-str)
+                      (not (eq? test-str result-str))
+                      (not (gw-test-gw-standard-echo-mchars-caller-owned #f))))))
 
 
 (define-method (test-mchars-const-caller-owned-type (self <test-standard>))
@@ -92,10 +98,10 @@ exec ${srcdir:-.}/guile-test-env guile ${GUILE_FLAGS} -s "$0" "$@"
          (result-str
           (gw-test-gw-standard-echo-const-mchars-caller-owned test-str)))
     
-  (assert-true (and (string? result-str)
-                    (string=? test-str result-str)
-                    (not (eq? test-str result-str))
-                    (not (gw-test-gw-standard-echo-const-mchars-caller-owned #f))))))
+    (assert-true (and (string? result-str)
+                      (string=? test-str result-str)
+                      (not (eq? test-str result-str))
+                      (not (gw-test-gw-standard-echo-const-mchars-caller-owned #f))))))
 
 (define-method (test-mchars-callee-owned-type (self <test-standard>))
   (let* ((test-str "xyzzy")

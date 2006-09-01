@@ -1,5 +1,5 @@
 ;;;; File: standard.scm
-;;;; Copyright (C) 2004-2005 Andreas Rottmann
+;;;; Copyright (C) 2004, 2005, 2006 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -82,12 +82,11 @@
                      #:name 'char
                      #:c-type-name "char"
                      #:ffspec 'schar) ;; FIXME: see above
-#!
+
   (wrap-simple-type! wrapset
                      #:name 'unsigned-char
                      #:c-type-name "unsigned char"
                      #:ffspec 'uchar)
-!#
 
   (wrap-simple-type! wrapset
                      #:name 'float
@@ -134,6 +133,10 @@
                              #:c-type-name "unsigned long"
                              #:max "ULONG_MAX"
                              #:ffspec 'ulong)
+
+  ;; `long long' is a GNU extension to ANSI C and a C99 type.  Glibc's
+  ;; <limits.h> will only define the `LLONG_' macros if the compiler follows
+  ;; the C99 standard.
 
   (wrap-ranged-integer-type! wrapset
                              #:name 'long-long
@@ -199,17 +202,21 @@
   (wrap-ranged-integer-type! wrapset
                              #:name  'size_t
                              #:c-type-name "size_t"
+			     ;; `SIZE_MAX' is only defined in C99's <stdint.h>
                              #:max "SIZE_MAX"
                              #:ffspec 'size_t)
 
+  ;; According to SuSv2, `SSIZE_MAX' should be defined in <limits.h>.
+  ;; See http://www.opengroup.org/onlinepubs/000095399/basedefs/limits.h.html .
   (wrap-ranged-integer-type! wrapset
                              #:name  'ssize_t
                              #:c-type-name "ssize_t"
                              #:max "SSIZE_MAX"
+                             #:min "(- SSIZE_MAX - 1)"
                              #:ffspec 'ssize_t)
 
   (wrap-type! wrapset 'mchars
               #:name 'mchars
               #:c-type-name "char *"
-              #:c-const-type-name "const char *" 
+              #:c-const-type-name "const char *"
               #:ffspec 'pointer))

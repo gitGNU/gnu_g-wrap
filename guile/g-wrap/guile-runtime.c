@@ -77,7 +77,7 @@ gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
   int enum_val;
   SCM scm_result;
   GWEnumPair *epair;
-  int return_all_syms = SCM_NFALSEP (scm_show_all_p);
+  int return_all_syms = scm_is_true (scm_show_all_p);
 
   if (return_all_syms)
     scm_result = SCM_EOL;
@@ -87,7 +87,7 @@ gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
   if (scm_is_symbol (scm_val))
   {
     SCM scm_int_value = gw_guile_enum_val2int (enum_pairs, scm_val);
-    if (SCM_FALSEP (scm_int_value))
+    if (scm_is_false (scm_int_value))
       return SCM_EOL;
     if (!return_all_syms)
       return scm_val;
@@ -119,11 +119,11 @@ gw_guile_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
   char *symstr = NULL;
   GWEnumPair *epair;
 
-  if (SCM_NFALSEP(scm_integer_p (scm_val)))
+  if (scm_is_true(scm_integer_p (scm_val)))
   {
     SCM scm_existing_sym = gw_guile_enum_val2sym (enum_pairs, scm_val,
                                                   SCM_BOOL_F);
-    if(SCM_FALSEP (scm_existing_sym))
+    if(scm_is_false (scm_existing_sym))
       return SCM_BOOL_F;
     else
       return scm_val;
@@ -141,7 +141,7 @@ gw_guile_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
         scm_wrong_type_arg("gw:enum-val->int", 1, scm_val);
       
       s_val = gw_guile_enum_val2int (enum_pairs, SCM_CAR (tail));
-      if (SCM_FALSEP (s_val))
+      if (scm_is_false (s_val))
         return s_val;
       
       value |= scm_to_long (s_val);
@@ -173,11 +173,11 @@ gw_user_module_binder_proc (SCM module, SCM sym, SCM definep)
 
   latent_variables_hash =
     scm_hashq_ref (latent_variables_hash_hash, module, SCM_BOOL_F);
-  if (SCM_FALSEP (latent_variables_hash))
+  if (scm_is_false (latent_variables_hash))
     abort ();
     
   pair = scm_hashq_ref (latent_variables_hash, sym, SCM_BOOL_F);
-  if (SCM_FALSEP (pair))
+  if (scm_is_false (pair))
     return SCM_BOOL_F;
   
   val = scm_call_1 (SCM_CAR (pair), SCM_CDR (pair));
@@ -193,25 +193,25 @@ gw_guile_make_latent_variable (SCM sym, SCM proc, SCM arg)
   SCM module = scm_current_module ();
   
   /* Unlike generics, variables are hashed per-module. */
-  if (SCM_FALSEP (latent_variables_hash_hash))
+  if (scm_is_false (latent_variables_hash_hash))
     latent_variables_hash_hash = scm_permanent_object (
             scm_c_make_hash_table (31));
 
   latent_variables_hash =
     scm_hashq_ref (latent_variables_hash_hash, module, SCM_BOOL_F);
-  if (SCM_FALSEP (latent_variables_hash))
+  if (scm_is_false (latent_variables_hash))
   {
     latent_variables_hash = scm_c_make_hash_table (31);
     scm_hashq_create_handle_x (latent_variables_hash_hash, module,
                                latent_variables_hash);
     /* Also need to hack the module: */
-    if (SCM_FALSEP (SCM_MODULE_BINDER (module)))
+    if (scm_is_false (SCM_MODULE_BINDER (module)))
       scm_struct_set_x (module, SCM_I_MAKINUM (scm_module_index_binder),
                         scm_c_make_gsubr ("%gw-user-module-binder", 3, 0, 0,
                                           gw_user_module_binder_proc));
   }
   
-  if (SCM_NFALSEP (scm_hashq_ref (latent_variables_hash, sym, SCM_BOOL_F)))
+  if (scm_is_true (scm_hashq_ref (latent_variables_hash, sym, SCM_BOOL_F)))
   {
     char *symstr;
 
@@ -253,7 +253,7 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
   for (i = n_req_args; i > 0 && SCM_CONSP (all_specializers); i--)
   {
     SCM class_name = SCM_CAR (all_specializers);
-    if (SCM_NFALSEP (class_name)) {
+    if (scm_is_true (class_name)) {
         SCM var = scm_module_lookup (module, class_name);
         specializers = scm_cons (SCM_VARIABLE_REF (var), specializers);
     } else {
@@ -311,9 +311,9 @@ gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
 
   proc_list = scm_hashq_ref (latent_generics_hash, sym, SCM_BOOL_F);
 
-  if (SCM_FALSEP (proc_list))
+  if (scm_is_false (proc_list))
   {
-    if (SCM_FALSEP (old_binder_proc))
+    if (scm_is_false (old_binder_proc))
       return SCM_BOOL_F;
     else
       return scm_call_3 (old_binder_proc, module, sym, definep);
@@ -325,7 +325,7 @@ gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
   generic = scm_apply_0 (scm_sym_make,
                          scm_list_3 (scm_class_generic, k_name, sym));
 
-  while (!SCM_NULLP (proc_list))
+  while (!scm_is_null (proc_list))
   {
     SCM entry;
 
@@ -337,7 +337,7 @@ gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
 			      SCM_SIMPLE_VECTOR_REF (entry, 1),
 			      SCM_SIMPLE_VECTOR_REF (entry, 2),
                               scm_to_int (SCM_SIMPLE_VECTOR_REF (entry, 3)),
-			      SCM_NFALSEP (SCM_SIMPLE_VECTOR_REF (entry, 4)));
+			      scm_is_true (SCM_SIMPLE_VECTOR_REF (entry, 4)));
 
     proc_list = SCM_CDR (proc_list);
   }
@@ -369,7 +369,7 @@ ensure_scm_module_hacked (void)
                                         0, gw_scm_module_binder_proc));
   }
 
-  if (SCM_FALSEP (latent_generics_hash))
+  if (scm_is_false (latent_generics_hash))
     latent_generics_hash = scm_permanent_object (scm_c_make_hash_table (53));
 }
 
@@ -393,7 +393,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
 
   existing_latents = scm_hashq_ref (latent_generics_hash, generic_name,
                                     SCM_EOL);
-  if (SCM_NULLP (existing_latents))
+  if (scm_is_null (existing_latents))
     /* this means latent bindings for this variable have not been set up -- *
        check now if there's an existing binding. use the root module to check --
        prevents unnecessarily running our hacked scm module binder proc */
@@ -402,7 +402,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
                    scm_module_lookup_closure (the_root_module),
                    SCM_BOOL_F);
 
-  if (!SCM_NULLP (existing_latents) || SCM_FALSEP (existing_binding))
+  if (!scm_is_null (existing_latents) || scm_is_false (existing_binding))
   {
     /* If there are already existing latent bindings, we just add ours onto the
        list, knowing they will all be set up when the binding is forced.
@@ -425,16 +425,16 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
   {
     SCM val, generic = SCM_BOOL_F;
     
-    /* !SCM_NULLP (existing_latents) implies SCM_FALSEP (existing_binding).
+    /* !scm_is_null (existing_latents) implies scm_is_false (existing_binding).
        Thus we only get here if
-       SCM_NULLP (existing_latents) && SCM_NFALSEP (existing_binding). */
+       scm_is_null (existing_latents) && scm_is_true (existing_binding). */
     /* We have to make the generic. */
 
     val = SCM_VARIABLE_REF (existing_binding);
 
     /* I seem to remember this is_a_p thing is a hack around GOOPS's deficient
        macros, but I don't remember */
-    if (SCM_NFALSEP (scm_call_2 (is_a_p_proc, val, scm_class_generic)))
+    if (scm_is_true (scm_call_2 (is_a_p_proc, val, scm_class_generic)))
     {
       /* The existing binding is a generic. Let's hang methods off of it. */
       generic = val;
@@ -444,7 +444,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
       /* The existing binding is something else. We make a new
          generic, possibly with a different name, and export it. */
       /* NB: generics also satisfy procedure?. */
-      if (SCM_NFALSEP (scm_procedure_p (val)))
+      if (scm_is_true (scm_procedure_p (val)))
       {
         /* We need to fall back on the original binding. */
         generic = scm_apply_0 (scm_sym_make,
@@ -478,13 +478,13 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
     gw_guile_add_subr_method (generic, proc, specializers, 
                               scm_current_module (),
                               SCM_INUM (n_req_args),
-                              SCM_NFALSEP (use_optional_args));
+                              scm_is_true (use_optional_args));
   }
 }
 #undef FUNC_NAME
 
 static SCM
-dynproc_smob_apply (SCM smob, SCM args)
+dynproc_smob_apply (SCM smob, SCM arg_list)
 {
   GWFunctionInfo *fi = (GWFunctionInfo *) SCM_SMOB_DATA (smob);
   SCM result;
@@ -507,20 +507,25 @@ dynproc_smob_apply (SCM smob, SCM args)
   rvalue = (void *) ((unsigned char *) data + offset);
   offset += (fi->ret_type->type->size > sizeof(ffi_arg)
              ? fi->ret_type->type->size : sizeof(ffi_arg));
-  for (i = 0; i < fi->n_req_args; i++)
   {
-    SCM arg;
-    offset = GW_ALIGN (offset, fi->arg_types[i]->type->alignment);
-    values[i] = (void *) ((unsigned char *) data + offset);
-    if (!SCM_CONSP (args))
-      scm_wrong_num_args (smob);
-    arg = SCM_CAR (args);
-    fi->arg_types[i]->unwrap_value (values[i], ARENA,
-                                    &fi->arg_typespecs[i], &arg, &error);
-    if (error.status != GW_ERR_NONE)
-      gw_handle_wrapper_error (ARENA, &error, fi->proc_name, i + 1);
-    offset += fi->arg_types[i]->type->size;
-    args = SCM_CDR (args);
+    SCM args = arg_list;
+
+    for (i = 0; i < fi->n_req_args; i++)
+      {
+	SCM arg;
+	offset = GW_ALIGN (offset, fi->arg_types[i]->type->alignment);
+	values[i] = (void *) ((unsigned char *) data + offset);
+	if (!SCM_CONSP (args))
+	  scm_wrong_num_args (smob);
+	arg = SCM_CAR (args);
+	fi->arg_types[i]->unwrap_value (values[i], ARENA,
+					&fi->arg_typespecs[i], &arg, &error);
+	if (error.status != GW_ERR_NONE)
+	  gw_handle_wrapper_error (ARENA, &error, fi->proc_name, i + 1);
+	offset += fi->arg_types[i]->type->size;
+
+	args = SCM_CDR (args);
+      }
   }
   
   ffi_call (&fi->cif, fi->proc, rvalue, values);
@@ -543,7 +548,32 @@ dynproc_smob_apply (SCM smob, SCM args)
     if (error.status != GW_ERR_NONE)
       gw_handle_wrapper_error (ARENA, &error, fi->proc_name, i + 1);
   }
-  
+
+  {
+    /* Compute the list of dependencies of the returned WCP.  Dependencies
+       are all objects that may be eventually referred to by the C object
+       underlying WCP, i.e. objects to which WCP has kept a pointer.  Such
+       arguments are said to be ``aggregated'' by the return value, hence the
+       typespec name.  */
+    SCM args, deps = SCM_EOL;
+
+    for (i = 0, args = arg_list;
+	 i < fi->n_req_args;
+	 i++, args = SCM_CDR (args))
+      {
+	if (fi->arg_typespecs[i] & GW_TYPESPEC_AGGREGATED)
+	  /* Add this argument to the list of dependencies (aggregated
+	     objects) of the return value.  */
+	  deps = scm_cons (SCM_CAR (arg_list), deps);
+      }
+
+    if (deps != SCM_EOL)
+      {
+	if (SCM_NIMP (result))
+	  gw_wcp_set_dependencies (result, deps);
+      }
+  }
+
   return result;
 }
 
@@ -570,10 +600,10 @@ gw_guile_handle_wrapper_error(GWLangArena arena,
   static SCM out_of_range_key = SCM_BOOL_F;
   static SCM wrong_type_key = SCM_BOOL_F;
 
-  if (SCM_FALSEP (out_of_range_key))
+  if (scm_is_false (out_of_range_key))
     out_of_range_key = scm_permanent_object (
             scm_c_make_keyword("out-of-range"));
-  if (SCM_FALSEP (wrong_type_key))
+  if (scm_is_false (wrong_type_key))
     wrong_type_key = scm_permanent_object (
             scm_c_make_keyword("wrong-type"));
   

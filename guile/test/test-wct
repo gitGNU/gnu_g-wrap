@@ -1,10 +1,11 @@
 #!/bin/sh
-exec ${srcdir:-.}/guile-test-env guile -s "$0" "$@"
+exec ${builddir-.}/guile-test-env -s "$0" "$@"
 !#
 
-(use-modules (g-wrap gw standard)
-             (test gw-test-child)
+(use-modules (test gw-test-child)
              (test gw-test-parent)
+	     (test gw-test-aggregating)
+             (g-wrap gw standard)
 	     (oop goops)
              (unit-test))
 
@@ -33,6 +34,30 @@ exec ${srcdir:-.}/guile-test-env guile -s "$0" "$@"
   (let* ((obj-1 (gw-test-parent-make-obj "object 1"))
          (passed-obj (gw-test-child-pass-back-parent-obj obj-1)))
     (assert-equal obj-1 passed-obj)))
+
+(define (stress-gc)
+  ;; Stress the garbage collector to force him to free objects no longer
+  ;; referenced.
+  (for-each (lambda (i) (gw-test-make-simple-aggregating-obj))
+	    (iota 1234))
+  (list-copy (map list (iota 12345)))
+  (gc) (gc) (gc))
+
+(define-method (test-aggregating (self <test-wct>))
+  (let ((obj (gw-test-make-aggregating-obj
+	      (gw-test-make-simple-aggregating-obj))))
+    ;; Scheme code no longer holds a SMOB to the object aggregated by OBJ.
+    ;; Let's force GC and see whether the aggregated object gets freed.
+    (stress-gc)
+    (assert-true (gw-test-get-aggregated-obj obj))))
+
+(define-method (test-aggregating/alt (self <test-wct>))
+  ;; Same as above, but using the `/alt' version to create an actual
+  ;; aggregating WCP.
+  (let ((obj (gw-test-make-aggregating-obj/alt
+	      (gw-test-make-simple-aggregating-obj))))
+    (stress-gc)
+    (assert-true (gw-test-get-aggregated-obj obj))))
 
 (exit-with-summary (run-all-defined-test-cases))
 
