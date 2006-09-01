@@ -402,7 +402,7 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 				"by `scm_to_locale_string ()' \n"
 				"   in `unwrap-value'.  */\n"
 				"if ("(var value)" != NULL)\n"
-				"  free ("(var value)");\n"
+				"  free ((char*)"(var value)");\n"
 				"}\n")
 			  '())
 		      '()))
