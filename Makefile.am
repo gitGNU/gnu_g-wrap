@@ -1,10 +1,6 @@
 include $(top_srcdir)/common.mk
 
-SUBDIRS = 
-if !HAVE_LIBFFI
-SUBDIRS += libffi
-endif
-SUBDIRS += lib g-wrap test @GW_LANGUAGES@ examples doc
+SUBDIRS = @GW_LIBFFI_DIR@ lib g-wrap test @GW_LANGUAGES@ examples doc
 
 nobase_guilemodule_DATA = g-wrap.scm
 
