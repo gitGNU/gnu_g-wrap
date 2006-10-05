@@ -42,9 +42,6 @@ static SCM scm_sym_make = SCM_UNSPECIFIED;
 
 static SCM latent_variables_hash_hash = SCM_BOOL_F;
 
-static SCM latent_generics_hash = SCM_BOOL_F;
-static SCM old_binder_proc = SCM_BOOL_F;
-
 /* TODO: Use snarfer for kewords & symbols */
 static SCM k_specializers = SCM_UNSPECIFIED;
 static SCM k_procedure = SCM_UNSPECIFIED;
@@ -302,22 +299,34 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
 
 
 static SCM
-gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
+gw_guile_ensure_latent_generics_hash (SCM generics_module)
 {
-  SCM proc_list, generic, var;
+  SCM ret;
+  
+  ret = scm_hashq_ref (SCM_MODULE_OBARRAY (generics_module),
+                       scm_from_locale_symbol ("%gw-latent-generics-hash"),
+                       SCM_BOOL_F);
 
-  /* We hack the scm module because it's the interface to the root module. The
-   * scm module and the root module share the same obarray. */
+  if (SCM_FALSEP (ret)) {
+    ret = scm_make_variable (scm_c_make_hash_table (53));
+    scm_hashq_set_x (SCM_MODULE_OBARRAY (generics_module),
+                     scm_from_locale_symbol ("%gw-latent-generics-hash"),
+                     ret);
+  }
 
+  return SCM_VARIABLE_REF (ret);
+}
+
+static SCM
+gw_generics_module_binder_proc (SCM module, SCM sym, SCM definep)
+{
+  SCM latent_generics_hash, proc_list, generic, var;
+
+  latent_generics_hash = gw_guile_ensure_latent_generics_hash (module);
   proc_list = scm_hashq_ref (latent_generics_hash, sym, SCM_BOOL_F);
 
   if (scm_is_false (proc_list))
-  {
-    if (scm_is_false (old_binder_proc))
-      return SCM_BOOL_F;
-    else
-      return scm_call_3 (old_binder_proc, module, sym, definep);
-  }
+    return SCM_BOOL_F;
   
   /* We need to make the generic now. Because the binder proc is
    * called, we know there's nothing else in the root module to
@@ -354,23 +363,36 @@ gw_scm_module_binder_proc (SCM module, SCM sym, SCM definep)
   return var;
 }
 
-static void
-ensure_scm_module_hacked (void)
+void
+gw_guile_set_generics_module_x (SCM module)
 {
-  static int scm_module_hacked = 0;
-  
-  if (!scm_module_hacked)
-  {
-    scm_module_hacked = 1;
-    old_binder_proc = scm_permanent_object (
-            SCM_MODULE_BINDER (the_scm_module));
-    scm_struct_set_x (the_scm_module, SCM_I_MAKINUM (scm_module_index_binder),
-                      scm_c_make_gsubr ("%gw-scm-module-binder", 3, 0,
-                                        0, gw_scm_module_binder_proc));
-  }
+  SCM current_module = scm_current_module ();
 
-  if (scm_is_false (latent_generics_hash))
-    latent_generics_hash = scm_permanent_object (scm_c_make_hash_table (53));
+  if (SCM_FALSEP (SCM_MODULE_BINDER (module)))
+    scm_struct_set_x (module, SCM_MAKINUM (scm_module_index_binder),
+                      scm_c_make_gsubr ("%gw-generics-module-binder", 3, 0,
+                                        0, gw_generics_module_binder_proc));
+
+  scm_c_module_define (current_module, "%generics", module);
+}
+
+static SCM
+gw_guile_ensure_generics_module (void)
+{
+  SCM existing_binding;
+  SCM current_module = scm_current_module ();
+   
+  existing_binding =
+    scm_hashq_ref (SCM_MODULE_OBARRAY (current_module),
+                   scm_from_locale_symbol ("%generics"),
+                   SCM_BOOL_F);
+  
+  if (SCM_FALSEP (existing_binding)) {
+    gw_guile_set_generics_module_x (current_module);
+    return current_module;
+  } else {
+    return SCM_VARIABLE_REF (existing_binding);
+  }
 }
 
 /* no explicit returns in this function */
@@ -380,6 +402,8 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
                                      SCM n_req_args, SCM use_optional_args)
 #define FUNC_NAME "%gw:procedure-to-method-public!"
 {
+  SCM latent_generics_hash;
+  SCM generics;
   SCM existing_binding = SCM_BOOL_F;
   SCM existing_latents;
 
@@ -389,18 +413,17 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
   SCM_VALIDATE_INUM (4, n_req_args);
   /* the fifth is a bool */
   
-  ensure_scm_module_hacked ();
-
+  generics = gw_guile_ensure_generics_module ();
+  latent_generics_hash = gw_guile_ensure_latent_generics_hash (generics);
   existing_latents = scm_hashq_ref (latent_generics_hash, generic_name,
                                     SCM_EOL);
+
   if (scm_is_null (existing_latents))
-    /* this means latent bindings for this variable have not been set up -- *
-       check now if there's an existing binding. use the root module to check --
-       prevents unnecessarily running our hacked scm module binder proc */
+    /* latent bindings for this variable have not been set up, check now if
+       there's an existing binding. use the obarray directly to avoid running
+       the module binder proc. */
     existing_binding =
-      scm_sym2var (generic_name,
-                   scm_module_lookup_closure (the_root_module),
-                   SCM_BOOL_F);
+      scm_hashq_get_handle (SCM_MODULE_OBARRAY (generics), generic_name);
 
   if (!scm_is_null (existing_latents) || scm_is_false (existing_binding))
   {
@@ -408,7 +431,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
        list, knowing they will all be set up when the binding is forced.
        
        Otherwise, we're making the first latent binding, and there's nothing in
-       the root module that will conflict with our binding. */
+       the generics module that will conflict with our binding. */
     SCM entry = scm_c_make_vector (5, SCM_BOOL_F);
     /* entry := #(proc specializers module n_req_args use_optional_args) */
     

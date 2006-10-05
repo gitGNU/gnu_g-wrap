@@ -52,6 +52,8 @@
 	    <gw-guile-rti-type>
 	    scm-var))
 
+(module-use! (module-public-interface (current-module))
+             (resolve-interface '(g-wrap c-codegen)))
 
 
 ;;;
@@ -886,31 +888,38 @@
 		      (hashq-create-handle! gf-hash gf-name '())))
 		 (set-cdr! handle (cons func (cdr handle)))))))
        #f wrapset)
-	  (hash-fold
-	   (lambda (gf funcs rest)
-	     (for-each
-	      (lambda (func)
-		(write
-		 `(%gw:procedure->method-public
-		   ,(name func)
-		   ;; Specializers
-		   ',(map (lambda (arg)
-			    (let ((typespec (typespec arg)))
-			      (and (not (memq 'unspecialized
-					      (options typespec)))
-				   (class-name (type typespec)))))
-			  (filter visible? (arguments func)))
-		   ',gf
-		   ;; Required argument count
-		   ,(- (input-argument-count func)
-		       (optional-argument-count func))
-		   ;; Optional arguments?
-		   ,(not (zero? (optional-argument-count func))))
-		 port)
-		(newline port))
-	      funcs)
-	     (newline port))
-	   #f gf-hash))))
+      (hash-fold
+       (lambda (gf funcs rest)
+         (for-each
+          (lambda (func)
+            (write
+             `(%gw:procedure->method-public
+               ,(name func)
+               ;; Specializers
+               ',(map (lambda (arg)
+                        (let ((typespec (typespec arg)))
+                          (and (not (memq 'unspecialized
+                                          (options typespec)))
+                               (class-name (type typespec)))))
+                      (filter visible? (arguments func)))
+               ',gf
+               ;; Required argument count
+               ,(- (input-argument-count func)
+                   (optional-argument-count func))
+               ;; Optional arguments?
+               ,(not (zero? (optional-argument-count func))))
+             port)
+            (newline port))
+          funcs)
+         (newline port))
+       #f gf-hash)
+      (write
+       '(if (defined? '%generics)
+            (begin
+              (module-use! (module-public-interface (current-module))
+                           %generics)))
+       port)
+      (newline port))))
 
 (define (make-header-def-sym filename)
   (string-append "__"

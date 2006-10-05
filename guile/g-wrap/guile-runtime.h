@@ -43,6 +43,7 @@ SCM gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val,
                           SCM scm_show_all_p);
 SCM gw_guile_enum_val2int(GWEnumPair enum_pairs[], SCM scm_val);
 
+void gw_guile_set_generics_module_x (SCM module);
 void gw_guile_make_latent_variable (SCM sym, SCM proc, SCM arg);
 void gw_guile_procedure_to_method_public (SCM proc, SCM class_name,
                                           SCM generic_name, SCM n_req_args,

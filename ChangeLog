@@ -1,1 +1,25 @@
-No ChangeLog yet. Use 'tla changelog' as temporary replacement.
+2006-10-05  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile.scm (module-public-interface): Make sure that
+	using (g-wrap guile) also uses (g-wrap c-codegen), as it used to.
+	This fixes compilation of guile-gnome.
+	(generate-wrapset-scm): Reindent for spaces instead of tabs. If
+	this module had generics, make our public interface export the
+	generics as well.
+
+	* guile/g-wrap/guile-runtime.c
+	(gw_guile_ensure_latent_generics_hash)
+	(gw_generics_module_binder_proc)
+	(gw_guile_ensure_generics_module)
+	(gw_guile_set_generics_module_x)
+	("%gw:procedure-to-method-public!"): Rework so that we don't munge
+	the root module or the scm module. Instead our generics are
+	deposited into a module of the user's choosing, defaulting to a
+	submodule named %generics.
+	
+	* guile/g-wrap/guile-runtime.c
+	* guile/g-wrap/guile-runtime.h
+	(gw_guile_set_generics_module_x): New public
+	API.
+
+	* ChangeLog: Finally started a changelog here.
