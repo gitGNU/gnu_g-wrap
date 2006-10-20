@@ -60,6 +60,10 @@ void    scm_gc_free(void *mem, size_t size, const char *what);
 /* Pairs */
 
 #define scm_is_pair(x) SCM_CONSP(x)
+#define scm_car(x) (SCM_CAR (x))
+#define scm_cdr(x) (SCM_CDR (x))
+#define scm_cadr(x) (SCM_CADR (x))
+#define scm_cddr(x) (SCM_CDDR (x))
 
 /* Strings.  */
 #define scm_is_string(_str)                SCM_STRINGP (_str)

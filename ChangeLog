@@ -1,3 +1,18 @@
+2006-10-20  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-runtime.c (gw_module_binder_proc)
+	(gw_guile_ensure_latent_variables_hash_and_binder)
+	(gw_generics_module_binder_proc, gw_guile_set_generics_module_x)
+	("%gw:procedure-to-method-public!"): A hopefully last refactor of
+	the latent bindings infrastructure. This one will only install one
+	kind of module binder to handle both classes and generics, fixes a
+	bug with gw_guile_set_generics_module_x, removes some old code
+	dealing with the old molest-the-scm-module strategy. The code is
+	shorter and hopefully clearer, and there's a bit of a rationale
+	comment in there.
+
+	* guile/g-wrap/guile-compatibility.h: Add scm_c[ad]d?r wrappers.
+
 2006-10-05  Andy Wingo  <wingo@pobox.com>
 
 	* guile/g-wrap/guile.scm (module-public-interface): Make sure that
