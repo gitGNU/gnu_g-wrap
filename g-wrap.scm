@@ -944,10 +944,3 @@
 ;; Hook in compat layer
 (module-use! (resolve-interface '(g-wrap))
              (resolve-interface '(g-wrap compat)))
-
-;; The (g-wrap {c,scm}-codegen) code originally was here; this is needed for
-;; backwards-compatibility.
-(module-use! (resolve-interface '(g-wrap))
-             (resolve-interface '(g-wrap c-codegen)))
-(module-use! (resolve-interface '(g-wrap))
-             (resolve-interface '(g-wrap scm-codegen)))

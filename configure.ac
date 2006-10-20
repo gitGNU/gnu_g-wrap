@@ -58,12 +58,14 @@ dnl libffi
 ar_WITH_LIB_LIBFFI([have_libffi=yes], [have_libffi=no])
 LIBFFI_CFLAGS_INSTALLED="$LIBFFI_CFLAGS"
 LIBFFI_LIBS_INSTALLED="$LIBFFI_LIBS"
+if test -d $srcdir/libffi; then
+    AC_CONFIG_SUBDIRS(libffi)
+fi
 if test "$have_libffi" = no; then
   if ! test -d $srcdir/libffi; then
     AC_MSG_ERROR([G-Wrap needs libffi installed])
   else
     GW_LIBFFI_DIR=libffi
-    AC_CONFIG_SUBDIRS(libffi)
     LIBFFI_CFLAGS='-I$(top_builddir)/libffi/include'
     LIBFFI_LIBS='$(top_builddir)/libffi/libffi.la'
     LIBFFI_CFLAGS_INSTALLED=""

@@ -1,6 +1,7 @@
 include $(top_srcdir)/common.mk
 
 SUBDIRS = @GW_LIBFFI_DIR@ lib g-wrap test @GW_LANGUAGES@ examples doc
+DIST_SUBDIRS = libffi lib g-wrap test guile scheme48 examples doc
 
 nobase_guilemodule_DATA = g-wrap.scm
 

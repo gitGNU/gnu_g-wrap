@@ -13,6 +13,12 @@
 
 	* guile/g-wrap/guile-compatibility.h: Add scm_c[ad]d?r wrappers.
 
+2006-10-10  Andreas Rottmann  <rotty@gkar.rotty.yi.org>
+
+	* g-wrap.scm: Get rid of `module-use!' clauses for (g-wrap
+	c-codegen) and (g-wrap scm-codegen), as the (g-wrap guile) now
+	uses them.
+
 2006-10-05  Andy Wingo  <wingo@pobox.com>
 
 	* guile/g-wrap/guile.scm (module-public-interface): Make sure that
