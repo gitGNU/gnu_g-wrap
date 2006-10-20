@@ -1,5 +1,11 @@
 2006-10-20  Andy Wingo  <wingo@pobox.com>
 
+	* Makefile.am (DIST_SUBDIRS, dist-hook): Trick automake if libffi
+	is not present, but add a rule so that you can't make a tarball if
+	libffi is not there.
+
+2006-10-20  Andy Wingo  <wingo@pobox.com>
+
 	* guile/g-wrap/guile-runtime.c (gw_module_binder_proc)
 	(gw_guile_ensure_latent_variables_hash_and_binder)
 	(gw_generics_module_binder_proc, gw_guile_set_generics_module_x)
