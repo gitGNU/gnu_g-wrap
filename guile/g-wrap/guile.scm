@@ -54,6 +54,8 @@
 
 (module-use! (module-public-interface (current-module))
              (resolve-interface '(g-wrap c-codegen)))
+(module-use! (module-public-interface (current-module))
+             (resolve-interface '(g-wrap scm-codegen)))
 
 
 ;;;
