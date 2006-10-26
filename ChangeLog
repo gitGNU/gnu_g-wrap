@@ -1,3 +1,15 @@
+2006-10-26  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-runtime.c (gw_module_binder_proc): Factor
+	functionality out into separate procedures.
+	(make_class_variable): The latent class functionality, unchanged.
+	(allocate_generic_variable, make_generic_variable): The latent
+	generics code, factored out a bit. Brought back in old code to
+	extend existing functions if there is a name conflict. For
+	example, this will allow gtk-list-store-append to be a method on
+	`append', but still fall back on the core binding in the normal
+	cases.
+
 2006-10-20  Andy Wingo  <wingo@pobox.com>
 
 	* Makefile.am (DIST_SUBDIRS, dist-hook): Trick automake if libffi

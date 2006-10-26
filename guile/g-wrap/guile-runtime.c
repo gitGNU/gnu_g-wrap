@@ -323,6 +323,81 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
  */
 
 static SCM
+make_class_variable (SCM proc, SCM arg) 
+{
+  return scm_make_variable (scm_call_1 (proc, arg));
+}
+
+static SCM
+allocate_generic_variable (SCM module, SCM sym)
+{
+  SCM uses, var = SCM_BOOL_F, generic, used = SCM_BOOL_F;
+
+  for (uses=SCM_MODULE_USES(module); !scm_is_null (uses); uses=scm_cdr(uses)) {
+    used = scm_car (uses);
+    var = scm_sym2var (sym, scm_module_lookup_closure (used), SCM_BOOL_F);
+    if (!scm_is_false (var))
+      break;
+  }
+
+  if (scm_is_false (var)) {
+    /* Symbol unbound, make a new generic */
+    generic = scm_apply_0 (scm_sym_make,
+                           scm_list_3 (scm_class_generic, k_name, sym));
+    return scm_make_variable (generic);
+  } else if (scm_is_true (scm_call_2 (is_a_p_proc, scm_variable_ref (var),
+                                      scm_class_generic))) {
+    /* I seem to remember theq is_a_p thing is a hack around GOOPS's deficient
+       macros, but I don't remember. Anyway the existing binding is a generic,
+       let's use it */
+    return var;
+  } else if (scm_is_true (scm_procedure_p (scm_variable_ref (var)))) {
+    /* Make a generic that falls back on the original binding. NB: generics also
+       satisfy procedure?. */
+    generic = scm_apply_0 (scm_sym_make,
+                           scm_list_5 (scm_class_generic,
+                                       k_name, sym,
+                                       k_default, scm_variable_ref (var)));
+    return scm_make_variable (generic);
+  } else {
+    /* We can't extend the binding, warn and fall through. */
+    scm_display (scm_from_locale_string ("WARNING: generic "),
+                 scm_current_error_port ());
+    scm_display (sym, scm_current_error_port ());
+    scm_display (scm_from_locale_string (" incompatibly bound in module "),
+                 scm_current_error_port ());
+    scm_display (used, scm_current_error_port ());
+    scm_newline (scm_current_error_port ());
+    return SCM_BOOL_F;
+  }
+}
+
+static SCM
+make_generic_variable (SCM module, SCM sym, SCM procs) 
+{
+  SCM var = allocate_generic_variable (module, sym);
+  
+  if (!scm_is_false (var)) {
+    SCM generic = scm_variable_ref (var);
+
+    /* hang the methods off the generic */
+    for (; !scm_is_null(procs); procs=SCM_CDR(procs)) {
+      /* entry := #(proc class_name module n_req_args use_optional_args) */
+      SCM entry = SCM_CAR (procs);
+
+      gw_guile_add_subr_method (generic,
+                                SCM_SIMPLE_VECTOR_REF (entry, 0),
+                                SCM_SIMPLE_VECTOR_REF (entry, 1),
+                                SCM_SIMPLE_VECTOR_REF (entry, 2),
+                                scm_to_int (SCM_SIMPLE_VECTOR_REF (entry, 3)),
+                                scm_is_true (SCM_SIMPLE_VECTOR_REF (entry, 4)));
+    }
+  }
+  
+  return var;
+}
+
+static SCM
 gw_module_binder_proc (SCM module, SCM sym, SCM definep)
 {
   SCM latent_variables_hash, pair, var;
@@ -336,33 +411,14 @@ gw_module_binder_proc (SCM module, SCM sym, SCM definep)
     latent_variables_hash = scm_variable_ref (latent_variables_hash);
     
   pair = scm_hashq_ref (latent_variables_hash, sym, SCM_BOOL_F);
-  var = scm_make_variable (SCM_BOOL_F);
 
   if (scm_is_false (pair))
     return SCM_BOOL_F;
   
   if (scm_is_eq (scm_car (pair), sym_class)) {
-    scm_variable_set_x (var, scm_call_1 (scm_cadr (pair), scm_cddr (pair)));
+    var = make_class_variable (scm_cadr (pair), scm_cddr (pair));
   } else if (scm_is_eq (scm_car (pair), sym_generic)) {
-    SCM generic;
-    SCM procs = scm_cdr (pair);
-
-    generic = scm_apply_0 (scm_sym_make,
-                            scm_list_3 (scm_class_generic, k_name, sym));
-
-    for (procs=scm_cdr(pair); !scm_is_null(procs); procs=SCM_CDR(procs)) {
-      /* entry := #(proc class_name module n_req_args use_optional_args) */
-      SCM entry = SCM_CAR (procs);
-
-      gw_guile_add_subr_method (generic,
-                                SCM_SIMPLE_VECTOR_REF (entry, 0),
-                                SCM_SIMPLE_VECTOR_REF (entry, 1),
-                                SCM_SIMPLE_VECTOR_REF (entry, 2),
-                                scm_to_int (SCM_SIMPLE_VECTOR_REF (entry, 3)),
-                                scm_is_true (SCM_SIMPLE_VECTOR_REF (entry, 4)));
-    }
-
-    scm_variable_set_x (var, generic);
+    var = make_generic_variable (module, sym, scm_cdr (pair));
   } else {
     scm_error (scm_from_locale_symbol ("wrong-type"),
                "%gw-module-binder",
@@ -372,7 +428,8 @@ gw_module_binder_proc (SCM module, SCM sym, SCM definep)
     return SCM_BOOL_F; /* not reached */
   }
     
-  scm_call_3 (module_add_x, module, sym, var);
+  if (!scm_is_false (var))
+    scm_call_3 (module_add_x, module, sym, var);
   scm_hashq_remove_x (latent_variables_hash, sym);
   return var;
 }
