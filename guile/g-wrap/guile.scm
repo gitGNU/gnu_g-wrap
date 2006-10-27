@@ -746,7 +746,8 @@
 ;;;
 
 (define-class <gw-guile-wct> (<gw-wct> <gw-guile-rti-type>)
-  wct-var-name)
+  wct-var-name
+  #:allowed-options '(null-ok))
 
 (define-method (wrap-as-wct! (wrapset <gw-guile-wrapset>) . args)
   (let ((type (apply make <gw-guile-wct> args)))
