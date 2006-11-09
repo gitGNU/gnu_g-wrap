@@ -1,6 +1,7 @@
 guilemoduledir = $(datadir)/guile/site
 gwrapmoduledir = $(guilemoduledir)/g-wrap
 gwrapincludedir = $(includedir)/g-wrap
+gwrapshlibdir = $(pkglibdir)/modules
 
 SETGWPATH = "(set! %load-path (append (apply append \
                     (map (lambda (l) \

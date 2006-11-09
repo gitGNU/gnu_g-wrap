@@ -6,14 +6,14 @@ gwrapmodule_DATA =
 
 GUILE_FLAGS =
 CLEANFILES =
-lib_LTLIBRARIES = 
+gwrapshlib_LTLIBRARIES = 
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile
 AM_CFLAGS = $(LIBFFI_CFLAGS) $(GUILE_CFLAGS)
 
 # libgw-guile-standard
 #---------------------
-lib_LTLIBRARIES += libgw-guile-standard.la
+gwrapshlib_LTLIBRARIES += libgw-guile-standard.la
 nodist_libgw_guile_standard_la_SOURCES = standard.c
 libgw_guile_standard_la_LDFLAGS = -module $(GUILE_LDFLAGS)
 libgw_guile_standard_la_LIBADD = ../libgwrap-guile-runtime.la
@@ -38,7 +38,7 @@ if HAVE_GLIB
 
 # libgw-guile-gw-glib
 #---------------------
-lib_LTLIBRARIES += libgw-guile-gw-glib.la
+gwrapshlib_LTLIBRARIES += libgw-guile-gw-glib.la
 nodist_libgw_guile_gw_glib_la_SOURCES = gw-glib.c
 libgw_guile_gw_glib_la_LDFLAGS = -module $(GUILE_LDFLAGS)
 libgw_guile_gw_glib_la_LIBADD = ../libgwrap-guile-runtime.la $(GLIB_LIBS)

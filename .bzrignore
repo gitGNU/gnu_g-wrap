@@ -83,3 +83,4 @@ guile/test/libgw-guile-test-standard.la
 guile/test/libgw-test-compat.la
 test/g-wrap-test-c-code.lo
 test/libg-wrap-test-c-code.la
+g-wrap/config.scm

@@ -863,10 +863,11 @@
       "\n"
       (format #f "(define-module ~S\n" guile-module)
       (format #f "  #:use-module (oop goops)\n")
+      (format #f "  #:use-module (g-wrap config)\n")
       ")\n"
       "\n"
       "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
-      "              (dynamic-link \"" (slot-ref wrapset 'shlib-path) "\"))\n"
+      "              (dynamic-link (string-append *g-wrap-shlib-dir* \"" (slot-ref wrapset 'shlib-path) "\")))\n"
       "(export " (map (lambda (sym)
 			(list "    " sym "\n"))
 		      (module-exports wrapset))
