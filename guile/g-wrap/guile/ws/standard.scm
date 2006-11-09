@@ -371,9 +371,9 @@ example (gw:wcp-is-a? <gw:void*> foo)")
 		      "size_t "c-size-var " = "
 		      "scm_c_string_length ("scm-var");\n"
 		      c-var " = alloca ("c-size-var" + 1);\n"
-		      "scm_to_locale_stringbuf ("scm-var", "c-var",\n"
+		      "scm_to_locale_stringbuf ("scm-var", (char*)"c-var",\n"
 		      "                         "c-size-var");\n"
-		      c-var"["c-size-var"] = '\\0';\n"
+		      "((char*)"c-var")["c-size-var"] = '\\0';\n"
 		      "}\n"))
 
 	    "} else\n"
