@@ -50,9 +50,7 @@
 	     (mchars ,<gw-guile-ctype-mchars>)))
 
 (define-method (initialize (wrapset <standard-wrapset>) initargs)
-  (next-method)
-
-  (set! (module wrapset) '(g-wrap gw standard))
+  (next-method wrapset (append '(#:module (g-wrap gw standard) #:shlib-abs? #t) initargs))
 
   ;; SCM - pass scheme pointers through unmolested.
   (wrap-simple-type! wrapset

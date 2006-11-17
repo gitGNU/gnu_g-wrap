@@ -49,7 +49,7 @@
    "#include <glib.h>\n"))
 
 (define-method (initialize (ws <glib-wrapset>) initargs)
-  (next-method ws (append '(#:module (g-wrap gw-glib)) initargs))
+  (next-method ws (append '(#:module (g-wrap gw-glib) #:shlib-abs? #t) initargs))
 
   (add-type! ws (make <glist-of-type> #:name 'glist-of
 		      #:type-cname "GList*" #:func-prefix "g_list"))

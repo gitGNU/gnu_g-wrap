@@ -91,7 +91,8 @@
   (module #:init-keyword #:module #:accessor module #:init-value #f)
   (module-exports #:getter module-exports #:init-value '())
   (shlib-path #:init-keyword #:shlib-path)
-
+  (shlib-abs? #:init-keyword #:shlib-abs? #:init-value #f)
+  
   #:language 'guile)
 
 (define-method (global-definitions-cg (wrapset <gw-guile-wrapset>))
@@ -866,8 +867,12 @@
       (format #f "  #:use-module (g-wrap config)\n")
       ")\n"
       "\n"
-      "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
-      "              (dynamic-link (string-append *g-wrap-shlib-dir* \"" (slot-ref wrapset 'shlib-path) "\")))\n"
+      (if (slot-ref wrapset 'shlib-abs?)
+          (list "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
+                "              (dynamic-link (string-append *g-wrap-shlib-dir* \""
+                (slot-ref wrapset 'shlib-path) "\")))\n")
+          (list "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
+                "              (dynamic-link \"" (slot-ref wrapset 'shlib-path) "\"))\n"))
       "(export " (map (lambda (sym)
 			(list "    " sym "\n"))
 		      (module-exports wrapset))

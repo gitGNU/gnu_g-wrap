@@ -1,6 +1,6 @@
 #!/bin/sh
 
-GUILE_LOAD_PATH="@abs_top_srcdir@:@abs_top_srcdir@/guile:@abs_top_srcdir@/guile/test:@abs_top_builddir@/guile:${GUILE_LOAD_PATH}"
+GUILE_LOAD_PATH="@abs_top_srcdir@:@abs_top_srcdir@/guile:@abs_top_srcdir@/guile/test:@abs_top_builddir@:@abs_top_builddir@/guile:${GUILE_LOAD_PATH}"
 export GUILE_LOAD_PATH
 
 exec @abs_top_builddir@/libtool --mode=execute \
