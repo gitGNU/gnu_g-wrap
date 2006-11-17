@@ -10,6 +10,9 @@ Version 1.9.7
   - The shared libraries now reside in $(pkglibdir)/modules
     (e.g. /usr/lib/g-wrap/modules).
 
+  - Users are now allowed to chose in which module generic functions
+    should be defined.
+
   - New feature: aggregated typespecs.  See the node `Wrapping a C
     Function' of the manual for details.
 
