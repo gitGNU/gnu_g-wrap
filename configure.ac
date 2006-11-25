@@ -163,16 +163,16 @@ AC_CONFIG_FILES([Makefile
 	   guile/g-wrap/Makefile
 	   guile/g-wrap/gw/Makefile
 	   guile/test/Makefile
-	   guile/test/guile-test-env
+	   guile/run-guile
+	   guile/examples/Makefile
 	   scheme48/Makefile
 	   scheme48/g-wrap/Makefile
 	   scheme48/g-wrap/gw/Makefile
 	   scheme48/test/Makefile
-	   examples/Makefile
 	   doc/Makefile
 	   g-wrap-config
 ])
 
-AC_CONFIG_COMMANDS([guile-test-env-exec], [chmod +x guile/test/guile-test-env])
+AC_CONFIG_COMMANDS([run-guile-exec], [chmod +x guile/run-guile])
 
 AC_OUTPUT

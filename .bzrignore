@@ -2,6 +2,8 @@ Makefile.in
 Makefile
 .deps
 .libs
+*.lo
+*.la
 ./compile
 ./config.guess
 ./configure
@@ -84,3 +86,7 @@ guile/test/libgw-test-compat.la
 test/g-wrap-test-c-code.lo
 test/libg-wrap-test-c-code.la
 g-wrap/config.scm
+guile/examples/gw-miscutils.h
+guile/examples/gw-miscutils.scm
+guile/examples/gw-miscutils.c
+guile/run-guile

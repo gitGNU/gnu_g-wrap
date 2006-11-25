@@ -31,7 +31,7 @@
 
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 1996, 1997, 1998 Christopher Lee
+Copyright @copyright{} 1996, 1997, 1998, 2006 Christopher Lee
 Copyright @copyright{} 2000-2001 Rob Browning
 Copyright @copyright{} 2004 Andreas Rottmann
 Copyright @copyright{} 2005,2006 Ludovic Court�s
@@ -471,7 +471,7 @@ want to say something like this:
      #:name 'seconds-since-dow
      #:returns 'double
      #:c-name "seconds_since_dow" 
-     #:arguments '((<gw:unsigned-int> day-of-week))
+     #:arguments '((uint day-of-week))
      #:description "Given day-of-week (ranging 1-7), return elapsed time since then."))
 @end example
 
@@ -496,12 +496,12 @@ mechanism.
 So, for our example API, let's presume that @code{join_strings} takes
 two strings that are owned by the caller and returns a newly allocated
 string that will also be owned by the caller.  Given that, the correct
-way to wrap this function would be:
+way to wrap this function is:
 
 @example
     (wrap-function! 
       ws
-      #:name 'join_strings
+      #:name 'join-strings
       #:returns '(mchars caller-owned)
       #:c-name "join_strings" 
       #:arguments '(((mchars caller-owned) a) ((mchars caller-owned) b))
@@ -539,10 +539,10 @@ places.
 
 @example
  
-  typedef Timespec64 @{
+  typedef struct @{
     long long seconds;
     long int nanoseconds;
-  @} timespec_64;
+  @} Timespec64;
 
   Timespec64 elapsed_time(Timespec64 start, Timespec64 finish);
 
@@ -569,14 +569,15 @@ The first thing you need for your new type is a G-Wrap name.  For this
 example, we'll use @code{timespec64}.
 
 To begin, you have to define a new class for your type. We derive it
-from @code{<gw-rti-type>}, which can (and should) be used instead of
-the more generic @code{<gw-type>} in most cases@footnote{When
+from @code{<gw-type>}@footnote{If the wrapped type is not an aggregate
+value (e.g. a pointer type), @code{<gw-rti-type>} can (and should) be
+used instead of the more generic @code{<gw-type>}. When
 @code{<gw-rti-type>} is used, G-Wrap is able to use shared conversion
 functions and not emit code for each wrapper function, in most cases,
 which can considerably reduce the emitted code size}.
 
 @lisp
-  (define-class <timespec64-type> (<gw-rti-type>))
+  (define-class <timespec64-type> (<gw-type>))
 @end lisp
 
 Then you can add your new type to your wrapset.  Presume that the
@@ -586,10 +587,16 @@ wrapset you're creating.
 
 @findex add-type!
 @lisp
-    (add-type! ws (make <timespec64-type>
-                        #:name '<miscutils:timespec-64>
-                        #:c-type-name "Timespec64"
-                        #:c-const-type-name "const Timespec64"))
+    (add-type! ws (make <timespec64-type> #:name 'timespec64))
+@end lisp
+
+We also specialize @code{c-type-name} for our type, so G-Wrap knows
+about the C name of the type:
+
+@findex c-type-name
+@lisp
+(define-method (c-type-name (type <timespec64-type>) (typespec <gw-typespec>))
+  "Timespec64")
 @end lisp
 
 In order to make this type useful, you have to define some relevant
@@ -599,10 +606,10 @@ the Scheme side.
 
 @findex unwrap-value-cg
 @lisp
-  (define-method (unwrap-value-cg (type <gw-ctype-void>)
+  (define-method (unwrap-value-cg (type <timespec64-type>)
                                   (value <gw-value>) error-var)
     (list
-      "if (!msu_scm_timespec_64_p(" (scm-var value) "))"
+      "if (SCM_FALSEP(msu_scm_timespec64_p(" (scm-var value) ")))"
       `(gw:error ,error-var type ,(wrapped-var value))
       "else\n"  
       "  " (var value) " = msu_timespec64_to_c(" (scm-var value) ");\n"))
@@ -626,7 +633,7 @@ condition, which is checked in the generated code and acted upon
 properly (i.e. raising an ``argument type'' error).
 
 The above codegen presumes that the C function
-@code{msu_scm_timespec_64_p} has been defined and returns non-zero if
+@code{msu_scm_timespec64_p} has been defined and returns non-zero if
 the given SCM is a pair and both elements are integers.
 
 At this point G-Wrap knows how to convert and incoming Scheme
@@ -639,10 +646,10 @@ So in our Timespec64 example, we might define our unwrap codegen like
 this:
 
 @lisp
-  (define-method (wrap-value-cg (type <gw-ctype-void>)
+  (define-method (wrap-value-cg (type <timespec64-type>)
                                 (value <gw-value>) error-var)
     (list
-      (scm-var value) " = "msu_timespec64_to_scm(" (scm-var value) ");\n"))
+      (scm-var value) " = msu_timespec64_to_scm(" (var value) ");\n"))
 @end lisp
 
 There are a bunch of codegens you can define for a type but if you do

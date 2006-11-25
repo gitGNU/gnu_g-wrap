@@ -1,5 +1,5 @@
 #!/bin/sh
-exec ${builddir-.}/guile-test-env -s "$0" "$@"
+exec ${builddir-.}/../run-guile -s "$0" "$@"
 !#
 
 (use-modules (test gw-test-child)

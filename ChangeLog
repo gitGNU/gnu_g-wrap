@@ -1,5 +1,11 @@
 2006-11-25  Andreas Rottmann  <rotty@gkar.rotty.yi.org>
 
+	* guile/test/guile-test-env.in: Renamed to
+	guile/run-guile.in. configure.ac and tests adapted.
+
+	* guile/examples: New "miscutils" example from documentation.
+	* doc/g-wrap.texi: Corrected a few mistakes regarding the miscutils example.
+	
 	* g-wrap.scm (c-type-name): Add single-argument method that
 	invokes the two-argument method.
 

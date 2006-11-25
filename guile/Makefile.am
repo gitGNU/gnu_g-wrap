@@ -1,4 +1,4 @@
-SUBDIRS = g-wrap test
+SUBDIRS = g-wrap examples test 
 
 pcdir = $(libdir)/pkgconfig
 

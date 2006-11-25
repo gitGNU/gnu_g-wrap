@@ -8,5 +8,6 @@ exec @abs_top_builddir@/libtool --mode=execute \
        -dlopen "@abs_top_builddir@/guile/g-wrap/libgwrap-guile-runtime.la" \
        -dlopen "@abs_top_builddir@/guile/g-wrap/gw/libgw-guile-standard.la" \
        -dlopen "@abs_top_builddir@/guile/test/libgw-test-compat.la" \
+       -dlopen "@abs_top_builddir@/guile/examples/libgw-guile-miscutils.la" \
        -dlopen "@abs_top_builddir@/test/libg-wrap-test-c-code.la" \
      "@GUILE@" "$@"
