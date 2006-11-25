@@ -391,6 +391,8 @@
   (raise-bad-typespec-option option "typespec options must be symbols"))
 
 (define-generic c-type-name)
+(define-method (c-type-name (type <gw-type>))
+  (c-type-name type (make-typespec type '())))
 
 
 ;;;

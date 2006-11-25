@@ -1,3 +1,8 @@
+2006-11-25  Andreas Rottmann  <rotty@gkar.rotty.yi.org>
+
+	* g-wrap.scm (c-type-name): Add single-argument method that
+	invokes the two-argument method.
+
 2006-11-09  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* g-wrap/config.scm.in: New file.
