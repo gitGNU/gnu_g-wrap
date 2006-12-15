@@ -1,3 +1,12 @@
+2006-12-15  Andy Wingo  <wingo@pobox.com>
+
+	* Makefile.am (DIST_SUBDIRS): libffi needs to be in a
+	@substitutedvariable@, or otherwise automake will require that it
+	exist when doing an autogen. Allows build from bzr without libffi.
+	
+	* guile/examples/Makefile.am (lib_LTLIBRARIES): Add the
+	uninstalled guile path to the CFLAGS.
+
 2006-11-25  Andreas Rottmann  <rotty@gkar.rotty.yi.org>
 
 	* guile/test/guile-test-env.in: Renamed to
