@@ -1,3 +1,19 @@
+2006-12-17  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-compatibility.c (scm_without_guile): 
+	* guile/g-wrap/guile-compatibility.h: Support scm_without_guile on
+	guile 1.6.
+
+	* guile/g-wrap/guile-runtime.c (dynproc_smob_apply)
+	(ffi_call_without_guile): Wrap the ffi_call in scm_without_guile,
+	which allows guile to GC without the participation of this thread,
+	and allows other threads to register themselves with guile.
+	Procedures with SCM arguments should still be fine as long as they
+	are just examining their arguments; I'm not sure how to deal with
+	procedures that allocate new SCM objects, for example as their
+	return values. That part needs more thought, and thus makes this a
+	somewhat experimental patch :)
+
 2006-12-15  Andy Wingo  <wingo@pobox.com>
 
 	* Makefile.am (DIST_SUBDIRS): libffi needs to be in a

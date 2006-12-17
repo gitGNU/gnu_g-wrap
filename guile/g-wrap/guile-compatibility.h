@@ -119,6 +119,9 @@ size_t  scm_to_locale_stringbuf (SCM str, char *buf, size_t buf_size);
 #define SCM_SIMPLE_VECTOR_SET(v, idx, val) (SCM_VELTS (v)[(idx)] = (val))
 #define SCM_SIMPLE_VECTOR_REF(v, idx)      (SCM_VELTS (v)[(idx)])
 
+/* Threads. */
+void *scm_without_guile (void*(*func)(void*), void *data);
+
 
 #else /* SCM_VERSION_17X */
 

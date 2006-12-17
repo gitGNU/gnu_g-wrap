@@ -86,4 +86,10 @@ scm_to_locale_stringbuf (SCM str, char *buf, size_t buf_len)
   return len;
 }
 
+void *
+scm_without_guile (void*(*func)(void*), void *data)
+{
+    return func(data);
+}
+
 #endif

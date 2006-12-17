@@ -569,6 +569,21 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
 }
 #undef FUNC_NAME
 
+typedef struct {
+  GWFunctionInfo *fi;
+  void **values;
+  void *rvalue;
+} ffi_guile_call_info;
+
+typedef void* (*guile_without_func)(void*);
+
+static void*
+ffi_call_without_guile (const ffi_guile_call_info *info)
+{
+  ffi_call (&info->fi->cif, info->fi->proc, info->rvalue, info->values);
+  return NULL;
+}
+
 static SCM
 dynproc_smob_apply (SCM smob, SCM arg_list)
 {
@@ -580,17 +595,20 @@ dynproc_smob_apply (SCM smob, SCM arg_list)
   unsigned offset;
   void *data;
   GWError error;
+  ffi_guile_call_info call_info = { fi, NULL, NULL };
   
   /* TODO: Most of this should be factored out into the core; but how
    * to deal with the arg list? */
   
   data = alloca (fi->data_area_size);
   values = (void **) data;
+  call_info.values = values;
 
   error.status = GW_ERR_NONE;
 
   offset = fi->n_req_args * sizeof (void *);
   rvalue = (void *) ((unsigned char *) data + offset);
+  call_info.rvalue = rvalue;
   offset += (fi->ret_type->type->size > sizeof(ffi_arg)
              ? fi->ret_type->type->size : sizeof(ffi_arg));
   {
@@ -614,7 +632,7 @@ dynproc_smob_apply (SCM smob, SCM arg_list)
       }
   }
   
-  ffi_call (&fi->cif, fi->proc, rvalue, values);
+  scm_without_guile ((guile_without_func)ffi_call_without_guile, &call_info);
 
   rvalue = GW_RVALUE_PTR (rvalue, fi->ret_type);
   fi->ret_type->wrap_value (&result, ARENA, &fi->ret_typespec, rvalue, &error);
