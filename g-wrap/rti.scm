@@ -244,6 +244,7 @@
      (if (generic-name function)
 	 (list "\"" (symbol->string (generic-name function)) "\"")
 	 "NULL")
+     ", " (flags function)
      ");\n"
      "}\n")))
 

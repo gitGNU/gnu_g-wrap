@@ -578,7 +578,7 @@ typedef struct {
 typedef void* (*guile_without_func)(void*);
 
 static void*
-ffi_call_without_guile (const ffi_guile_call_info *info)
+do_ffi_call (const ffi_guile_call_info *info)
 {
   ffi_call (&info->fi->cif, info->fi->proc, info->rvalue, info->values);
   return NULL;
@@ -632,7 +632,11 @@ dynproc_smob_apply (SCM smob, SCM arg_list)
       }
   }
   
-  scm_without_guile ((guile_without_func)ffi_call_without_guile, &call_info);
+  if (fi->flags & GW_FUNCTION_FLAG_LEAVE_RUNTIME)
+      scm_without_guile ((guile_without_func)do_ffi_call,
+                         &call_info);
+  else
+      do_ffi_call (&call_info);
 
   rvalue = GW_RVALUE_PTR (rvalue, fi->ret_type);
   fi->ret_type->wrap_value (&result, ARENA, &fi->ret_typespec, rvalue, &error);

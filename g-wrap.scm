@@ -57,6 +57,7 @@
    input-arguments output-arguments optional-arguments
    return-type return-typespec
    generic-name 
+   flags
    
    <gw-type>
    needs-result-var?
@@ -406,7 +407,8 @@
   (arguments #:getter arguments #:init-keyword #:arguments)
   (generic-name #:getter generic-name
                 #:init-keyword #:generic-name
-                #:init-value #f))
+                #:init-value #f)
+  (flags #:getter flags #:init-keyword #:flags))
 
 (define-method (write (self <gw-function>) port)
   (display "#<gw-function " port)
@@ -728,7 +730,7 @@
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)
   ;;(format #t "wrapping ~S\n" args)
   (let-keywords
-   args #f (name returns c-name arguments description generic-name)
+   args #f (name returns c-name arguments description generic-name flags)
    (guard
     (c
      (#t (raise-stacked c "while processing function `~S'" name)
@@ -742,7 +744,8 @@
                #:c-name c-name
                #:arguments (resolve-arguments wrapset arguments)
                #:description description
-               #:generic-name generic-name)))))
+               #:generic-name generic-name
+               #:flags (or flags "0"))))))
 
 (define-method (wrap-constant! (wrapset <gw-wrapset>) . args)
   (let-keywords

@@ -13,6 +13,8 @@ libgw_guile_miscutils_la_LIBADD = libmiscutils.la \
 
 EXTRA_DIST= README update-format.scm
 
+CLEANFILES = $(wildcard gw-*)
+
 # Wrapset generation
 gw-%.c gw-%.scm: %-spec.scm
 	LD_LIBRARY_PATH=${LOCALPWD}/..:${LD_LIBRARY_PATH} \

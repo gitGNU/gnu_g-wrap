@@ -1,3 +1,33 @@
+2007-01-04  Andy Wingo  <wingo@pobox.com>
+
+	Add a flag to GWFunctionInfo to control whether or not we leave
+	guile/the language when calling functions.
+	
+	* guile/g-wrap/guile-runtime.c (do_ffi_call): Renamed from
+	ffi_call_without_guile. 
+	(dynproc_smob_apply): Only leave guile if the LEAVE_RUNTIME
+	function flag is set.
+
+	* guile/examples/Makefile.am (CLEANFILES): Fix the clean target.
+
+	* guile/g-wrap/guile.scm (initializations-cg): 
+	* g-wrap/rti.scm (add-function-rti-cg): Write the flags arg into
+	the generated C.
+
+	* g-wrap/core-runtime.h (GWFunctionFlag): New data type.
+	(GW_FUNCTION_FLAG_LEAVE_RUNTIME, GW_FUNCTION_FLAGS_USER_SHIFT):
+	A flag supported by G-Wrap, and some padding so that users can
+	have flags too.
+	(struct _GWFunctionInfo): Add flags member.
+
+	* g-wrap/core-runtime.c (gw_wrapset_add_function): Add flags arg.
+
+	* g-wrap.scm (<gw-function>): Add flags slot.
+	(flags) New exported public accessor of flags. Flags is a string
+	that should evaluate to an unsigned int in C, and normally should
+	use the constants in core-runtime.h.
+	(wrap-function!): Accept a flags kwarg, defaults to "0".
+
 2006-12-17  Andy Wingo  <wingo@pobox.com>
 
 	* guile/g-wrap/guile-compatibility.c (scm_without_guile): 

@@ -511,7 +511,8 @@
 						  (map default-value visible-args))))
 	 (n-req-args (- n-visible-args n-optional-visible-args))
 	 (fn-c-wrapper (slot-ref function 'wrapper-name))
-	 (fn-c-string  (slot-ref function 'wrapper-namestr)))
+	 (fn-c-string  (slot-ref function 'wrapper-namestr))
+	 (flags-c-string (flags function)))
     (list
      "   gw_wrapset_add_function(" (c-info-sym wrapset) ", "
      fn-c-wrapper ", " n-req-args ", " n-optional-visible-args ", "
@@ -519,6 +520,7 @@
      (if (generic-name function)
 	 (list "\"" (symbol->string (generic-name function)) "\"")
 	 "NULL")
+     ", " flags-c-string
      ");\n")))
 
 

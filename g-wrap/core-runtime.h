@@ -105,6 +105,15 @@ enum
 
 #define GW_TYPESPEC_USER_SHIFT 8
 
+typedef unsigned int GWFunctionFlags;
+
+enum
+{
+  GW_FUNCTION_FLAG_LEAVE_RUNTIME  = 0x01
+};
+
+#define GW_FUNCTION_FLAGS_USER_SHIFT 16
+
 typedef void (*GWUnWrapValueFunc)(void *instance,
                                   GWLangArena arena,
                                   const GWTypeSpec *ts,
@@ -151,6 +160,8 @@ struct _GWFunctionInfo
 
     ffi_cif cif;
     unsigned int data_area_size; /* Size needed for the dynamic-call info */
+
+    GWFunctionFlags flags;
 };
 
 struct _GWWrapSet
@@ -196,7 +207,8 @@ void 	   gw_wrapset_add_function (GWWrapSet *ws,
                                     const char **arg_types,
                                     GWTypeSpec *arg_typespecs,
                                     const char *proc_name,
-                                    const char *generic_name);
+                                    const char *generic_name,
+                                    GWFunctionFlags flags);
 
 void 	   gw_wrapset_register (GWWrapSet *ws);
 
