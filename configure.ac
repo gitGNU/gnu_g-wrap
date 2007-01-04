@@ -59,7 +59,10 @@ ar_WITH_LIB_LIBFFI([have_libffi=yes], [have_libffi=no])
 LIBFFI_CFLAGS_INSTALLED="$LIBFFI_CFLAGS"
 LIBFFI_LIBS_INSTALLED="$LIBFFI_LIBS"
 if test -d $srcdir/libffi; then
-    AC_CONFIG_SUBDIRS(libffi)
+  GW_DIST_LIBFFI_DIR=libffi
+  AC_CONFIG_SUBDIRS(libffi)
+else
+  GW_DIST_LIBFFI_DIR=
 fi
 if test "$have_libffi" = no; then
   if ! test -d $srcdir/libffi; then
@@ -74,8 +77,10 @@ if test "$have_libffi" = no; then
 else
   GW_LIBFFI_DIR=
 fi
+
 AM_CONDITIONAL(HAVE_LIBFFI, test "$have_libffi" = yes)
 AC_SUBST(GW_LIBFFI_DIR)
+AC_SUBST(GW_DIST_LIBFFI_DIR)
 AC_SUBST(LIBFFI_CFLAGS)
 AC_SUBST(LIBFFI_LIBS)
 AC_SUBST(LIBFFI_CFLAGS_INSTALLED)
