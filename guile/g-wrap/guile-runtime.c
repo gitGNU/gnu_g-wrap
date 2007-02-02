@@ -544,6 +544,19 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
   pair = scm_hashq_ref (latent_variables_hash, generic_name, SCM_BOOL_F);
 
   if (scm_is_false (pair)) {
+    SCM var = scm_hashq_ref (SCM_MODULE_OBARRAY (generics),
+                             generic_name, SCM_BOOL_F);
+    if (!scm_is_false (var)) {
+      /* some other module already forced it, hang the method */
+      gw_guile_add_subr_method (SCM_VARIABLE_REF (var),
+                                proc,
+                                specializers,
+                                scm_current_module (),
+                                scm_to_int (n_req_args), 
+                                scm_is_true (use_optional_args));
+      return;
+    }
+
     pair = scm_cons (sym_generic, SCM_EOL);
     scm_hashq_set_x (latent_variables_hash, generic_name, pair);
   } else if (!scm_is_eq (scm_car (pair), sym_generic)) {

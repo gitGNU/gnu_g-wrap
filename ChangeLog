@@ -1,3 +1,9 @@
+2007-02-02  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-runtime.c
+	("%gw:procedure-to-method-public!"): Fix a bug that prevented
+	method addition to a generic that was already forced.
+
 2007-01-04  Andy Wingo  <wingo@pobox.com>
 
 	Add a flag to GWFunctionInfo to control whether or not we leave
