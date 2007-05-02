@@ -353,8 +353,8 @@ gw_test_cleanup_aggregating_obj (void *wcp)
   if (obj->ref_count > 0)
     {
       fprintf (stderr, "trying to clean up aggregating object @ %p which is\n"
-	       "still referenced %u times!\n",
-	       obj, obj->ref_count);
+	       "still referenced %lu times!\n",
+	       obj, (unsigned long) obj->ref_count);
       abort ();
     }
 

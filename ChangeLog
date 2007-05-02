@@ -6,6 +6,11 @@
 	* guile/run-guile.in (GUILE_LOAD_PATH): Fixed for Guile 1.8, which
 	has "." not in the default path.
 
+2007-04-15  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* test/g-wrap-test-c-code.c (gw_test_cleanup_aggregating_obj):
+	Format string vs. argument mismatch fixed.
+
 2007-02-02  Andy Wingo  <wingo@pobox.com>
 
 	* guile/g-wrap/guile-runtime.c
