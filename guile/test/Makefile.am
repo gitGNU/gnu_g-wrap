@@ -14,7 +14,7 @@ TESTS = \
  test-compat
 TESTS_ENVIRONMENT = builddir=$(top_builddir)/guile/test
 
-check_SCRIPTS = guile-test-env $(TESTS)
+check_SCRIPTS = $(TESTS)
 
 EXTRA_DIST += ${check_SCRIPTS}
 

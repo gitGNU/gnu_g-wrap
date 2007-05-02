@@ -1,3 +1,11 @@
+2007-05-02  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* guile/test/Makefile.am: Don't distribute guile-test-env any
+	longer.
+
+	* guile/run-guile.in (GUILE_LOAD_PATH): Fixed for Guile 1.8, which
+	has "." not in the default path.
+
 2007-02-02  Andy Wingo  <wingo@pobox.com>
 
 	* guile/g-wrap/guile-runtime.c
