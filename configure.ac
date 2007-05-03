@@ -99,6 +99,12 @@ AC_DEFINE_UNQUOTED(ffi_type_ssize_t, ffi_type_${ffi_ssize_type},
 dnl Guile
 GUILE_PROGS
 GUILE_FLAGS
+GUILE_VERSION="`guile-config info guileversion | sed -r 's,\\.[[0-9]]+$,,'`"
+AC_PATH_PROG(GUILE_VERSIONED, guile-$GUILE_VERSION)
+if test "$GUILE_VERSIONED" != ""; then
+  GUILE="$GUILE_VERSIONED"
+fi
+AC_MSG_NOTICE([Using $GUILE])
 
 GUILE_MODULE_AVAILABLE(HAVE_SRFI_34, [(srfi srfi-34)])
 GUILE_MODULE_AVAILABLE(HAVE_SRFI_35, [(srfi srfi-35)])

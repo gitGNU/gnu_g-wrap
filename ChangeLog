@@ -1,3 +1,10 @@
+2007-05-03  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* NEWS: Mention function flags feature.
+
+	* configure.ac: Choose the right guile binary when more than one
+	Guile version is installed.
+
 2007-05-02  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* guile/test/Makefile.am: Don't distribute guile-test-env any

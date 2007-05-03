@@ -1,5 +1,5 @@
 G-Wrap NEWS -- history of user-visible changes.
-Copyright (C) 2003-2006 Andreas Rottmann
+Copyright (C) 2003-2007 Andreas Rottmann
 Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Copyright (C) 2006 Ludovic Court�s <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
@@ -15,6 +15,11 @@ Version 1.9.7
 
   - New feature: aggregated typespecs.  See the node `Wrapping a C
     Function' of the manual for details.
+
+  - New feature: function flags. At the moment there is a single flag
+    specifying whether to leave "Guile mode" when calling the wrapper
+    functions. See the Guile manual on "scm_without_guile" for more
+    information.
 
   - Users can now specify a free and a mark function, as well as an
     equality predicate for wrapped C types (WCTs) in `wrap-as-wct!'.
