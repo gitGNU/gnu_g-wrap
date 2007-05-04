@@ -6,7 +6,7 @@ dnl Program version
 
 GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
 AC_SUBST(GW_BRANCH)
-GW_VERSION=1.9.7
+GW_VERSION=1.9.8
 
 AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
 AC_CONFIG_HEADERS(config.h g-wrap/ffi-support.h)
@@ -16,8 +16,8 @@ AM_MAINTAINER_MODE
 AC_SUBST(ACLOCAL_FLAGS,$ACLOCAL_FLAGS)
 
 dnl Shared library versions
-GW_RUNTIME_VINFO(CORE, 1, 0, 0)
-GW_RUNTIME_VINFO(GUILE, 1, 0, 0)
+GW_RUNTIME_VINFO(CORE, 2, 0, 0)
+GW_RUNTIME_VINFO(GUILE, 2, 0, 0)
 
 dnl
 dnl Checks for user options
@@ -33,6 +33,7 @@ dnl
 dnl Checks for programs.
 dnl
 AC_PROG_CC
+gl_EARLY
 AC_PROG_INSTALL
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
@@ -47,8 +48,9 @@ AC_CHECK_SIZEOF(long)
 AC_C_BIGENDIAN
 
 dnl Checks for standard functions
+gl_INIT
 gl_FUNC_ALLOCA
-
+gl_FUNC_VASPRINTF
 
 dnl
 dnl Checks for required libraries
@@ -130,14 +132,13 @@ GW_ALLOW_LANG(scheme48, NO)
 AC_SUBST(GW_LANGUAGES)
 
 dnl Check for optional libraries
-AC_CHECK_PROG(have_glib, glib-config, yes, no)
-if test "$have_glib" = yes; then
-  PKG_CHECK_MODULES(GLIB, glib, [echo building GLib 1.2 support])
-else
-  echo Not building Glib 1.2 support
-fi
-AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = yes)
-
+AC_ARG_WITH([glib], AS_HELP_STRING([--without-glib], [Build without glib-2 (default: test)]))
+if test "x$with_glib" != "xno"; then
+  PKG_CHECK_MODULES([GLIB], [glib-2.0],
+                    [AC_MSG_NOTICE([building GLib 2.0 support])],
+                    [AC_MSG_NOTICE([Not building GLib 2.0 support])])
+fi 
+AM_CONDITIONAL(HAVE_GLIB, test "$GLIB" = yes)
 
 dnl Check for compiler flags and warnings. This should be last, since
 dnl it can infere with other checks due to changed CFLAGS.

@@ -90,3 +90,7 @@ guile/examples/gw-miscutils.h
 guile/examples/gw-miscutils.scm
 guile/examples/gw-miscutils.c
 guile/run-guile
+config.status.lineno
+link-warning.h
+lib/stdio.h
+*.loT

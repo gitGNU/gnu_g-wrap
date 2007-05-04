@@ -14,8 +14,7 @@ aclocaldir = $(datadir)/aclocal
 
 aclocal_DATA = m4/g-wrap.m4
 
-EXTRA_DIST = g-wrap.scm \
-             m4/g-wrap.m4 m4/libcheck.m4-in m4/alloca.m4 m4/gw-util.m4
+EXTRA_DIST = g-wrap.scm $(wildcard m4/*.m4) $(wildcard m4/*.m4-in)
 
 ACLOCAL_AMFLAGS = -I m4 @ACLOCAL_FLAGS@
 

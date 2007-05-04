@@ -15,7 +15,7 @@ AM_CFLAGS = $(LIBFFI_CFLAGS) $(GUILE_CFLAGS)
 #---------------------
 gwrapshlib_LTLIBRARIES += libgw-guile-standard.la
 nodist_libgw_guile_standard_la_SOURCES = standard.c
-libgw_guile_standard_la_LDFLAGS = -module $(GUILE_LDFLAGS)
+libgw_guile_standard_la_LDFLAGS = -module $(GUILE_LDFLAGS) -no-undefined
 libgw_guile_standard_la_LIBADD = ../libgwrap-guile-runtime.la
 
 # Type `long long' is only defined in ISO C99 (or GNU C).  Therefore,

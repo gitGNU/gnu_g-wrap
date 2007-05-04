@@ -6,8 +6,8 @@ lib_LTLIBRARIES = libgwrap-core-runtime.la
 
 gwrapinclude_HEADERS = core-runtime.h ffi-support.h
 libgwrap_core_runtime_la_SOURCES = core-runtime.c
-libgwrap_core_runtime_la_LDFLAGS =  -version-info $(GW_CORE_RUNTIME_VINFO)
-libgwrap_core_runtime_la_LIBADD = $(LIBFFI_LIBS)
+libgwrap_core_runtime_la_LDFLAGS =  -version-info $(GW_CORE_RUNTIME_VINFO) -no-undefined
+libgwrap_core_runtime_la_LIBADD = $(LIBFFI_LIBS) ../lib/libgnu.la
 
 nobase_gwrapmodule_DATA =					\
   util.scm rti.scm enumeration.scm c-types.scm ws/standard.scm	\
@@ -25,11 +25,11 @@ config.scm: Makefile config.scm.in
 
 install-data-local: Makefile config.scm.in
 	$(mkinstalldirs) $(DESTDIR)$(gwrapmoduledir)
-	sed -e "s|@g_wrap_shlib_dir\@|$(gwrapshlibdir)/|" \
+	sed -e "s|@g_wrap_shlib_dir@|$(gwrapshlibdir)/|" \
 	    $(srcdir)/config.scm.in > $(DESTDIR)$(gwrapmoduledir)/config.scm
 	chmod 644 $(DESTDIR)$(gwrapmoduledir)/config.scm
 
 uninstall-local:
-	rm -f $(DESTDIR)$(moduledir)/config.scm
+	rm -f $(DESTDIR)$(gwrapmoduledir)/config.scm
 
 CLEANFILES += config.scm
