@@ -12,6 +12,9 @@ Version 1.9.8
     functions. See the Guile manual on "scm_without_guile" for more
     information.
 
+  - Don't rely on libc to provide (v)asprintf, take the implementation
+    from gnulib.
+
   - The minimal GLib bindings now build against GLib 2.x. However,
     their use is deprecated in favour of the much more complete GLib
     bindings in guile-gnome
