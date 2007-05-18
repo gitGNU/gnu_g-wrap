@@ -5,11 +5,12 @@ libmiscutils_la_SOURCES = miscutils.c miscutils.h
 
 lib_LTLIBRARIES += libgw-guile-miscutils.la
 libgw_guile_miscutils_la_SOURCES = miscutils-guile.c miscutils-guile.h gw-miscutils.c
-libgw_guile_miscutils_la_CFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile
+libgw_guile_miscutils_la_CFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile $(LIBFFI_CFLAGS)
 libgw_guile_miscutils_la_LDFLAGS = -module
 libgw_guile_miscutils_la_LIBADD = libmiscutils.la \
 				  $(top_builddir)/guile/g-wrap/libgwrap-guile-runtime.la \
-	                          $(top_builddir)/g-wrap/libgwrap-core-runtime.la
+	                          $(top_builddir)/g-wrap/libgwrap-core-runtime.la \
+				  $(LIBFFI_LIBS)
 
 EXTRA_DIST= README update-format.scm
 
