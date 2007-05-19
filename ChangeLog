@@ -1,3 +1,12 @@
+2007-05-19  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* configure.ac: Fix HAVE_GLIB automake conditional.
+
+2007-05-18  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* guile/examples/Makefile.am: Fix build when libffi isn't
+	installed.
+
 2007-05-04  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	Buildsystem update.

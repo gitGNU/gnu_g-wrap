@@ -6,7 +6,7 @@ dnl Program version
 
 GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
 AC_SUBST(GW_BRANCH)
-GW_VERSION=1.9.8
+GW_VERSION=1.9.8.1
 
 AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
 AC_CONFIG_HEADERS(config.h g-wrap/ffi-support.h)
@@ -133,9 +133,11 @@ AC_SUBST(GW_LANGUAGES)
 
 dnl Check for optional libraries
 AC_ARG_WITH([glib], AS_HELP_STRING([--without-glib], [Build without glib-2 (default: test)]))
+GLIB=no
 if test "x$with_glib" != "xno"; then
   PKG_CHECK_MODULES([GLIB], [glib-2.0],
-                    [AC_MSG_NOTICE([building GLib 2.0 support])],
+                    [AC_MSG_NOTICE([building GLib 2.0 support])
+		     GLIB=yes],
                     [AC_MSG_NOTICE([Not building GLib 2.0 support])])
 fi 
 AM_CONDITIONAL(HAVE_GLIB, test "$GLIB" = yes)
