@@ -28,7 +28,13 @@ exec ${builddir-.}/../run-guile ${GUILE_FLAGS} -s "$0" "$@"
   (receive (a b) (gw-test-out+default-args 7 9)
     (assert-equal 63 a)
     (assert-equal "foo" b)))
-    
+
+(define-method (test-invisible-out-argument (self <test-standard>))
+  (receive (a b) (gw-test-invisible-out-arg 42)
+    (assert-equal 42 a)
+    (assert-equal (* 42 42) b))
+  (assert-exception (gw-test-invisible-out-arg 101)))
+
 (define-method (test-void-type (self <test-standard>))
   (assert-true (unspecified? (gw-test-gw-standard-no-op))))
 

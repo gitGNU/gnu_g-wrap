@@ -13,6 +13,9 @@ Version 1.9.9
 
     - libffi updated from GCC SVN
 
+    - It is now possible to have invisible output arguments; these
+      won't show up as return values of the Scheme procedure.
+
 Version 1.9.8
 
   - New feature: function flags. At the moment there is a single flag

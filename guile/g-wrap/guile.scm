@@ -1,5 +1,5 @@
 ;;;; File: guile.scm
-;;;; Copyright (C) 2004-2006 Andreas Rottmann
+;;;; Copyright (C) 2004-2007 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -247,7 +247,7 @@
 			"&gw__scm_extras[" (number->string
 					    (- number
 					       *max-fixed-params*)) "]"))))
-	     ((memq 'out (options (typespec arg)))
+	     ((output-argument? arg)
 	      `(#:wrapped-var
 		,(string-append "& "(out-param-name out-number))))
 	     (else '()))))
@@ -288,7 +288,9 @@
 		   #:typespec return-typespec
 		   #:wrapped-var "&gw__scm_result"
 		   #:var "gw__result"))
-	 (scm-params (filter visible? params))
+	 (scm-params (filter (lambda (param) (and (visible? param)
+                                                  (not (output-param? param))))
+                             params))
 
 	 (function-has-wcp-args?
 	  (or (any (lambda (p) (is-a? (type p) <gw-wct>)) params)
@@ -343,17 +345,19 @@
 	 (list "  SCM gw__scm_extras[" (- nargs *max-fixed-params*) "];\n")
 	 '())
 
-     (map
-      (lambda (number)
-	(list "  SCM " (out-param-name number) " = SCM_UNSPECIFIED;\n"))
-      (iota (length out-params)))
+     (filter-map
+      (lambda (number out-param)
+        (and (visible? out-param)
+             (list "  SCM " (out-param-name number) " = SCM_UNSPECIFIED;\n")))
+      (iota (length out-params))
+      out-params)
 
      "\n"
 
       (map
        (lambda (param)
 	 (list (c-type-name (type param)) " " (var param)
-               (if (memq 'out (options (typespec param)))
+               (if (output-param? param)
                    ;; Initialize the C variable for the `out' parameter if
                    ;; possible.
                    (let ((c-value
@@ -367,7 +371,7 @@
       (map
        (lambda (param arg)
 	 (list
-	  (if (visible? param)
+	  (if (and (not (output-param? param)) (visible? param))
 	      (list
 	       "/* ARG " (number param) " */\n"
 	       (if (memq 'aggregated (options (typespec param)))
@@ -455,7 +459,7 @@
       ;; insert the post-call args code in the opposite order
       ;; of the pre-call code
       (map
-       (lambda (param arg)
+       (lambda (param)
 	 (list
 	  (label-cg labels (format #f "post_call_arg_~A" (number param)))
 	  (let ((post-call-code
@@ -466,7 +470,7 @@
 		'()
 		(list "{\n" post-call-code "}\n")))
 	  "}\n"))
-       (reverse params) (arguments function))
+       (reverse params))
 
       (if (and function-has-wcp-args? function-has-aggregated-args?)
 	  ;; Since some of the input arguments are aggregated by the output
@@ -494,9 +498,11 @@
 	   (if (needs-result-var? return-type)
 	       "gw__scm_result, "
 	       '())
-	   (map (lambda (n)
-		  (string-append (out-param-name n) ", "))
-		(iota (length out-params)))
+	   (filter-map (lambda (n out-param)
+                         (and (visible? out-param)
+                              (string-append (out-param-name n) ", ")))
+                       (iota (length out-params))
+                       out-params)
 	   "SCM_UNDEFINED));\n"))
       "}\n")))
 
@@ -505,7 +511,7 @@
 				   (function <gw-guile-function>)
 				   status-var)
 
-  (let* ((visible-args (filter visible? (arguments function)))
+  (let* ((visible-args (input-arguments function))
 	 (n-visible-args (length visible-args))
 	 (n-optional-visible-args (length (filter identity
 						  (map default-value visible-args))))

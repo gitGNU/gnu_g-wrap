@@ -1,5 +1,5 @@
 ;;;; File: g-wrap.scm
-;;;; Copyright (C) 2004-2006 Andreas Rottmann
+;;;; Copyright (C) 2004-2007 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -335,7 +335,9 @@
   (number #:getter number #:init-keyword #:number))
 
 (define-method (visible? (self <gw-param>))
-  (>= (number self) 0))
+  (or (>= (number self) 0)
+      (and (output-param? self)
+           (arguments-visible? (type self)))))
 
 (define-method (output-param? (self <gw-param>))
   (memq 'out (options (typespec self))))
@@ -424,24 +426,20 @@
 (define-method (input-arguments (func <gw-function>))
   (filter (lambda (arg)
            (and (visible? arg)
-                (not (memq 'out (options (typespec arg))))))
+                (not (output-argument? arg))))
          (slot-ref func 'arguments)))
 
 (define-method (input-argument-count (func <gw-function>))
   (count (lambda (arg)
            (and (visible? arg)
-                (not (memq 'out (options (typespec arg))))))
+                (not (output-argument? arg))))
          (slot-ref func 'arguments)))
 
 (define-method (output-argument-count (func <gw-function>))
-  (count (lambda (arg)
-           (memq 'out (options (typespec arg))))
-         (slot-ref func 'arguments)))
+  (count output-argument? (slot-ref func 'arguments)))
 
 (define-method (output-arguments (func <gw-function>))
-  (filter (lambda (arg)
-            (memq 'out (options (typespec arg))))
-         (slot-ref func 'arguments)))
+  (filter output-argument? (slot-ref func 'arguments)))
 
 (define-method (optional-arguments (func <gw-function>))
   (let loop ((args (reverse (slot-ref func 'arguments))) (opt-args '()))
@@ -493,7 +491,7 @@
   (type (typespec arg)))
 
 (define-method (visible? (arg <gw-argument>))
-  (and (arguments-visible? (type arg)) (not (output-argument? arg))))
+  (arguments-visible? (type arg)))
 
 (define-method (output-argument? (arg <gw-argument>))
   (memq 'out (options (typespec arg))))

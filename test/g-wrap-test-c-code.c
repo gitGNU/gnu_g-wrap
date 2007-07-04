@@ -38,6 +38,13 @@ int gw_test_retval_exception (int arg)
     return 0;
 }
 
+int gw_test_invisible_out_arg (int in, int *out1, int *out2)
+{
+  *out1 = in * in;
+  *out2 = in > 100;
+  return in;
+}
+
 /*======================================================================*/
 /* Generics */
 
