@@ -45,6 +45,12 @@ int gw_test_invisible_out_arg (int in, int *out1, int *out2)
   return in;
 }
 
+int gw_test_many_args (int i1, int i2, int i3, int i4, int i5, int i6,
+                       int i7, int i8, int i9, int i10, int i11)
+{
+  return i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8 + i9 + i10 + i11;
+}
+
 /*======================================================================*/
 /* Generics */
 

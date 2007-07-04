@@ -236,6 +236,16 @@
    #:returns 'long
    #:c-name "gw_test_out_plus_default_args"
    #:arguments '((int arg1) (int arg2 (default "5")) ((mchars out callee-owned) arg3)))
+
+  (wrap-function! ws
+                  #:name 'gw-test-many-args
+                  #:returns 'int
+                  #:c-name "gw_test_many_args"
+                  #:arguments (map
+                               (lambda (n)
+                                 `(int ,(string->symbol
+                                         (string-append "arg" (number->string n)))))
+                               (iota 11)))
   
   ;; generics
   (wrap-function! ws

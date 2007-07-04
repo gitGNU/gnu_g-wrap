@@ -1,3 +1,16 @@
+2007-07-04  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* test/g-wrap-test-c-code.c, test/g-wrap-test-c-code.h
+	(gw_test_many_args): New function.
+	* test/test-standard-spec.scm (initialize): Added wrapper for 
+	gw_test_many_args().
+	* guile/test/test-standard (test-many-args): Testcase for 
+	gw_test_many_args.
+	
+	* g-wrap.scm (visible?): Output arguments are not always
+	invisible.
+	* guile/g-wrap/guile.scm (function-wrapper-cg): Adapted.
+
 2007-05-20  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* autogen.sh: Pass -Wno-portability to automake; this avoids

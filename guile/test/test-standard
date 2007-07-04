@@ -141,6 +141,10 @@ exec ${builddir-.}/../run-guile ${GUILE_FLAGS} -s "$0" "$@"
   (assert-equal #f (gw-test-generic #t))
   (assert-equal #t (gw-test-generic #t #t)))
 
+(define-method (test-many-args (self <test-standard>))
+  (let ((args (iota 11)))
+    (assert-equal (apply + args) (apply gw-test-many-args args))))
+
 (exit-with-summary (run-all-defined-test-cases))
 
 ;; Local Variables:

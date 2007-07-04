@@ -16,6 +16,8 @@ long gw_test_out_args(int arg1, int *arg2, char **arg3);
 long gw_test_out_plus_default_args(int arg1, int arg2, char **arg3);
 int  gw_test_retval_exception (int arg);
 int  gw_test_invisible_out_arg (int in, int *out1, int *out2);
+int  gw_test_many_args (int i1, int i2, int i3, int i4, int i5, int i6,
+                        int i7, int i8, int i9, int i10, int i11);
 
 int gw_test_generic__int (int n);
 char *gw_test_generic__str_int (const char *str, int n);
