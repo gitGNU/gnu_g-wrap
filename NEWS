@@ -5,6 +5,14 @@ Copyright (C) 2006 Ludovic Court�s <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
 See the end for copying conditions.
 
+Version 1.9.9
+
+    - Build fixes:
+      - Fix example build when libffi is not installed on the system.
+      - Fix GLib build (was deactivated by accident)
+
+    - libffi updated from GCC SVN
+
 Version 1.9.8
 
   - New feature: function flags. At the moment there is a single flag

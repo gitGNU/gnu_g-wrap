@@ -24,7 +24,7 @@ config.scm: Makefile config.scm.in
 	    $(srcdir)/config.scm.in > config.scm
 
 install-data-local: Makefile config.scm.in
-	$(mkinstalldirs) $(DESTDIR)$(gwrapmoduledir)
+	$(mkinstalldirs) $(DESTDIR)$(gwrapmoduledir)/ws
 	sed -e "s|@g_wrap_shlib_dir@|$(gwrapshlibdir)/|" \
 	    $(srcdir)/config.scm.in > $(DESTDIR)$(gwrapmoduledir)/config.scm
 	chmod 644 $(DESTDIR)$(gwrapmoduledir)/config.scm

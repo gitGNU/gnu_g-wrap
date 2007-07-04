@@ -2,7 +2,7 @@
 # Run this to generate all the initial makefiles, etc.
 
 DIE=0
-package=g-wrap-tng
+package=g-wrap
 srcfile=g-wrap/core-runtime.c
 
 . ./autogen-support.sh
@@ -16,7 +16,7 @@ echo -n "+ check for build tools"
 if test ! -z "$NOCHECK"; then echo ": skipped version checks"; else  echo; fi
 version_check "autoconf" "$AUTOCONF autoconf autoconf-2.59" \
               "ftp://ftp.gnu.org/pub/gnu/autoconf/" 2 59 || DIE=1
-version_check "automake" "$AUTOMAKE automake automake-1.7 automake17 automake-1.6" \
+version_check "automake" "$AUTOMAKE automake automake-1.10 automake-1.9 automake-1.8 automake-1.7 automake17 automake-1.6" \
               "ftp://ftp.gnu.org/pub/gnu/automake/" 1 5 || DIE=1
 version_check "libtoolize" "libtoolize libtoolize14" \
               "ftp://ftp.gnu.org/pub/gnu/libtool/" 1 4 0 || DIE=1
@@ -50,7 +50,7 @@ tool_run "$autoheader"
 
 tool_run "$autoconf"
 debug "automake: $automake"
-tool_run "$automake" "-a -c"
+tool_run "$automake" "-a -c -Wno-portability"
 
 if [ -d libffi ]; then
 (
