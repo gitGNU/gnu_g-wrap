@@ -55,7 +55,7 @@ static void gw_guile_handle_wrapper_error(GWLangArena arena,
 static void gw_guile_raise_error (GWLangArena arena, const char *proc,
                                   const char *error) GW_NORETURN;
 
-#if 0 // not used ATM
+#if 0 /* not used ATM */
 void
 gw_guile_runtime_get_version_info(int *major, int *revision, int *age)
 {
@@ -66,11 +66,12 @@ gw_guile_runtime_get_version_info(int *major, int *revision, int *age)
 #endif
 
 SCM
-gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
+gw_guile_enum_val2sym(const GWEnumPair enum_pairs[], SCM scm_val,
+		      SCM scm_show_all_p)
 {
   int enum_val;
   SCM scm_result;
-  GWEnumPair *epair;
+  const GWEnumPair *epair;
   int return_all_syms = scm_is_true (scm_show_all_p);
 
   if (return_all_syms)
@@ -108,10 +109,10 @@ gw_guile_enum_val2sym(GWEnumPair enum_pairs[], SCM scm_val, SCM scm_show_all_p)
 }
 
 SCM
-gw_guile_enum_val2int (GWEnumPair enum_pairs[], SCM scm_val)
+gw_guile_enum_val2int (const GWEnumPair enum_pairs[], SCM scm_val)
 {
   char *symstr = NULL;
-  GWEnumPair *epair;
+  const GWEnumPair *epair;
 
   if (scm_is_true(scm_integer_p (scm_val)))
   {
@@ -683,9 +684,14 @@ dynproc_smob_apply (SCM smob, SCM arg_list)
 	 i++, args = SCM_CDR (args))
       {
 	if (fi->arg_typespecs[i] & GW_TYPESPEC_AGGREGATED)
-	  /* Add this argument to the list of dependencies (aggregated
-	     objects) of the return value.  */
-	  deps = scm_cons (SCM_CAR (arg_list), deps);
+	  {
+	    /* Add this argument to the list of dependencies (aggregated
+	       objects) of the return value.  */
+	    SCM arg = SCM_CAR (args);
+
+	    if (SCM_NIMP (arg))
+	      deps = scm_cons (arg, deps);
+	  }
       }
 
     if (deps != SCM_EOL)

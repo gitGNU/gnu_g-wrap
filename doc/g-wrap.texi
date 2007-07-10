@@ -27,14 +27,14 @@
 @author Christopher Lee <chrislee@@ri.cmu.edu>
 @author Rob Browning <rlb@@defaultvalue.org>
 @author Andreas Rottmann <rotty@@debian.org>
-@author Ludovic Court�s <ludovic.courtes@@laas.fr>
+@author Ludovic Court@`es <ludovic.courtes@@laas.fr>
 
 @page
 @vskip 0pt plus 1filll
 Copyright @copyright{} 1996, 1997, 1998, 2006 Christopher Lee
 Copyright @copyright{} 2000-2001 Rob Browning
 Copyright @copyright{} 2004 Andreas Rottmann
-Copyright @copyright{} 2005,2006 Ludovic Court�s
+Copyright @copyright{} 2005, 2006, 2007 Ludovic Court@`es
 
 Permission is granted to make and distribute verbatim copies of this
 manual provided the copyright notice and this permission notice are
@@ -687,9 +687,9 @@ recommended since it describes concepts used throughout G-Wrap.
 
 G-Wrap's APIs are centered around a few basic concepts that one should
 know before using them.  Basically, each concept has a corresponding
-GOOPS class (see @inforef{Introduction, an introduction to GOOPS,
-goops}, for details about GOOPS) usually exported by the
-@code{(g-wrap)} module.
+GOOPS class (@pxref{Introduction, an introduction to GOOPS,, goops,
+The Goops Reference Manual}) usually exported by the @code{(g-wrap)}
+module.
 
 @menu
 * Wrapsets::                    
@@ -753,8 +753,8 @@ know them, except @code{initialize}.
 @deffn method initialize (wrapset <gw-wrapset>) . args
 Initialize @var{wrapset}, an newly created instance of
 @var{<gw-wrapset>}.  This method is part of the GOOPS meta-object
-protocol (see @inforef{Instance Creation, GOOPS MOP specification,
-goops}, for details).
+protocol (@pxref{Instance Creation, GOOPS MOP specification,, goops,
+The GOOPS Reference Manual}).
 
 @cindex module
 @cindex Guile module
@@ -985,8 +985,8 @@ to a call to the @code{wrap-function!} GOOPS method.
 @deffn method wrap-function! (wrapset <gw-wrapset>) . args
 Add the C function described by @var{args} to the list of functions to
 be wrapped by @var{wrapset}.  The arguments in @var{args} must contain
-the following named parameters (@inforef{Optional Arguments,
-@code{(ice-9 optargs)}, guile}, for more information):
+the following named parameters (@pxref{Optional Arguments,
+@code{(ice-9 optargs)},, guile, The GNU Guile Reference Manual}):
 
 @c FIXME: This is (mostly) copied from the `Overview' section.
 @table @code
@@ -1099,11 +1099,12 @@ above functions:
 
 Suppose the two C types are wrapped as WCTs (@pxref{Wrapping a C
 Pointer Type}).  The call to @code{make-stuff} will create a new
-Scheme object (a WCP, or a ``SMOB'' in Guile terms, @inforef{Defining
-New Types (Smobs), SMOBs, guile}, for details) for the underlying C
-object.  However, as soon as @code{make-stuff-container} has returned,
-the Scheme code no longer holds any SMOB representing the value that
-was returned by @code{make-stuff}.  Consequently, the SMOB returned by
+Scheme object (a WCP, or a ``SMOB'' in Guile terms, @pxref{Defining
+New Types (Smobs), SMOBs,, guile, The GNU Guile Reference Manual}) for
+the underlying C object.  However, as soon as
+@code{make-stuff-container} has returned, the Scheme code no longer
+holds any SMOB representing the value that was returned by
+@code{make-stuff}.  Consequently, the SMOB returned by
 @code{make-stuff} may soon be garbage-collected by Guile, and its
 underlying C object (originally returned by @code{make_stuff ()}) may
 soon get freed as well.
@@ -1262,12 +1263,12 @@ Optionally, @var{args} may contain the following parameters:
 
 @item #:wcp-equal-predicate
 @findex equal?
-A string representing a pointer to a C function of type
-@code{int (*) (void *, void *)}.  This C function will be called
-whenever comparing, via @code{equal?} (@inforef{Equality, , guile},
-for details), two WCP objects of the type being wrapped.  It should
-return true (i.e., non-zero) whenever the two C objects pointed to by
-the @code{void *} pointers are equal, false otherwise.
+A string representing a pointer to a C function of type @code{int (*)
+(void *, void *)}.  This C function will be called whenever comparing,
+via @code{equal?} (@pxref{Equality,,, guile, The GNU Guile Reference
+Manual}), two WCP objects of the type being wrapped.  It should return
+true (i.e., non-zero) whenever the two C objects pointed to by the
+@code{void *} pointers are equal, false otherwise.
 
 @item #:wcp-free-function
 A string representing a pointer to a C function of type
@@ -1285,10 +1286,10 @@ relevant only to wrapsets targeting Guile.
 @cindex mark and sweep
 @cindex memory management
 Guile's garbage-collector uses a @dfn{mark and sweep} algorithm
-(see @inforef{Garbage Collecting Smob, the description of Guile's GC
-mechanism, guile}, for details).  This parameter allows to direct the
-mark phase for the specific C type being wrapped, using the same
-protocol as the one used for SMOBs in Guile.
+(@pxref{Garbage Collecting Smob, the description of Guile's GC
+mechanism,, guile, The GNU Guile Reference Manual}).  This parameter
+allows to direct the mark phase for the specific C type being wrapped,
+using the same protocol as the one used for SMOBs in Guile.
 
 This option is only useful when wrapping C types that aggregate
 objects of type @code{SCM}: during the mark phase of the GC,
@@ -1375,6 +1376,10 @@ wrapset:
 @tab @code{char *}
 @tab string
 
+@item @code{scm}
+@tab @code{SCM}
+@tab any Scheme type
+
 @end multitable
 
 Similarly, other integer types not listed here are available (e.g.,
@@ -1446,9 +1451,9 @@ an optional description of this type.
 @cindex SCM
 @cindex scm
 As an example, the simple @code{scm} wrapped type which lets the user
-wrap C functions that take or return raw @code{SCM} objects (see
-@inforef{The SCM Type, Guile's SCM type, guile}, for a description of
-Guile's C type for Scheme objects) is defined as follows:
+wrap C functions that take or return raw @code{SCM} objects
+(@pxref{The SCM Type, Guile's SCM type,, guile, The GNU Guile
+Reference Manual}) is defined as follows:
 
 @lisp
 (wrap-simple-type! wrapset
@@ -1460,6 +1465,9 @@ Guile's C type for Scheme objects) is defined as follows:
                    #:unwrap '(c-var " = " scm-var ";\n")
                    #:wrap '(scm-var " = " c-var ";\n"))
 @end lisp
+
+Note that the @code{scm} type is part of the standard wrapset
+(@pxref{C Types Provided in the Standard Wrapset}).
 
 If @code{wrap-simple-type!} is still not good enough for what you want
 to do, then you may have a look at the details of G-Wrap's code
@@ -1477,10 +1485,11 @@ C code implementing these wrappings.
 
 In the following sections, we will detail the @dfn{protocol} that is
 used to perform code generation.  G-Wrap heavily uses GOOPS, Guile's
-object orientation framework, to this end (@inforef{Top, GOOPS,
-goops}).  This is what makes G-Wrap highly customizable: each of these
-code generation methods may be overloaded or redefined in order to
-meet the user's particular needs.
+object orientation framework, to this end (@pxref{Top, Guile's
+Object-Oriented Programming System,, goops, The GOOPS Reference
+Manual}).  This is what makes G-Wrap highly customizable: each of
+these code generation methods may be overloaded or redefined in order
+to meet the user's particular needs.
 
 Most of the classes and methods involved in generation of C code are
 defined in the @code{(g-wrap c-codegen)}.
@@ -1646,11 +1655,11 @@ than on the heap, in order to speed up operation.
 As an example, @code{unwrap-value-cg} method for type @code{mchars},
 for Guile wrapsets, can convert Scheme strings to C strings on the
 stack using @code{scm_to_locale_stringbuf} rather than
-@code{scm_to_locale_string} which allocates a new C string on the
-heap (@inforef{Conversion to/from C, Guile string wrapping/unwrapping,
-guile}, for details).
-The @var{inline?} argument is optional.  This means that you can
-overload @var{wrap-value-cg} without having to specify this argument:
+@code{scm_to_locale_string} which allocates a new C string on the heap
+(@pxref{Conversion to/from C, Guile string wrapping/unwrapping,,
+guile, The GNU Guile Reference Manual}).  The @var{inline?} argument
+is optional.  This means that you can overload @var{wrap-value-cg}
+without having to specify this argument:
 
 @lisp
 (define-method (wrap-value-cg (type <my-own-type>) (value <gw-value>)

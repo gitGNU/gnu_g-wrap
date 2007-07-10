@@ -323,13 +323,13 @@
      (if (zero? nargs)
 	 '()
 	 (list
-	  "  GWTypeSpec *typespec = NULL;\n"
-	  "  GWTypeSpec typespecs[] = { " (string-join
-					   (map
-					    (lambda (param)
-					      (typespec-cg (type param) (typespec param)))
-					    scm-params)
-					   ", ") " };\n"))
+	  "  const GWTypeSpec *typespec = NULL;\n"
+	  "  static const GWTypeSpec typespecs[] = { "
+          (string-join
+           (map (lambda (param)
+                  (typespec-cg (type param) (typespec param)))
+                scm-params)
+           ", ") " };\n"))
 
      (if (needs-result-var? return-type)
          (let ((c-value (default-c-value-for-type return-type)))
@@ -444,9 +444,7 @@
 			   (if (zero? nargs)
 			       "wrapper_exit"
 			       (format #f "post_call_arg_~A" (- nargs 1))))
-	     "SCM_DEFER_INTS;\n"
-	     (expand-special-forms call-code #f '(memory misc type range))
-	     "SCM_ALLOW_INTS;\n")
+	     (expand-special-forms call-code #f '(memory misc type range)))
 	    "/* no function call requested! */\n"))
 
       "{\n/* post-call-result-cg */\n"
@@ -491,19 +489,23 @@
       "    gw_handle_wrapper_error(NULL, &gw__error,\n"
       "                             " fn-c-string ",\n"
       "                             gw__arg_pos);\n"
-      (if (null? out-params)
-	  "  return gw__scm_result;\n"
-	  (list
-	   "  return scm_values (scm_list_n ("
-	   (if (needs-result-var? return-type)
-	       "gw__scm_result, "
-	       '())
-	   (filter-map (lambda (n out-param)
-                         (and (visible? out-param)
-                              (string-append (out-param-name n) ", ")))
-                       (iota (length out-params))
-                       out-params)
-	   "SCM_UNDEFINED));\n"))
+      (cond ((null? out-params)
+             "  return gw__scm_result;\n")
+            ((and (not (needs-result-var? return-type))
+                  (null? (cdr out-params)))
+             (list "  return (" (out-param-name 0) ");\n"))
+            (else
+             (list
+              "  return scm_values (scm_list_n ("
+              (if (needs-result-var? return-type)
+                  "gw__scm_result, "
+                  '())
+              (filter-map (lambda (n out-param)
+                            (and (visible? out-param)
+                                 (string-append (out-param-name n) ", ")))
+                          (iota (length out-params))
+                          out-params)
+              "SCM_UNDEFINED));\n")))
       "}\n")))
 
 ;; RTI functions override this method

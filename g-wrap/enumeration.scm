@@ -50,7 +50,7 @@
 
 (define (val-array-cg enum)
   (list
-   "static GWEnumPair " (slot-ref enum 'val-array-name) "[] = {\n"
+   "static const GWEnumPair " (slot-ref enum 'val-array-name) "[] = {\n"
    (map
     (lambda (enum-val)
       (let ((c-sym (cdr enum-val))
