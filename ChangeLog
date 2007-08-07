@@ -1,3 +1,8 @@
+2007-07-12  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* Makefile.am: Distribute and install SRFI 34/35 again.
+	* lib/srfi: Moved to toplevel.
+
 2007-07-10  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* guile/examples/Makefile.am: Don't install the libraries.
