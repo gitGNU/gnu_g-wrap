@@ -1,5 +1,5 @@
 ;;;; File: rti.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004, 2007 Andreas Rottmann
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -81,28 +81,14 @@
        (list "else {\n" code2 "}\n")
        '()))))
 
-(define-class <gw-rti-type-class> (<class>))
-
-(define-method (initialize (class <gw-rti-type-class>) initargs)
-  (next-method)
-  ;; Inherit the allowed options
-  (let-keywords
-   initargs #t ((allowed-options '()))
-   (class-slot-set-supers-union!
-    class 'allowed-options allowed-options)))
-
 (define-class <gw-rti-type> (<gw-type>)
-  (allowed-options #:init-value '() #:allocation #:each-subclass
-		   #:init-keyword #:allowed-options)
   (c-type-name #:getter c-type-name #:init-keyword #:c-type-name)
   (c-const-type-name #:init-keyword #:c-const-type-name)
   (ffspec #:getter ffspec #:init-keyword #:ffspec)
 
   (wrap-value-function-name #:getter wrap-value-function-name)
   (unwrap-value-function-name  #:getter unwrap-value-function-name)
-  (destroy-value-function-name #:getter destroy-value-function-name)
-
-  #:metaclass <gw-rti-type-class>)
+  (destroy-value-function-name #:getter destroy-value-function-name))
 
 (define-method (c-type-name (type <gw-rti-type>) (typespec <gw-typespec>))
   (slot-ref type (if (memq 'const (options typespec))

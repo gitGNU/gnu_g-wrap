@@ -169,7 +169,19 @@
 ;;; Types
 ;;;
 
+(define-class <gw-type-class> (<class>))
+
+(define-method (initialize (class <gw-type-class>) initargs)
+  (next-method)
+  ;; Inherit the allowed options
+  (let-keywords initargs #t ((allowed-options '()))
+    (class-slot-set-supers-union!
+     class 'allowed-options allowed-options)))
+
+
 (define-class <gw-type> (<gw-item>)
+  (allowed-options #:init-value '() #:allocation #:each-subclass
+		   #:init-keyword #:allowed-options)
   (name #:getter name #:init-keyword #:name)
   (class-name #:accessor class-name
               #:init-keyword #:class-name
@@ -179,7 +191,8 @@
                      #:init-value #t)
   (arguments-visible? #:getter arguments-visible?
                       #:init-keyword #:arguments-visible?
-                      #:init-value #t))
+                      #:init-value #t)
+  #:metaclass <gw-type-class>)
 
 (define-method (write (type <gw-type>) port)
   (let ((class (class-of type)))

@@ -1,3 +1,9 @@
+2007-08-11  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap.scm, g-wrap/c-types.scm, g-wrap/rti.scm:
+	* guile/g-wrap/guile.scm: Move "allowed-options" to <gw-type> 
+	from <gw-rti-type>.
+
 2007-07-12  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* Makefile.am: Distribute and install SRFI 34/35 again.

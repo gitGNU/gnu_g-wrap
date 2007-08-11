@@ -1,5 +1,5 @@
 ;;;; File: c-types.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004, 2007 Andreas Rottmann
 ;;;; Copyright (C) 2005, 2006 Ludovic Court�s
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
@@ -167,7 +167,9 @@
   ;; C pointers that are `equal'  in the sense of that type.
   (wcp-equal-predicate #:accessor wcp-equal-predicate
 		       #:init-keyword #:wcp-equal-predicate
-		       #:init-value "NULL"))
+		       #:init-value "NULL")
+
+  #:allowed-options '(null-ok))
 
 (define-method (initialize (wct <gw-wct>) initargs)
   (next-method wct (cons #:ffspec (cons 'pointer initargs))))
