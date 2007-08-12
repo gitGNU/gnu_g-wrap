@@ -7,9 +7,12 @@ See the end for copying conditions.
 
 Version 1.9.9
 
+    - Support per-(type-)instance use of #:allowed-options
+
     - Build fixes:
       - Fix example build when libffi is not installed on the system.
       - Fix GLib build (was deactivated by accident)
+      - Distribute and install SRFI 34/35 again
 
     - libffi updated from GCC SVN
 
