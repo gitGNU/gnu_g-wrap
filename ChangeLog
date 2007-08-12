@@ -1,5 +1,8 @@
 2007-08-12  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* g-wrap.scm (<gw-type>, initialize): Support per-instance
+	allowed-options.
+
 	* g-wrap/c-types.scm (check-typespec-options): 
 	* g-wrap/rti.scm (check-typespec-options): Cleanup a bit.
 

@@ -176,12 +176,12 @@
   ;; Inherit the allowed options
   (let-keywords initargs #t ((allowed-options '()))
     (class-slot-set-supers-union!
-     class 'allowed-options allowed-options)))
+     class 'class-allowed-options allowed-options)))
 
 
 (define-class <gw-type> (<gw-item>)
-  (allowed-options #:init-value '() #:allocation #:each-subclass
-		   #:init-keyword #:allowed-options)
+  (class-allowed-options #:init-value '() #:allocation #:each-subclass)
+  (allowed-options #:init-value '() #:init-keyword #:allowed-options)
   (name #:getter name #:init-keyword #:name)
   (class-name #:accessor class-name
               #:init-keyword #:class-name
@@ -193,6 +193,13 @@
                       #:init-keyword #:arguments-visible?
                       #:init-value #t)
   #:metaclass <gw-type-class>)
+
+(define-method (initialize (type <gw-type>) initargs)
+  (next-method)
+  (slot-set! type 'allowed-options
+             (lset-union eq?
+                         (slot-ref type 'class-allowed-options)
+                         (slot-ref type 'allowed-options))))
 
 (define-method (write (type <gw-type>) port)
   (let ((class (class-of type)))
