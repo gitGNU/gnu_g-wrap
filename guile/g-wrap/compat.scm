@@ -1,5 +1,5 @@
 ;;;; File: compat.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004, 2007 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -52,6 +52,12 @@
             gw:wrap-value
             gw:inline-scheme
             gw:generate-wrapset))
+
+;; Hack to make WCTs nullable (null-ok) by default, as in G-Wrap 1.3.4
+(define-method (make-typespec (type <gw-wct>) (options <list>))
+  (next-method type (if (memq 'non-null options)
+                        (cons 'caller-owned (delq 'non-null options))
+                        (append '(null-ok caller-owned) options))))
 
 (define-class <gw-compat-wrapset-info> ()
   (name #:getter name #:init-keyword #:name)

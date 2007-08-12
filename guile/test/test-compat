@@ -12,6 +12,10 @@ exec ${builddir-.}/../run-guile ${GUILE_FLAGS} -s "$0" "$@"
 (define-method (test-void-type (self <test-compat>))
   (assert-true (unspecified? (gw-test-gw-standard-no-op))))
 
+(define-method (test-wct (self <test-compat>))
+  ;; WCTs may be NULL (represented by #f in Scheme) by default in compat mode 
+  (assert-equal #f (gw-test-parent-same-obj #f)))
+
 (exit-with-summary (run-all-defined-test-cases))
 
 ;; Local Variables:

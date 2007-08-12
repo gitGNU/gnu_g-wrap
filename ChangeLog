@@ -1,5 +1,11 @@
 2007-08-12  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* guile/g-wrap/compat.scm (make-typespec): Make WCTs null-ok by
+	default.
+	* guile/test/guile-test-compat-spec.scm: 
+	* guile/test/test-compat (test-wct): Check that NULL is allowed
+	for the WCT.
+
 	* g-wrap.scm (<gw-type>, initialize): Support per-instance
 	allowed-options.
 
