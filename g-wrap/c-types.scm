@@ -32,6 +32,7 @@
 
 (define-module (g-wrap c-types)
   #:use-module (oop goops)
+  #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
 
@@ -178,18 +179,10 @@
   (next-method type (cons 'caller-owned options)))
 
 (define-method (check-typespec-options (type <gw-wct>) (options <list>))
-  (let ((remainder options))
-    (set! remainder (delq 'caller-owned (delq 'const remainder)))
-
-    (for-each (lambda (opt) (set! remainder (delq opt remainder)))
-	      (slot-ref type 'allowed-options))
-
+  (let ((remainder (lset-difference eq? options (append '(caller-owned const)
+                                                        (slot-ref type 'allowed-options)))))
     (if (not (null? remainder))
-	(raise (condition
-		(&gw-bad-typespec
-		 (type type) (options options)
-		 (message
-		  (format #f "spurious options: ~S" remainder))))))))
+	(raise-bad-typespec type options "spurious options: ~S" remainder))))
 
 (define-method (wrap-as-wct! (wrapset <gw-wrapset>) . args)
   (let ((wct (apply make <gw-wct> args)))

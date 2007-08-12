@@ -1,3 +1,8 @@
+2007-08-12  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/c-types.scm (check-typespec-options): 
+	* g-wrap/rti.scm (check-typespec-options): Cleanup a bit.
+
 2007-08-11  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* g-wrap.scm, g-wrap/c-types.scm, g-wrap/rti.scm:

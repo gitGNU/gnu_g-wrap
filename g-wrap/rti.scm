@@ -136,30 +136,17 @@
 
 (define-method (check-typespec-options (type <gw-rti-type>) (options <list>))
   (let ((remainder options))
-    (set! remainder (delq 'const remainder))
-    (set! remainder (delq 'out remainder))
-    (set! remainder (delq 'unspecialized remainder))
+    (set! remainder (lset-difference eq? remainder '(const out unspecialized) ))
     (if (and (memq 'caller-owned remainder)
 	     (memq 'callee-owned remainder))
-	(raise (condition
-		(&gw-bad-typespec
-		 (type type) (options options)
-		 (message "both caller and callee owned")))))
+	(raise-bad-typespec type options "both caller and callee owned"))
     (if (not (or (memq 'caller-owned remainder)
 		 (memq 'callee-owned remainder)))
-	(raise (condition
-		(&gw-bad-typespec
-		 (type type) (options options)
-		 (message "must be caller or callee owned" type)))))
-    (set! remainder (delq 'caller-owned remainder))
-    (set! remainder (delq 'callee-owned remainder))
-    (for-each (lambda (opt) (set! remainder (delq opt remainder)))
-	      (slot-ref type 'allowed-options))
+	(raise-bad-typespec type options "must be caller or callee owned"))
+    (set! remainder (lset-difference eq? remainder (append '(caller-owned callee-owned)
+                                                           (slot-ref type 'allowed-options))))
     (if (not (null? remainder))
-	(raise (condition
-		(&gw-bad-typespec
-		 (type type) (options options)
-		 (message (format #f "spurious options ~S" remainder))))))))
+	(raise-bad-typespec type options "spurious options in RTI type: ~S" remainder))))
 
 (define-class <gw-simple-rti-type> (<gw-rti-type>))
 
@@ -173,10 +160,7 @@
   (let ((remainder options))
     (set! remainder (delq 'out remainder))
     (if (not (null? remainder))
-	(raise (condition
-		(&gw-bad-typespec
-		 (type type) (options options)
-		 (message (format #f "spurious options ~S" options))))))))
+	(raise-bad-typespec type options "spurious options: ~S" remainder))))
 
 (define-method (initializations-cg (wrapset <gw-rti-wrapset>)
 				   (type <gw-rti-type>)
