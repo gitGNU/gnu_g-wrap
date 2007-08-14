@@ -4,7 +4,8 @@ noinst_LTLIBRARIES = libmiscutils.la
 libmiscutils_la_SOURCES = miscutils.c miscutils.h
 
 noinst_LTLIBRARIES += libgw-guile-miscutils.la
-libgw_guile_miscutils_la_SOURCES = miscutils-guile.c miscutils-guile.h gw-miscutils.c
+libgw_guile_miscutils_la_SOURCES = miscutils-guile.c miscutils-guile.h
+nodist_libgw_guile_miscutils_la_SOURCES = gw-miscutils.c
 libgw_guile_miscutils_la_CFLAGS = -I$(top_srcdir) -I$(top_srcdir)/guile $(LIBFFI_CFLAGS)
 libgw_guile_miscutils_la_LDFLAGS = -module
 libgw_guile_miscutils_la_LIBADD = libmiscutils.la \
@@ -12,7 +13,7 @@ libgw_guile_miscutils_la_LIBADD = libmiscutils.la \
 	                          $(top_builddir)/g-wrap/libgwrap-core-runtime.la \
 				  $(LIBFFI_LIBS)
 
-EXTRA_DIST= README update-format.scm
+EXTRA_DIST= README miscutils-spec.scm update-format.scm
 
 CLEANFILES = $(wildcard gw-*)
 

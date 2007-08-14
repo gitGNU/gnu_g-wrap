@@ -1,5 +1,10 @@
 2007-08-14  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* guile/examples/Makefile.am
+	(nodist_libgw_guile_miscutils_la_SOURCES)
+	(libgw_guile_miscutils_la_SOURCES, EXTRA_DIST): Distribute the
+	spec, not the generated source.
+
 	* guile/g-wrap-2.0-guile.pc.in (datarootdir, datadir): Define; see
 	http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=382131.
 
