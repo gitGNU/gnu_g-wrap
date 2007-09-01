@@ -1,5 +1,24 @@
 2007-09-01  Ludovic Court�s  <ludo@gnu.org>
 
+	* g-wrap/util.scm: Use `srfi-13'.
+	(any-str->c-sym-str): Use `string-concatenate'.
+	(class-slot-set-supers-union!): Use `concatenate'.
+
+	* g-wrap/scm-codegen.scm (generate-wrapset-scm): Removed unused
+	bindings.
+
+	* g-wrap.scm (g-wrap): Don't use `srfi-11', don't export
+	`provide-type-class!' (unbound), export the condition type
+	predicates.
+	(gw-handle-condition): Fixed typos, handle
+	`gw-bad-typespec-option-error?' properly.
+	(raise-bad-typespec-option): Don't provide initializers for
+	`spec' and `type'.
+	(for-each-function): Removed.
+	(wrap-type!): Use `format-error' instead of `error'.
+
+2007-09-01  Ludovic Court�s  <ludo@gnu.org>
+
 	Use proper SRFI-35 constructs.
 
 	* g-wrap.scm (&gw-bad-typespec, &gw-bad-typespec-option,

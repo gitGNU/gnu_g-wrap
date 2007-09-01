@@ -37,10 +37,7 @@
   (define (rndr expressions)
     (render (make-scm-code expressions) port))
   
-  (let ((wrapset-name-c-sym (any-str->c-sym-str
-                             (symbol->string (name wrapset))))
-        (client-types (compute-client-types wrapset))
-        (items (reverse (slot-ref wrapset 'items))))
+  (let ((items (reverse (slot-ref wrapset 'items))))
 
     (define (render-items cg)
       (for-each (lambda (item)

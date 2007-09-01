@@ -33,13 +33,14 @@
   #:use-module (ice-9 pretty-print)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
   #:use-module (g-wrap util)
   
   #:export
   (&gw-bad-typespec
+   gw-bad-typespec-error? gw-bad-typespec-option-error?
+   gw-stacked-error? gw-name-conflict-error?
    raise-bad-typespec
    raise-stacked
    gw-handle-condition
@@ -93,10 +94,9 @@
    
    add-item! add-type! add-constant! add-function!
    add-client-item!
-   
-   provide-type-class!
+
    defines-generic?
-   
+
    wrap-type! wrap-function! wrap-constant!
 
    get-wrapset generate-wrapset compute-client-types
@@ -130,29 +130,35 @@
   (next    stacked-error-next-condition)
   (message stacked-error-message))
 
+
 (define-method (format-error msg . args)
   (display "g-wrap: " (current-error-port))
   (apply format (current-error-port) msg args)
   (newline (current-error-port)))
 
 (define (gw-handle-condition c)
-  (cond ((condition-has-type? c &gw-stacked)
-         (format-error "~A:" (gw-stacked-error-message c))
+  (cond ((gw-stacked-error? c)
+         (format-error "~A:" (stacked-error-message c))
          (gw-handle-condition (stacked-error-next-condition c)))
-        ((condition-has-type? c &gw-bad-typespec)
+        ((gw-bad-typespec-error? c)
          (cond
           ((bad-typespec-type c)
            (format-error "bad typespec `~A ~A': ~A"
-                         (type c) (typespec-options c) (bad-typespec-message c)))
+                         (type c) (bad-typespec-options c)
+                         (bad-typespec-message c)))
           (else
            (format-error "bad typespec `~A': ~A" (bad-typespec-form c)
                          (bad-typespec-message c)))))
+        ((gw-bad-typespec-option-error? c)
+         (format-error "bad typespec option: ~A: ~A"
+                       (bad-typespec-option c)
+                       (bad-typespec-option-message c)))
         ((gw-bad-element-error? c)
          (format-error "bad element ~S in tree ~S"
                        (bad-element c) (bad-element-tree c)))
         ((gw-name-conflict-error? c)
          (format-error "name conflict: ~A in namespace ~A: ~A"
-                       (conflicting-name c) (conflict-namespace c)
+                       (conflicting-name c) (conflicting-namespace c)
                        (name-conflict-message c)))
         (else
          (format-error "unhandled error condition: ~A" c))))
@@ -258,7 +264,7 @@
 (define-method (raise-bad-typespec-option option (msg <string>) . args)
   (raise (condition
           (&gw-bad-typespec-option
-           (spec #f) (type #f) (option option)
+           (option option)
            (message (apply format #f msg args))))))
 
 (define-method (raise-stacked next (msg <string>) . args)
@@ -699,9 +705,6 @@
 (define-method (fold-functions kons knil (ws <gw-wrapset>))
   (fold kons knil (reverse (slot-ref ws 'functions))))
 
-(define-method (for-each-function proc (ws <gw-wrapset>))
-  (for-each proc (reverse (slot-ref ws 'functions))))
-
 (define-method (consider-types? (wrapset <gw-wrapset>) (item <gw-item>))
   #t)
 
@@ -764,7 +767,7 @@
   (let ((class (hashq-ref (class-slot-ref
                            (class-of wrapset) 'type-classes) class-name)))
     (if (not class)
-        (error "unknown type class ~S" class-name)) ;; FIXME: better handling
+        (format-error "unknown type class ~S" class-name)) ;; FIXME: better handling
     (add-type! wrapset (apply make class args))))
 
 (define-method (wrap-function! (wrapset <gw-wrapset>) . args)

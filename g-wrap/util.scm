@@ -29,6 +29,7 @@
 
 (define-module (g-wrap util)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-13)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
   #:use-module (oop goops)
@@ -177,8 +178,7 @@
      ((char-numeric? char) (string char))
      (else "_")))
 
-  (apply
-   string-append
+  (string-concatenate
    (map
     char->string-replacement
     (string->list name))))
@@ -232,7 +232,7 @@
 
 (define (class-slot-set-supers-union! class slot init)
   (class-slot-set! class slot
-                   (apply append
+                   (concatenate
                           (cons
                            init
                            (map (lambda (c)
