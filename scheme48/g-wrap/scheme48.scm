@@ -240,7 +240,7 @@
         (basedir (dirname filename)))
     (guard
      (c
-      (#t (handle-condition c)
+      (#t (gw-handle-condition c)
           (set! had-error? #t)))
      (let ((wrapsets (map (lambda (name) (get-wrapset 'scheme48 name)) ws-names)))
        (call-with-output-file/cleanup filename

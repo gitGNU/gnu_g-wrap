@@ -42,6 +42,7 @@
   (&gw-bad-typespec
    raise-bad-typespec
    raise-stacked
+   gw-handle-condition
    
    <gw-item>
    description
@@ -101,49 +102,63 @@
    get-wrapset generate-wrapset compute-client-types
    ))
 
+
+;;;
 ;;; Conditions
+;;;
 
-(define-class &gw-bad-typespec (&error &message)
-  (spec #:getter typespec-form #:init-value #f)
-  (type #:getter type #:init-value #f)
-  (options #:getter typespec-options #:init-value #f))
+(define-condition-type &gw-bad-typespec &error
+  gw-bad-typespec-error?
+  (spec    bad-typespec-form)
+  (type    bad-typespec-type)
+  (options bad-typespec-options)
+  (message bad-typespec-message))
 
-(define-class &gw-bad-typespec-option (&error &message)
-  (option #:getter typespec-option))
+(define-condition-type &gw-bad-typespec-option &error
+  gw-bad-typespec-option-error?
+  (option  bad-typespec-option)
+  (message bad-typespec-option-message))
 
-(define-class &gw-name-conflict (&error &message)
-  (name #:getter conflicting-name)
-  (namespace #:getter conflict-namespace))
+(define-condition-type &gw-name-conflict &error
+  gw-name-conflict-error?
+  (name        conflicting-name)
+  (namespace   conflicting-namespace)
+  (message     name-conflict-message))
 
-(define-class &gw-stacked (&message)
-  (next #:getter next-condition))
+(define-condition-type &gw-stacked &error
+  gw-stacked-error?
+  (next    stacked-error-next-condition)
+  (message stacked-error-message))
 
 (define-method (format-error msg . args)
   (display "g-wrap: " (current-error-port))
   (apply format (current-error-port) msg args)
   (newline (current-error-port)))
 
-(define-method (handle-condition (c &gw-stacked))
-  (format-error "~A:" (condition-message c))
-  (handle-condition (next-condition c)))
+(define (gw-handle-condition c)
+  (cond ((condition-has-type? c &gw-stacked)
+         (format-error "~A:" (gw-stacked-error-message c))
+         (gw-handle-condition (stacked-error-next-condition c)))
+        ((condition-has-type? c &gw-bad-typespec)
+         (cond
+          ((bad-typespec-type c)
+           (format-error "bad typespec `~A ~A': ~A"
+                         (type c) (typespec-options c) (bad-typespec-message c)))
+          (else
+           (format-error "bad typespec `~A': ~A" (bad-typespec-form c)
+                         (bad-typespec-message c)))))
+        ((gw-bad-element-error? c)
+         (format-error "bad element ~S in tree ~S"
+                       (bad-element c) (bad-element-tree c)))
+        ((gw-name-conflict-error? c)
+         (format-error "name conflict: ~A in namespace ~A: ~A"
+                       (conflicting-name c) (conflict-namespace c)
+                       (name-conflict-message c)))
+        (else
+         (format-error "unhandled error condition: ~A" c))))
 
-(define-method (handle-condition (c &gw-bad-typespec))
-  (cond
-   ((type c)
-    (format-error "bad typespec `~A ~A': ~A"
-                  (type c) (typespec-options c) (condition-message c)))
-   (else
-    (format-error "bad typespec `~A': ~A" (typespec-form c)
-                  (condition-message c)))))
 
-(define-method (handle-condition (c &gw-bad-element))
-  (format-error "bad element ~S in tree ~S" (element c) (tree c)))
-
-(define-method (handle-condition (c &gw-name-conflict))
-  (format-error "name conflict: ~A in namespace ~A: ~A"
-                (conflicting-name c) (conflict-namespace c)
-                (condition-message c)))
-
+
 ;;;
 
 ;; An <gw-item> is "something" that shows up in the generated
@@ -222,31 +237,38 @@
                              (symbol->string
                               (name type))) "_" suffix)))
 
+
+;;;
+;;; Raising error conditions
+;;;
+
 ;; Here because needs <gw-type>
 (define-method (raise-bad-typespec type (options <list>) (msg <string>) . args)
   (raise (condition
           (&gw-bad-typespec
-           (type type) (options options)
+           (spec #f) (type type) (options options)
            (message (apply format #f msg args))))))
 
 (define-method (raise-bad-typespec spec (msg <string>) . args)
   (raise (condition
           (&gw-bad-typespec
-           (spec spec)
+           (spec spec) (type #f) (options #f)
            (message (apply format #f msg args))))))
 
 (define-method (raise-bad-typespec-option option (msg <string>) . args)
   (raise (condition
           (&gw-bad-typespec-option
-           (option option)
+           (spec #f) (type #f) (option option)
            (message (apply format #f msg args))))))
 
-(define-method (raise-stacked (next &condition) (msg <string>) . args)
+(define-method (raise-stacked next (msg <string>) . args)
+  ;; NEXT should be a condition.
   (raise (condition
           (&gw-stacked
            (next next)
            (message (apply format #f msg args))))))
-  
+
+
 ;;;
 ;;; Values
 ;;;
@@ -389,10 +411,10 @@
   (check-typespec-options type options)
   (guard
    (c
-    ((is-a? c &gw-bad-typespec-option)
+    ((condition-has-type? c &gw-bad-typespec-option)
      (raise-bad-typespec type options "bad typespec option ~S: ~A"
-                         (typespec-option c)
-                         (condition-message c))))
+                         (bad-typespec-option c)
+                         (bad-typespec-message c))))
    (let ((typespec (make <gw-typespec> #:type type)))
      (for-each (lambda (opt) (parse-typespec-option! typespec type opt))
                options)
@@ -817,7 +839,7 @@
   (let ((had-error? #f))
     (guard
      (c
-      (#t (handle-condition c)
+      (#t (gw-handle-condition c)
           (set! had-error? #t)))
      (generate-wrapset lang (get-wrapset lang name) basename))
     (if had-error?

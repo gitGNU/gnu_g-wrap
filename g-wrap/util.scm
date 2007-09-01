@@ -32,10 +32,14 @@
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
   #:use-module (oop goops)
-  
+
+  ;; XXX: This introduces a circular dependency, but `autoload' allows us to
+  ;; work around it.
+  #:autoload   (g-wrap)       (gw-handle-condition)
+
   #:export
-  (&gw-bad-element
-   element tree
+  (&gw-bad-element gw-bad-element-error?
+   bad-element bad-element-tree
 
    call-with-output-file/cleanup
    slot-push!
@@ -51,15 +55,16 @@
 
 ;;; Condition stuff
 
-(define-class &gw-bad-element (&error)
-  (element #:getter element)
-  (tree #:getter tree))
+(define-condition-type &gw-bad-element &error
+  gw-bad-element-error?
+  (element  bad-element)
+  (tree     bad-element-tree))
 
 (define-macro (guard/handle . body)
   (let ((cond-name (gensym)))
     `(guard
       (,cond-name
-       (else (handle-condition ,cond-name)))
+       (else (gw-handle-condition ,cond-name)))
       ,@body)))
 
 ;;; General utilities
@@ -77,7 +82,7 @@
          (c
           ((condition-has-type? c &error)
            (set! had-errors? #t)
-           (handle-condition c)))
+           (gw-handle-condition c)))
          
          (call-with-output-file file-name proc)))
          

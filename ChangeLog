@@ -1,3 +1,27 @@
+2007-09-01  Ludovic Court�s  <ludo@gnu.org>
+
+	Use proper SRFI-35 constructs.
+
+	* g-wrap.scm (&gw-bad-typespec, &gw-bad-typespec-option,
+	&gw-name-conflict, &gw-stacked): Use `define-condition-type'
+	instead of `define-class'.
+	(gw-handle-condition): New, replacement for the set of
+	`handle-condition' methods.
+	(raise-bad-typespec, raise-bad-typespec-option, raise-stacked):
+	Specify all fields when invoking the `condition' macro, as
+	required per SRFI-35.
+	(make-typespec): Use `condition-has-type?' instead of `is-a?'.
+	(generate-wrapset): Use `gw-handle-condition' instead of
+	`handle-condition'.
+
+	* g-wrap/util.scm: Autoload `(g-wrap)'.
+	(&gw-bad-element): Use `define-condition-type'.
+	(guard/handle): Use `gw-handle-condition'.
+	(call-with-output-file/cleanup): Likewise.
+
+	* scheme48/g-wrap/scheme48.scm (generate-packages): Use
+	`gw-handle-condition'.
+
 2007-08-14  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* guile/examples/Makefile.am
