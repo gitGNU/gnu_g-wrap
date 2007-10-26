@@ -5,6 +5,13 @@ Copyright (C) 2006 Ludovic Court�s <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
 See the end for copying conditions.
 
+Version 1.9.10
+
+    - Fix WCT nullable behaviour for 'new' (i.e. non-compat) wrapsets;
+      there is now a SRFI-39 parameter 'gw-wcts-nullable?' controlling
+      the nullable behaviour; this parameter is #f by default, and set
+      to #t when generating compat wrapsets.
+
 Version 1.9.9
 
     - Support per-(type-)instance use of #:allowed-options

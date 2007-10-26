@@ -35,6 +35,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
+  #:use-module (srfi srfi-39)
 
   #:use-module (g-wrap)
   #:use-module (g-wrap c-codegen)
@@ -49,6 +50,7 @@
 	    <gw-ctype-void> <gw-ctype-mchars>
 
 	    <gw-wct>
+            gw-wcts-nullable?
 	    wrap-as-wct!
 	    wcp-mark-function wcp-free-function wcp-equal-predicate))
 
@@ -175,8 +177,15 @@
 (define-method (initialize (wct <gw-wct>) initargs)
   (next-method wct (cons #:ffspec (cons 'pointer initargs))))
 
+;; Are WCTs nullable by default?
+(define gw-wcts-nullable? (make-parameter #f))
+
 (define-method (make-typespec (type <gw-wct>) (options <list>))
-  (next-method type (cons 'caller-owned options)))
+  (next-method type (if (gw-wcts-nullable?)
+                        (if (memq 'non-null options)
+                            (cons 'caller-owned (delq 'non-null options))
+                            (append '(null-ok caller-owned) options))
+                        (cons 'caller-owned options))))
 
 (define-method (check-typespec-options (type <gw-wct>) (options <list>))
   (let ((remainder (lset-difference eq? options (append '(caller-owned const)

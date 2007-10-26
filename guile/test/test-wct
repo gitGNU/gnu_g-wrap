@@ -35,6 +35,10 @@ exec ${builddir-.}/../run-guile -s "$0" "$@"
          (passed-obj (gw-test-child-pass-back-parent-obj obj-1)))
     (assert-equal obj-1 passed-obj)))
 
+(define-method (test-null (self <test-wct>))
+  "checking that NULL (#f) is not accepted by default"
+  (assert-exception (gw-test-parent-same-obj #f)))
+
 (define (stress-gc)
   ;; Stress the garbage collector to force him to free objects no longer
   ;; referenced.

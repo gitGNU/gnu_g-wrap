@@ -31,6 +31,7 @@
 (define-module (g-wrap compat)
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-39)
 
   #:use-module (g-wrap)
   #:use-module (g-wrap c-codegen)
@@ -52,12 +53,6 @@
             gw:wrap-value
             gw:inline-scheme
             gw:generate-wrapset))
-
-;; Hack to make WCTs nullable (null-ok) by default, as in G-Wrap 1.3.4
-(define-method (make-typespec (type <gw-wct>) (options <list>))
-  (next-method type (if (memq 'non-null options)
-                        (cons 'caller-owned (delq 'non-null options))
-                        (append '(null-ok caller-owned) options))))
 
 (define-class <gw-compat-wrapset-info> ()
   (name #:getter name #:init-keyword #:name)
@@ -303,6 +298,7 @@
 
 (define (gw:generate-wrapset name)
   (manifest-as-real-wrapset name)
-  (let ((id (hash-ref *real-wrapsets* name)))
-    (generate-wrapset 'guile id name)))
+  (parameterize ((gw-wcts-nullable? #t))
+    (let ((id (hash-ref *real-wrapsets* name)))
+      (generate-wrapset 'guile id name))))
 
