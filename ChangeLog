@@ -1,3 +1,19 @@
+2007-10-26  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	Fix WCT nullable behaviour.
+	
+	* g-wrap/c-types.scm (gw-wcts-nullable?): New SRFI-39 parameter
+	controlling nullable behaviour. If this is #t, WCTs will be
+	nullable unless the `non-null' typespec option is given; when #f,
+	`null-ok' must be specified for nullable types (this is the default,
+	and all new code should use this mode of operation).
+	(make-typespec): Respect the setting of `gw-wcts-nullable?'.
+
+	* guile/g-wrap/compat.scm (gw:generate-wrapset): Parameterize
+	`gw-wcts-nullable?' to #t.
+	
+	* NEWS: Added entry regarding nullable behaviour.
+	
 2007-09-01  Ludovic Court�s  <ludo@gnu.org>
 
 	* g-wrap/util.scm: Use `srfi-13'.
