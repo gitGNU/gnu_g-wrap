@@ -1,3 +1,10 @@
+2007-12-09  Andy Wingo  <wingo@pobox.com>
+
+	* guile/test/test-standard (test-double-type): Add a test for
+	double echoing.
+
+	* g-wrap.scm (gw-handle-condition): Fix an error message.
+
 2007-10-26  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	Fix WCT nullable behaviour.

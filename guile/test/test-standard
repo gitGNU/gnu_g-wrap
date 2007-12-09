@@ -88,6 +88,9 @@ exec ${builddir-.}/../run-guile ${GUILE_FLAGS} -s "$0" "$@"
                     (gw-test-gw-standard-get-ulong-max)
                     (gw-test-gw-standard-get-ssize-max)))))
 
+(define-method (test-double-type (self <test-standard>))
+  (assert-equal 3.0 (gw-test-gw-standard-echo-double 3.0)))
+
 ;; TODO add more demanding checks for <gw:mchars> allocation issues.
 
 (define-method (test-mchars-caller-owned-type (self <test-standard>))

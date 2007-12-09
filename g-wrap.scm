@@ -144,7 +144,7 @@
          (cond
           ((bad-typespec-type c)
            (format-error "bad typespec `~A ~A': ~A"
-                         (type c) (bad-typespec-options c)
+                         (bad-typespec-type c) (bad-typespec-options c)
                          (bad-typespec-message c)))
           (else
            (format-error "bad typespec `~A': ~A" (bad-typespec-form c)
