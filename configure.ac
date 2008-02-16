@@ -6,7 +6,7 @@ dnl Program version
 
 GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
 AC_SUBST(GW_BRANCH)
-GW_VERSION=1.9.9
+GW_VERSION=1.9.10
 
 AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
 AC_CONFIG_HEADERS(config.h g-wrap/ffi-support.h)
