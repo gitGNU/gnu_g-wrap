@@ -1,5 +1,9 @@
 2008-03-25  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* Makefile.am (SUBDIRS, DIST_SUBDIRS): Drop in-tree libffi.
+	* configure.ac: Logic for in-tree libffi dropped, use pkg-config 
+	as the new libffi supports it.
+
 	* guile/g-wrap/gw/Makefile.am (libgw_guile_standard_la_LIBADD):
 	Added $(LIBFFI_LIBS).
 

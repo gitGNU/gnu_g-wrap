@@ -7,7 +7,11 @@ See the end for copying conditions.
 
 Version 1.9.11
 
-   - Fix `double' return value handling on big-endian platforms.
+    - Fix `double' return value handling on big-endian platforms.
+
+    - libffi is no longer distributed with g-wrap, as it is available
+      as a stand-alone package now (instead of being burried in the
+      GCC sources).
 
 Version 1.9.10
 

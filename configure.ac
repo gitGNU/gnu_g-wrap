@@ -57,36 +57,9 @@ dnl Checks for required libraries
 dnl
 
 dnl libffi
-ar_WITH_LIB_LIBFFI([have_libffi=yes], [have_libffi=no])
-LIBFFI_CFLAGS_INSTALLED="$LIBFFI_CFLAGS"
-LIBFFI_LIBS_INSTALLED="$LIBFFI_LIBS"
-if test -d $srcdir/libffi; then
-  GW_DIST_LIBFFI_DIR=libffi
-  AC_CONFIG_SUBDIRS(libffi)
-else
-  GW_DIST_LIBFFI_DIR=
-fi
-if test "$have_libffi" = no; then
-  if ! test -d $srcdir/libffi; then
-    AC_MSG_ERROR([G-Wrap needs libffi installed])
-  else
-    GW_LIBFFI_DIR=libffi
-    LIBFFI_CFLAGS='-I$(top_builddir)/libffi/include'
-    LIBFFI_LIBS='$(top_builddir)/libffi/libffi.la'
-    LIBFFI_CFLAGS_INSTALLED=""
-    LIBFFI_LIBS_INSTALLED="-lffi"
-  fi
-else
-  GW_LIBFFI_DIR=
-fi
-
-AM_CONDITIONAL(HAVE_LIBFFI, test "$have_libffi" = yes)
-AC_SUBST(GW_LIBFFI_DIR)
-AC_SUBST(GW_DIST_LIBFFI_DIR)
+PKG_CHECK_MODULES(LIBFFI, libffi)
 AC_SUBST(LIBFFI_CFLAGS)
 AC_SUBST(LIBFFI_LIBS)
-AC_SUBST(LIBFFI_CFLAGS_INSTALLED)
-AC_SUBST(LIBFFI_LIBS_INSTALLED)
 
 dnl figure out approriate ffi type for size_t
 AC_CHECK_SIZEOF(size_t)

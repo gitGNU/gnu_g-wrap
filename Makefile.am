@@ -1,10 +1,7 @@
 include $(top_srcdir)/common.mk
 
-SUBDIRS = @GW_LIBFFI_DIR@ lib g-wrap test @GW_LANGUAGES@ doc
-DIST_SUBDIRS = @GW_DIST_LIBFFI_DIR@ lib g-wrap test guile scheme48 doc
-
-dist-hook:
-	if test ! -d libffi; then echo "libffi/ directory needed for make dist">&2; exit 1; fi
+SUBDIRS = lib g-wrap test @GW_LANGUAGES@ doc
+DIST_SUBDIRS = lib g-wrap test guile scheme48 doc
 
 nobase_guilemodule_DATA = g-wrap.scm
 

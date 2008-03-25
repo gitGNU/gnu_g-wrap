@@ -52,19 +52,6 @@ tool_run "$autoconf"
 debug "automake: $automake"
 tool_run "$automake" "-a -c -Wno-portability"
 
-if [ -d libffi ]; then
-(
-    cd libffi
-    echo "+ autogenerating in libffi"
-    tool_run "$aclocal" "$ACLOCAL_FLAGS"
-    tool_run "$autoheader"
-
-    tool_run "$autoconf"
-    debug "automake: $automake"
-    tool_run "$automake" "-a -c"
-)
-fi
-
 test -n "$NOCONFIGURE" && {
   echo "skipping configure stage for package $package, as requested."
   echo "autogen.sh done."
