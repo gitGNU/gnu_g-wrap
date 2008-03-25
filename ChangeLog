@@ -1,5 +1,11 @@
 2008-03-25  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* guile/g-wrap/gw/Makefile.am (libgw_guile_standard_la_LIBADD):
+	Added $(LIBFFI_LIBS).
+
+	* guile/examples/Makefile.am (libgw_guile_miscutils_la_CFLAGS):
+	Added $(GUILE_CFLAGS).
+
 	* g-wrap/ffi-support.h.in (GW_RVALUE_PTR): Fix for args greater in
 	size than sizeof(ffi_arg) on bigendian platforms.
 

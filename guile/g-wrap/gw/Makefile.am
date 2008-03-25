@@ -16,7 +16,9 @@ AM_CFLAGS = $(LIBFFI_CFLAGS) $(GUILE_CFLAGS)
 gwrapshlib_LTLIBRARIES += libgw-guile-standard.la
 nodist_libgw_guile_standard_la_SOURCES = standard.c
 libgw_guile_standard_la_LDFLAGS = -module $(GUILE_LDFLAGS) -no-undefined
-libgw_guile_standard_la_LIBADD = ../libgwrap-guile-runtime.la
+libgw_guile_standard_la_LIBADD = ../libgwrap-guile-runtime.la \
+				 ../../../g-wrap/libgwrap-core-runtime.la \
+				 $(LIBFFI_LIBS)
 
 # Type `long long' is only defined in ISO C99 (or GNU C).  Therefore,
 # glibc's <limits.h> will only define the `LLONG_' macros if we are
@@ -40,8 +42,10 @@ if HAVE_GLIB
 #---------------------
 gwrapshlib_LTLIBRARIES += libgw-guile-gw-glib.la
 nodist_libgw_guile_gw_glib_la_SOURCES = gw-glib.c
-libgw_guile_gw_glib_la_LDFLAGS = -module $(GUILE_LDFLAGS)
-libgw_guile_gw_glib_la_LIBADD = ../libgwrap-guile-runtime.la $(GLIB_LIBS)
+libgw_guile_gw_glib_la_LDFLAGS = -module $(GUILE_LDFLAGS) -no-undefined
+libgw_guile_gw_glib_la_LIBADD = ../libgwrap-guile-runtime.la \
+				../../../g-wrap/libgwrap-core-runtime.la \
+				$(GLIB_LIBS)
 libgw_guile_gw_glib_la_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
 
 LIBGW_GW_GLIB_GWGEN = $(addprefix gw-glib, .h .c .scm) 
