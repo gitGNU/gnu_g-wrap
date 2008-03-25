@@ -1,9 +1,13 @@
 G-Wrap NEWS -- history of user-visible changes.
-Copyright (C) 2003-2007 Andreas Rottmann
+Copyright (C) 2003-2008 Andreas Rottmann
 Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Copyright (C) 2006 Ludovic Court�s <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
 See the end for copying conditions.
+
+Version 1.9.11
+
+   - Fix `double' return value handling on big-endian platforms.
 
 Version 1.9.10
 

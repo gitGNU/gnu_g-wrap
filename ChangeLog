@@ -1,3 +1,8 @@
+2008-03-25  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/ffi-support.h.in (GW_RVALUE_PTR): Fix for args greater in
+	size than sizeof(ffi_arg) on bigendian platforms.
+
 2007-12-09  Andy Wingo  <wingo@pobox.com>
 
 	* guile/test/test-standard (test-double-type): Add a test for

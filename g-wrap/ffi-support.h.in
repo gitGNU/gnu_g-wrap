@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2004 Andreas Rottmann
+Copyright (C) 2003, 2004, 2008 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -39,7 +39,8 @@ extern "C" {
 #define GW_ALIGN(v, a)  (((((size_t) (v))-1) | ((a)-1))+1)
 #ifdef WORDS_BIGENDIAN
 #  define GW_RVALUE_PTR(ptr, typ) \
-             ((void *)((char *)(ptr) + (sizeof(ffi_arg) - (typ)->type->size)))
+  ((void *)((char *)(ptr) + ((typ)->type->size < sizeof(ffi_arg) ? \
+                             (sizeof(ffi_arg) - (typ)->type->size) : 0)))
 #else
 #  define GW_RVALUE_PTR(ptr, typ) ((void *)(ptr))
 #endif
