@@ -1,15 +1,13 @@
 dnl -*- Autoconf -*-
 
-AC_INIT(g-wrap.scm)
-
 dnl Program version
-
-GW_BRANCH=2.0 dnl Branch number, e.g. for pkg-config
-AC_SUBST(GW_BRANCH)
-GW_VERSION=1.9.11
-
-AM_INIT_AUTOMAKE(g-wrap, $GW_VERSION, no-define)
+AC_INIT(g-wrap.scm, 1.9.12)
+AM_INIT_AUTOMAKE([no-define -Wno-portability])
 AC_CONFIG_HEADERS(config.h g-wrap/ffi-support.h)
+
+dnl Branch number, e.g. for pkg-config
+GW_BRANCH=2.0
+AC_SUBST(GW_BRANCH)
 
 AM_MAINTAINER_MODE
 

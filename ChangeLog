@@ -1,5 +1,12 @@
 2009-02-20  Andreas Rottmann  <a.rottmann@gmx.at>
 
+	* NEWS: Add entry for 1.9.12.
+	* configure.ac: Bump version number to 1.9.12.
+
+	* configure.ac: Modernize AC_INIT and AM_INIT_AUTOMAKE invocation,
+	disable "non-portable make" automake warnings.
+
+
 	Bug #25187 Incorrect placeholders in Guile's .pc.in template
 
 	* guile/g-wrap-2.0-guile.pc.in: Fixup handling of libffi (it comes
