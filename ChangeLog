@@ -1,3 +1,11 @@
+2009-02-20  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	Bug #25187 Incorrect placeholders in Guile's .pc.in template
+
+	* guile/g-wrap-2.0-guile.pc.in: Fixup handling of libffi (it comes
+	now with pkg-config support, so just use pkg-config's dependency
+	mechanism).
+
 2008-03-25  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* Makefile.am (SUBDIRS, DIST_SUBDIRS): Drop in-tree libffi.
