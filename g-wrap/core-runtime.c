@@ -327,8 +327,10 @@ gw_wrapset_add_function (GWWrapSet *ws,
        * word-aligned memory for it, so we put it first (so it should
        * be aligned on word boundary) and make it at least
        * sizeof(ffi_arg) bytes. */
-      fi->data_area_size += (fi->ret_type->type->size > sizeof(ffi_arg)
-                             ? fi->ret_type->type->size : sizeof(ffi_arg));
+      fi->data_area_size += 
+        GW_ALIGN(fi->ret_type->type->size > sizeof(ffi_arg)
+                 ? fi->ret_type->type->size : sizeof(ffi_arg),
+                 fi->ret_type->type->alignment);
       
       /* now we know the sizes of the types and calculate the data
        * area size where we store the arguments' values */

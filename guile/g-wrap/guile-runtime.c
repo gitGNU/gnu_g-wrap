@@ -620,7 +620,8 @@ dynproc_smob_apply (SCM smob, SCM arg_list)
 
   error.status = GW_ERR_NONE;
 
-  offset = fi->n_req_args * sizeof (void *);
+  offset = GW_ALIGN(fi->n_req_args * sizeof (void *),
+                    fi->ret_type->type->alignment);
   rvalue = (void *) ((unsigned char *) data + offset);
   call_info.rvalue = rvalue;
   offset += (fi->ret_type->type->size > sizeof(ffi_arg)
