@@ -5,6 +5,17 @@ Copyright (C) 2006 Ludovic Court�s <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
 See the end for copying conditions.
 
+Version 1.9.13
+
+    - Fix the dependency declaration on libffi in the g-wrap-2.0-guile
+      pkg-config file.
+
+    - An alignment issue leading to testsuite failures on sparc has
+      been fixed.
+
+    - The g-wrap-config manpage from the Debian package is now
+      included in the source, and installed.
+
 Version 1.9.12
 
     - Fix the g-wrap-2.0-guile pkg-config file (bug #25187).

@@ -6,6 +6,7 @@ DIST_SUBDIRS = lib g-wrap test guile scheme48 doc
 nobase_guilemodule_DATA = g-wrap.scm
 
 dist_bin_SCRIPTS = g-wrap-config
+dist_man_MANS = g-wrap-config.1
 
 aclocaldir = $(datadir)/aclocal
 
