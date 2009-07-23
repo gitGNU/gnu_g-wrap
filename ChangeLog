@@ -1,3 +1,10 @@
+2009-03-20  Andreas Rottmann  <a.rottmann@gmx.at>
+
+ 	Debian Bug #475673 -- (sparc/unstable): test failures
+
+	* g-wrap/core-runtime.c, guile/g-wrap/guile-runtime.c: Take the
+	type's alignment into consideration.
+
 2009-02-20  Andreas Rottmann  <a.rottmann@gmx.at>
 
 	* NEWS: Add entry for 1.9.12.
