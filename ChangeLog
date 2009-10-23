@@ -58,7 +58,7 @@
 	
 	* NEWS: Added entry regarding nullable behaviour.
 	
-2007-09-01  Ludovic Court�s  <ludo@gnu.org>
+2007-09-01  Ludovic Courtès  <ludo@gnu.org>
 
 	* g-wrap/util.scm: Use `srfi-13'.
 	(any-str->c-sym-str): Use `string-concatenate'.
@@ -77,7 +77,7 @@
 	(for-each-function): Removed.
 	(wrap-type!): Use `format-error' instead of `error'.
 
-2007-09-01  Ludovic Court�s  <ludo@gnu.org>
+2007-09-01  Ludovic Courtès  <ludo@gnu.org>
 
 	Use proper SRFI-35 constructs.
 

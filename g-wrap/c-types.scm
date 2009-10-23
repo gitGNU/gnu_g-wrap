@@ -1,6 +1,6 @@
 ;;;; File: c-types.scm
 ;;;; Copyright (C) 2004, 2007 Andreas Rottmann
-;;;; Copyright (C) 2005, 2006 Ludovic Court�s
+;;;; Copyright (C) 2005, 2006 Ludovic Courtès
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee

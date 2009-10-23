@@ -2,7 +2,7 @@
 Copyright (C) 1996, 1997, 1998 Christopher Lee
 Copyright (C) 2000 Rob Browning
 Copyright (C) 2004 Andreas Rottmann
-Copyright (C) 2005, 2006 Ludovic Court�s
+Copyright (C) 2005, 2006 Ludovic Courtès
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
