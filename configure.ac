@@ -1,7 +1,7 @@
 dnl -*- Autoconf -*-
 
 dnl Program version
-AC_INIT(g-wrap, 1.9.13-rc1)
+AC_INIT(g-wrap, 1.9.13)
 AM_INIT_AUTOMAKE([no-define -Wno-portability])
 AC_CONFIG_HEADERS(config.h g-wrap/ffi-support.h)
 
