@@ -47,13 +47,27 @@ exec ${builddir-.}/../run-guile -s "$0" "$@"
   (list-copy (map list (iota 12345)))
   (gc) (gc) (gc))
 
+(define-method (test-aggregating-gc-1 (self <test-wct>))
+  ;; test that simple allocation and gc works
+  (stress-gc))
+
 (define-method (test-aggregating (self <test-wct>))
+  (gw-test-make-aggregating-obj (gw-test-make-simple-aggregating-obj))
+  ;; Scheme code no longer holds a SMOB to either object.
+  ;; Make sure GC can run without a segfault.
+  (stress-gc))
+
+(define-method (test-aggregating-with-access (self <test-wct>))
   (let ((obj (gw-test-make-aggregating-obj
 	      (gw-test-make-simple-aggregating-obj))))
     ;; Scheme code no longer holds a SMOB to the object aggregated by OBJ.
     ;; Let's force GC and see whether the aggregated object gets freed.
     (stress-gc)
     (assert-true (gw-test-get-aggregated-obj obj))))
+
+(define-method (test-aggregating-gc-2 (self <test-wct>))
+  ;; make sure previous test's object gets collected without segv
+  (stress-gc))
 
 (define-method (test-aggregating/alt (self <test-wct>))
   ;; Same as above, but using the `/alt' version to create an actual
@@ -62,6 +76,10 @@ exec ${builddir-.}/../run-guile -s "$0" "$@"
 	      (gw-test-make-simple-aggregating-obj))))
     (stress-gc)
     (assert-true (gw-test-get-aggregated-obj obj))))
+
+(define-method (test-aggregating-gc-3 (self <test-wct>))
+  ;; make sure previous test's object gets collected without segv
+  (stress-gc))
 
 (exit-with-summary (run-all-defined-test-cases))
 
