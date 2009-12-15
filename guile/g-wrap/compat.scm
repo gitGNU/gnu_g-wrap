@@ -1,5 +1,5 @@
 ;;;; File: compat.scm
-;;;; Copyright (C) 2004, 2007 Andreas Rottmann
+;;;; Copyright (C) 2004, 2007, 2009 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -222,78 +222,74 @@
                          )))
           (add-method!
            initialize
-           (make-method
-            (list ws-class <top>)
-            (lambda (ws initargs)
-              (next-method
-               ws
-               (append (if (guile-module ws-info)
-                           `(#:module ,(guile-module ws-info))
-                           '())
-                       `(#:shlib-path ,(string-append "lib" name)
-                         #:function-rti? #f)
-                       initargs))
+           (method ((ws ws-class) initargs)
+             (next-method
+              ws
+              (append (if (guile-module ws-info)
+                          `(#:module ,(guile-module ws-info))
+                          '())
+                      `(#:shlib-path ,(string-append "lib" name)
+                                     #:function-rti? #f)
+                      initargs))
               
-              (for-each
-               (lambda (cs-decl)
-                 (add-item! ws (make <compat-item> #:cs-declarations cs-decl))
-                 (add-client-item! ws (make <compat-item>
-                                        #:cs-declarations cs-decl
-                                        #:for-client #t)))
-               (reverse (slot-ref ws-info 'cs-declarations)))
+             (for-each
+              (lambda (cs-decl)
+                (add-item! ws (make <compat-item> #:cs-declarations cs-decl))
+                (add-client-item! ws (make <compat-item>
+                                       #:cs-declarations cs-decl
+                                       #:for-client #t)))
+              (reverse (slot-ref ws-info 'cs-declarations)))
               
-              (for-each
-               (lambda (cs-init)
-                 (add-item! ws (make <compat-item> #:cs-initializers cs-init)))
-               (reverse (slot-ref ws-info 'cs-initializers)))
+             (for-each
+              (lambda (cs-init)
+                (add-item! ws (make <compat-item> #:cs-initializers cs-init)))
+              (reverse (slot-ref ws-info 'cs-initializers)))
               
-              (for-each
-               (lambda (wct)
-                 (wrap-as-wct! ws
-                               #:name (vector-ref wct 0)
-                               #:c-type-name (vector-ref wct 1)
-                               #:c-const-type-name (vector-ref wct 2)))
-               (reverse (slot-ref ws-info 'wcts)))
+             (for-each
+              (lambda (wct)
+                (wrap-as-wct! ws
+                              #:name (vector-ref wct 0)
+                              #:c-type-name (vector-ref wct 1)
+                              #:c-const-type-name (vector-ref wct 2)))
+              (reverse (slot-ref ws-info 'wcts)))
 
-              (for-each
-               (lambda (simple-type)
-                 (wrap-simple-type! ws
-                                    #:name (vector-ref simple-type 0)
-                                    #:c-type-name (vector-ref simple-type 1)
-                                    #:type-check (vector-ref simple-type 2)
-                                    #:unwrap (vector-ref simple-type 3)
-                                    #:wrap (vector-ref simple-type 4)))
-               (reverse (slot-ref ws-info 'simple-types)))
+             (for-each
+              (lambda (simple-type)
+                (wrap-simple-type! ws
+                                   #:name (vector-ref simple-type 0)
+                                   #:c-type-name (vector-ref simple-type 1)
+                                   #:type-check (vector-ref simple-type 2)
+                                   #:unwrap (vector-ref simple-type 3)
+                                   #:wrap (vector-ref simple-type 4)))
+              (reverse (slot-ref ws-info 'simple-types)))
 
-              (for-each
-               (lambda (enum)
-                 (wrap-enum! ws
-                             #:prefix "gw:enum-"
-                             #:name (slot-ref enum 'name)
-                             #:c-type-name (slot-ref enum 'c-type-name)
-                             #:values (slot-ref enum 'values)))
-               (reverse (slot-ref ws-info 'enumerations)))
+             (for-each
+              (lambda (enum)
+                (wrap-enum! ws
+                            #:prefix "gw:enum-"
+                            #:name (slot-ref enum 'name)
+                            #:c-type-name (slot-ref enum 'c-type-name)
+                            #:values (slot-ref enum 'values)))
+              (reverse (slot-ref ws-info 'enumerations)))
               
-              (for-each
-               (lambda (func-info)
-                 (wrap-function!
-                  ws
-                  #:name (vector-ref func-info 0)
-                  #:returns (convert-typespec (vector-ref func-info 1))
-                  #:c-name (vector-ref func-info 2)
-                  #:arguments (convert-arguments (vector-ref func-info 3))
-                  #:description (vector-ref func-info 4)))
-               (reverse (slot-ref ws-info 'functions)))
+             (for-each
+              (lambda (func-info)
+                (wrap-function!
+                 ws
+                 #:name (vector-ref func-info 0)
+                 #:returns (convert-typespec (vector-ref func-info 1))
+                 #:c-name (vector-ref func-info 2)
+                 #:arguments (convert-arguments (vector-ref func-info 3))
+                 #:description (vector-ref func-info 4)))
+              (reverse (slot-ref ws-info 'functions)))
 
-              (for-each
-               (lambda (val)
-                 (wrap-constant! ws
-                                 #:name (vector-ref val 0)
-                                 #:type (convert-typespec (vector-ref val 1))
-                                 #:value (vector-ref val 2)))
-               (reverse (slot-ref ws-info 'values)))
-              
-              ))))
+             (for-each
+              (lambda (val)
+                (wrap-constant! ws
+                                #:name (vector-ref val 0)
+                                #:type (convert-typespec (vector-ref val 1))
+                                #:value (vector-ref val 2)))
+              (reverse (slot-ref ws-info 'values))))))
         (hash-set! *real-wrapsets* name (string->symbol name)))))
 
 (define (gw:generate-wrapset name)
