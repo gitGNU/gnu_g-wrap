@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2005 Andreas Rottmann
+Copyright (C) 2003-2005, 2009 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -197,6 +197,9 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
     formals = scm_cons (scm_from_locale_symbol (buffer), formals);
   }
 
+#if SCM_MAJOR_VERSION <= 1 && SCM_MINOR_VERSION < 9
+  /* in Guile 1.8 and before, the procedure for a method had to be an
+     interpreted closure. */
   if (use_optional_args)
   {
     SCM f_apply = scm_c_eval_string ("apply");
@@ -213,6 +216,9 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
     procm = scm_closure (scm_list_2 (formals, scm_cons (subr, formals)),
                          scm_top_level_env (SCM_TOP_LEVEL_LOOKUP_CLOSURE));
   }
+#else
+  procm = subr;
+#endif
 
   meth = scm_apply_0 (scm_sym_make,
                       scm_list_5 (scm_class_method,
@@ -456,7 +462,7 @@ gw_guile_ensure_latent_variables_hash_and_binder (SCM module)
       return SCM_BOOL_F; /* won't get here */
     }
 
-    scm_struct_set_x (module, SCM_MAKINUM (scm_module_index_binder),
+    scm_struct_set_x (module, scm_from_int (scm_module_index_binder),
                       scm_c_make_gsubr ("%gw-module-binder", 3, 0,
                                         0, gw_module_binder_proc));
 
@@ -531,11 +537,12 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
   SCM pair;
   SCM existing_latents;
   SCM entry;
+  int c_n_req_args;
 
   SCM_VALIDATE_PROC (1, proc);
   SCM_VALIDATE_LIST (2, specializers);
   SCM_VALIDATE_SYMBOL (3, generic_name);
-  SCM_VALIDATE_INUM (4, n_req_args);
+  SCM_VALIDATE_INT_COPY (4, n_req_args, c_n_req_args);
   /* the fifth is a bool */
   
   generics = gw_guile_ensure_generics_module ();
@@ -553,7 +560,7 @@ gw_guile_procedure_to_method_public (SCM proc, SCM specializers,
                                 proc,
                                 specializers,
                                 scm_current_module (),
-                                scm_to_int (n_req_args), 
+                                c_n_req_args,
                                 scm_is_true (use_optional_args));
       return;
     }
