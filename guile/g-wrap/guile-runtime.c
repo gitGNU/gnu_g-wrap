@@ -36,7 +36,8 @@ USA.
 
 static SCM is_a_p_proc = SCM_UNSPECIFIED;
 static SCM module_add_x = SCM_UNSPECIFIED;
-static SCM scm_sym_make = SCM_UNSPECIFIED;
+static SCM var_make = SCM_UNSPECIFIED;
+static SCM var_add_method_x = SCM_UNSPECIFIED;
 
 /* TODO: Use snarfer for kewords & symbols */
 static SCM k_specializers = SCM_UNSPECIFIED;
@@ -220,11 +221,11 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
   procm = subr;
 #endif
 
-  meth = scm_apply_0 (scm_sym_make,
+  meth = scm_apply_0 (SCM_VARIABLE_REF (var_make),
                       scm_list_5 (scm_class_method,
                                   k_specializers, specializers,
                                   k_procedure, procm));
-  scm_add_method (generic, meth);
+  scm_call_2 (SCM_VARIABLE_REF (var_add_method_x), generic, meth);
 } 
 
 /* What's going on here?
@@ -349,7 +350,7 @@ allocate_generic_variable (SCM module, SCM sym)
 
   if (scm_is_false (var)) {
     /* Symbol unbound, make a new generic */
-    generic = scm_apply_0 (scm_sym_make,
+    generic = scm_apply_0 (SCM_VARIABLE_REF (var_make),
                            scm_list_3 (scm_class_generic, k_name, sym));
     return scm_make_variable (generic);
   } else if (scm_is_true (scm_call_2 (is_a_p_proc, scm_variable_ref (var),
@@ -361,7 +362,7 @@ allocate_generic_variable (SCM module, SCM sym)
   } else if (scm_is_true (scm_procedure_p (scm_variable_ref (var)))) {
     /* Make a generic that falls back on the original binding. NB: generics also
        satisfy procedure?. */
-    generic = scm_apply_0 (scm_sym_make,
+    generic = scm_apply_0 (SCM_VARIABLE_REF (var_make),
                            scm_list_5 (scm_class_generic,
                                        k_name, sym,
                                        k_default, scm_variable_ref (var)));
@@ -879,9 +880,10 @@ gw_guile_runtime_init (void)
   {
     scm_load_goops();
 
-    scm_sym_make = scm_permanent_object (
-            SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
-                                                   "make")));
+    var_make =
+      scm_permanent_object (scm_c_module_lookup (scm_module_goops, "make"));
+    var_add_method_x =
+      scm_permanent_object (scm_c_module_lookup (scm_module_goops, "add-method!"));
     is_a_p_proc = scm_permanent_object (
             SCM_VARIABLE_REF (scm_c_module_lookup (scm_module_goops,
                                                    "is-a?")));
