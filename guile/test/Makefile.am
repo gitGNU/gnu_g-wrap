@@ -5,7 +5,7 @@ include $(top_srcdir)/common.mk
 CLEANFILES = $(wildcard gw-test-*.c gw-test-*.h gw-test-*.scm)
 noinst_HEADERS =
 check_LTLIBRARIES =
-EXTRA_DIST = 
+EXTRA_DIST = unit-test.scm
 
 TESTS = \
  test-standard \
