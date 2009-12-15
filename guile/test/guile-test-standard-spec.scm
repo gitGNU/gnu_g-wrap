@@ -1,5 +1,5 @@
 ;;;; File: guile-test-standard-spec.scm
-;;;; Copyright (C) 2004-2005 Andreas Rottmann
+;;;; Copyright (C) 2004-2005, 2009 Andreas Rottmann
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -82,7 +82,7 @@
      "  " (c-type-name type) " " result-var " = " func-call-code ";"
      "  if (" func-call-code " != 0)"
      "    scm_throw (scm_from_locale_symbol (\"error-code\"), "
-     "               scm_from_int (" result-var "));"
+     "               scm_list_1 (scm_from_int (" result-var ")));"
      "}")))
 
 (define-method (post-call-result-cg (type <error-code-type>)
@@ -117,5 +117,5 @@
     (list
      "if (" c-name ")\n"
      "  scm_throw(scm_from_locale_symbol (\"error-code\"), "
-     "            scm_from_int(" c-name "))          ;\n")))
+     "            scm_list_1 (scm_from_int(" c-name ")));\n")))
 
