@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2004 Andreas Rottmann
+Copyright (C) 2003-2004, 2010 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -50,15 +50,21 @@ gw_raise_error (GWLangArena arena, const char *proc, const char *fmt, ...)
 {
   char *message = NULL;
   va_list args;
-
+  int bytes_allocated;
+  
   va_start (args, fmt);
-  vasprintf (&message, fmt, args);
+  bytes_allocated = vasprintf (&message, fmt, args);
   va_end (args);
-  
-  gw_lang->raise_error (arena, proc, message);
-  
-  /* FIXME: we leak 'message' here, since this line won't be reached */
-  free (message);
+
+  if (bytes_allocated >= 0)
+  {
+    gw_lang->raise_error (arena, proc, message);
+    
+    /* FIXME: we leak 'message' here, since this line won't be reached */
+    free (message);
+  }
+  else
+    gw_lang->raise_error (arena, proc, "could not allocate error message");
 }
 
 void
