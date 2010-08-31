@@ -1,5 +1,5 @@
 ;;;; File: util.scm
-;;;; Copyright (C) 2004 Andreas Rottmann
+;;;; Copyright (C) 2004, 2010 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -77,7 +77,7 @@
         (delete-file file-name)))
     
   (let ((had-errors? #f))
-    (lazy-catch #t
+    (with-throw-handler #t
       (lambda () 
         (guard
          (c
