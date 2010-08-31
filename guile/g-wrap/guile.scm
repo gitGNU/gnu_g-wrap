@@ -1,5 +1,5 @@
 ;;;; File: guile.scm
-;;;; Copyright (C) 2004-2007 Andreas Rottmann
+;;;; Copyright (C) 2004-2007, 2010 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -645,7 +645,7 @@
 			      (value <gw-value>)
 			      status-var
 			      (inlined? <boolean>))
-  (list (scm-var value) " = scm_long2num(" (var value) ");\n"))
+  (list (scm-var value) " = scm_from_long (" (var value) ");\n"))
 
 (define-method (unwrap-value-cg (enum <gw-guile-enum>)
 				(value <gw-value>)
@@ -656,10 +656,9 @@
 	(val-sym-array-name (val-array-name enum)))
     (list
      scm-var " = gw_guile_enum_val2int(" val-sym-array-name ", " scm-var ");\n"
-     "if(SCM_FALSEP(scm_integer_p(" scm-var ")))"
+     "if (SCM_FALSEP (scm_integer_p(" scm-var ")))"
      `(gw:error ,status-var type ,(wrapped-var value))
-     "else " c-var " = scm_num2long(" scm-var
-     ", 0, \"%gw:enum->scm->c-ccg\");\n")))
+     "else " c-var " = scm_to_long (" scm-var ");\n")))
 
 (define-method (wrap-enum! (wrapset <gw-guile-wrapset>) . args)
 
