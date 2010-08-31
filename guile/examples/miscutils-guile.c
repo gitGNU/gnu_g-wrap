@@ -16,8 +16,8 @@ msu_timespec64_to_c (SCM tspec)
 
   SCM_ASSERT (SCM_CONSP (tspec), tspec, 1, FUNC_NAME);
   
-  result.seconds = scm_num2long_long (SCM_CAR (tspec), 1, FUNC_NAME);
-  result.nanoseconds = scm_num2long (SCM_CDR (tspec), 1, FUNC_NAME);
+  result.seconds = scm_to_long_long (SCM_CAR (tspec));
+  result.nanoseconds = scm_to_long (SCM_CDR (tspec));
 
   return result;
 }
@@ -26,6 +26,6 @@ msu_timespec64_to_c (SCM tspec)
 SCM
 msu_timespec64_to_scm (Timespec64 tspec)
 {
-  return scm_cons (scm_long_long2num (tspec.seconds),
-                   scm_long2num (tspec.nanoseconds));
+  return scm_cons (scm_from_long_long (tspec.seconds),
+                   scm_from_long (tspec.nanoseconds));
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2002, 2006 Rob Browning
+Copyright (C) 2002, 2006, 2010 Rob Browning
 Copyright (C) 2003-2004 Andreas Rottmann
 Copyright (C) 2005 Ludovic Courtès
 
@@ -114,6 +114,9 @@ size_t  scm_to_locale_stringbuf (SCM str, char *buf, size_t buf_size);
 #define scm_to_long_long(_num)           (scm_num2long_long ((_num), 0, NULL))
 #define scm_from_ulong_long(_num)        (scm_ulong_long2num (_num))
 #define scm_to_ulong_long(_num)          (scm_num2ulong_long ((_num), 0, NULL))
+
+/* Keywords.  */
+#define scm_from_locale_keyword(_str)       (scm_c_make_keyword (_str))
 
 /* Vectors.  */
 #define SCM_SIMPLE_VECTOR_SET(v, idx, val) (SCM_VELTS (v)[(idx)] = (val))

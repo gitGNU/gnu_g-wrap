@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2005, 2009 Andreas Rottmann
+Copyright (C) 2003-2005, 2009, 2010 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -737,11 +737,11 @@ gw_guile_handle_wrapper_error(GWLangArena arena,
   static SCM wrong_type_key = SCM_BOOL_F;
 
   if (scm_is_false (out_of_range_key))
-    out_of_range_key = scm_permanent_object (
-            scm_c_make_keyword("out-of-range"));
+    out_of_range_key =
+      scm_permanent_object (scm_from_locale_keyword ("out-of-range"));
   if (scm_is_false (wrong_type_key))
-    wrong_type_key = scm_permanent_object (
-            scm_c_make_keyword("wrong-type"));
+    wrong_type_key =
+      scm_permanent_object (scm_from_locale_keyword ("wrong-type"));
   
   switch (error->status)
   {
@@ -889,12 +889,14 @@ gw_guile_runtime_init (void)
                                                    "is-a?")));
     module_add_x = scm_permanent_object (
             SCM_VARIABLE_REF (scm_c_lookup ("module-add!")));
-    k_specializers = scm_permanent_object (
-            scm_c_make_keyword ("specializers"));
-    k_procedure = scm_permanent_object(
-            scm_c_make_keyword ("procedure"));
-    k_name = scm_permanent_object( scm_c_make_keyword ("name"));
-    k_default = scm_permanent_object (scm_c_make_keyword ("default"));
+    k_specializers = 
+      scm_permanent_object (scm_from_locale_keyword ("specializers"));
+    k_procedure = 
+      scm_permanent_object (scm_from_locale_keyword ("procedure"));
+    k_name =
+      scm_permanent_object (scm_from_locale_keyword ("name"));
+    k_default =
+      scm_permanent_object (scm_from_locale_keyword ("default"));
     sym_generic = scm_permanent_object (scm_from_locale_symbol ("generic"));
     sym_class = scm_permanent_object (scm_from_locale_symbol ("class"));
     sym_sys_gw_latent_variables_hash = scm_permanent_object
