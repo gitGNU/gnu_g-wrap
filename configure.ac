@@ -79,12 +79,6 @@ if test "$GUILE_VERSIONED" != ""; then
 fi
 AC_MSG_NOTICE([Using $GUILE])
 
-GUILE_MODULE_AVAILABLE(HAVE_SRFI_34, [(srfi srfi-34)])
-GUILE_MODULE_AVAILABLE(HAVE_SRFI_35, [(srfi srfi-35)])
-
-AM_CONDITIONAL(HAVE_SRFI_34, test "$HAVE_SRFI_34" = yes)
-AM_CONDITIONAL(HAVE_SRFI_35, test "$HAVE_SRFI_35" = yes)
-
 dnl Allow --with-imp flag
 GW_LANGUAGES=guile
 
