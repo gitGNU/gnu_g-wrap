@@ -57,15 +57,6 @@
 ;;; Utilities
 ;;;
 
-(define (guile-module-name->c-registration-strlist name-symlist)
-  (separate-by (map symbol->string name-symlist) " "))
-
-(define (guile-module-name->c-sym-name-strlist name-symlist)
-  (separate-by
-   (map (lambda (s) (gw:any-str->c-sym-str (symbol->string s)))
-	name-symlist)
-   "_"))
-
 (define-method (scm-var (value <gw-value>))
   (string-append "*(SCM *)" (wrapped-var value)))
 
