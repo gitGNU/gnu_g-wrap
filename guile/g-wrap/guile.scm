@@ -1,5 +1,5 @@
 ;;;; File: guile.scm
-;;;; Copyright (C) 2004-2007, 2010 Andreas Rottmann
+;;;; Copyright (C) 2004-2007, 2010, 2011 Andreas Rottmann
 ;;;;
 ;;;; based upon G-Wrap 1.3.4,
 ;;;;   Copyright (C) 1996, 1997,1998 Christopher Lee
@@ -934,13 +934,15 @@
           funcs)
          (newline port))
        #f gf-hash)
-      (write
-       '(if (defined? '%generics)
-            (begin
-              (module-use! (module-public-interface (current-module))
-                           %generics)))
-       port)
-      (newline port))))
+
+      (cond (has-generics?
+             (write
+              ;; use `local-ref' here to avoid "possibly undefined"
+              ;; warnings on guile 2.0
+              '(module-use! (module-public-interface (current-module))
+                            (local-ref '(%generics)))
+              port)
+             (newline port))))))
 
 (define (make-header-def-sym filename)
   (string-append "__"
