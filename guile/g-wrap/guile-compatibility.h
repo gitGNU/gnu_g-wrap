@@ -38,8 +38,10 @@ extern "C" {
 #endif
 
 /* Define this macro if Guile 1.7.x or better is in use. */
-#if defined (SCM_MINOR_VERSION) && (SCM_MINOR_VERSION >= 7) && \
-    defined (SCM_MAJOR_VERSION) && (SCM_MAJOR_VERSION >= 1)
+#if defined (SCM_MAJOR_VERSION) &&                              \
+  ((SCM_MAJOR_VERSION >= 2) ||                                  \
+   ((SCM_MAJOR_VERSION == 1) &&                                 \
+    defined (SCM_MINOR_VERSION) && (SCM_MINOR_VERSION >= 7)))
 #define SCM_VERSION_17X 1
 #endif
 
