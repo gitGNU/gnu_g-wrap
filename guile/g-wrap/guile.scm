@@ -114,16 +114,6 @@
 (define-method (initializations-cg (wrapset <gw-guile-wrapset>) err)
   (list
    "gw_guile_runtime_init ();\n"
-   (let ((modules (fold (lambda (ws clauses)
-			  (if (module ws)
-			      (cons (module ws) clauses)
-			      clauses))
-			'()
-			(wrapsets-depended-on wrapset))))
-     (if (null? modules)
-	 '()
-	 (inline-scheme wrapset `(use-modules ,@modules))))
-
    (next-method)))
 
 (define-method (initialize (wrapset <gw-guile-wrapset>) initargs)
@@ -864,7 +854,9 @@
   (let* ((wrapset-name (name wrapset))
 	 (wrapset-name-c-sym (any-str->c-sym-str
 			      (symbol->string wrapset-name)))
-	 (guile-module (module wrapset)))
+	 (guile-module (module wrapset))
+         (module-dependencies
+          (filter-map module (wrapsets-depended-on wrapset))))
 
     (flatten-display
      (list
@@ -872,6 +864,8 @@
       "\n"
       (format #f "(define-module ~S\n" guile-module)
       (format #f "  #:use-module (g-wrap config)\n")
+      (map (lambda (m) (format #f "  #:use-module ~s\n" m))
+           module-dependencies)
       ")\n"
       "\n"
       (if (slot-ref wrapset 'shlib-abs?)
