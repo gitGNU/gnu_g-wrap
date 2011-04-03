@@ -3,7 +3,7 @@
 g-wrap-config \- script to get information about the installed version of G-Wrap
 .SH SYNOPSIS
 .B g-wrap-config
-[ --version ] [ --c-compile-args LANG | --c-link-args LANG | --guile-module-directory ] 
+[ \-\-version ] [ \-\-c-compile-args LANG | \-\-c-link-args LANG | \-\-guile-module-directory ]
 .SH DESCRIPTION
 .B g-wrap-config
 is a tool that is used to configure and determine the compiler and
@@ -15,23 +15,23 @@ should use the g-wrap-2.0-guile pkg-config module,
 only exists for compatibility reasons.
 .SH OPTIONS
 .TP
-.B --c-compile-args LANG
+.B \-\-c-compile-args LANG
 Print the compiler flags that are necessary to compile a program or library
-that uses the G-Wrap language binding for LANG. 
+that uses the G-Wrap language binding for LANG.
 .TP
-.B --c-link-args LANG
+.B \-\-c-link-args LANG
 Print the linker flags that are necessary to link a program that uses the G-Wrap language binding for LANG.
 .TP
-.B --version
+.B \-\-version
 Prints the currently installed version of G-Wrap on standard output.
 .SH EXAMPLES
 .TP
-gcc -o main.o $(g-wrap-config --c-compile-args guile) main.c
+gcc \-o main.o $(g-wrap-config \-\-c-compile-args guile) main.c
 is how you might use
 .B g-wrap-config
 to compile a C source file for an executable program.
 .TP
-gcc -o my_app $(g-wrap-config --c-link-args guile) main.o util.o
+gcc \-o my_app $(g-wrap-config \-\-c-link-args guile) main.o util.o
 is how you might use
 .B g-wrap-config
 to link compiled objects into an executable program.
