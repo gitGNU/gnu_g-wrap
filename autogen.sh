@@ -48,6 +48,10 @@ tool_run "$libtoolize" "--copy --force"
 tool_run "$aclocal" "$GW_ACLOCAL_FLAGS"
 tool_run "$autoheader"
 
+# It seems like config.rpath is needed by automake, even though we
+# don't use gettext.  Work around that apparent bug:
+[ -e config.rpath ] || touch config.rpath
+
 tool_run "$autoconf"
 debug "automake: $automake"
 tool_run "$automake" "-a -c -Wno-portability"
