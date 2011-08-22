@@ -301,17 +301,6 @@
      "  SCM gw__scm_result = SCM_UNSPECIFIED;\n"
      "  GWError gw__error = { GW_ERR_NONE, NULL, NULL };\n"
      "  unsigned int gw__arg_pos = 0;\n"
-     (if (zero? nargs)
-	 '()
-	 (list
-	  "  const GWTypeSpec *typespec = NULL;\n"
-	  "  static const GWTypeSpec typespecs[] = { "
-          (string-join
-           (map (lambda (param)
-                  (typespec-cg (type param) (typespec param)))
-                scm-params)
-           ", ") " };\n"))
-
      (if (needs-result-var? return-type)
          (let ((c-value (default-c-value-for-type return-type)))
            (list
@@ -365,7 +354,6 @@
 				  "gw__scm_deps = scm_cons ("
 				  (scm-var param) ", gw__scm_deps);\n")
 		   "")
-	       "typespec = &typespecs[gw__arg_pos];\n"
 	       "gw__arg_pos++;\n"
 	       (if (>= (number param) *max-fixed-params*)
 		   (list

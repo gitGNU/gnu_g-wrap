@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 1996, 1997, 1998 Christopher Lee
+Copyright (C) 1996, 1997, 1998, 2011 Christopher Lee
 Copyright (C) 2000 Rob Browning
 Copyright (C) 2004 Andreas Rottmann
 Copyright (C) 2005, 2006 Ludovic Courtès
@@ -252,12 +252,9 @@ SCM
 gw_wcp_assimilate_ptr (void *ptr, SCM type)
 {
   /* create a wrapped C pointer of the given type, wrapping ptr */
-  wrapped_c_type_data *type_data;
   wrapped_c_pointer_data *ptr_data; 
 
   if(!GW_WCT_P(type)) return SCM_BOOL_F;
-
-  type_data = (wrapped_c_type_data *) SCM_SMOB_DATA(type);
 
   ptr_data = (wrapped_c_pointer_data *)
     scm_gc_malloc(sizeof(wrapped_c_pointer_data), "gw:wcp");

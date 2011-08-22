@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (C) 2003-2005, 2009, 2010 Andreas Rottmann
+Copyright (C) 2003-2005, 2009, 2010, 2011 Andreas Rottmann
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
@@ -169,7 +169,7 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
 {
   int i;
   char buffer[32];
-  SCM specializers, formals, procm, meth, rest_sym = SCM_BOOL_F;
+  SCM specializers, formals, procm, meth = SCM_BOOL_F;
   
   specializers = SCM_EOL;
   for (i = n_req_args; i > 0 && SCM_CONSP (all_specializers); i--)
@@ -186,10 +186,7 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
   specializers = scm_reverse (specializers);
   
   if (use_optional_args)
-  {
-    rest_sym = scm_from_locale_symbol ("rest");
     specializers = scm_append_x (scm_list_2 (specializers, scm_class_top));
-  }
   
   formals = SCM_EOL;
   for (i = n_req_args; i > 0; i--)
@@ -203,7 +200,10 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
      interpreted closure. */
   if (use_optional_args)
   {
-    SCM f_apply = scm_c_eval_string ("apply");
+    SCM f_apply, rest_sym;
+    
+    f_apply = scm_c_eval_string ("apply");
+    rest_sym = scm_from_locale_symbol ("rest");
     procm = scm_closure (
             scm_list_2 (scm_append (scm_list_2 (formals, rest_sym)),
                         scm_append (scm_list_3
