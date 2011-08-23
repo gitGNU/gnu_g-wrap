@@ -847,18 +847,17 @@
            module-dependencies)
       ")\n"
       "\n"
+      "(eval-when (eval load compile)\n"
+      "  (load-extension "
       (if (slot-ref wrapset 'shlib-abs?)
-          (list "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
-                "              (dynamic-link (string-append *g-wrap-shlib-dir* \""
-                (slot-ref wrapset 'shlib-path) "\")))\n")
-          (list "(dynamic-call \"gw_init_wrapset_" wrapset-name-c-sym "\"\n"
-                "              (dynamic-link \"" (slot-ref wrapset 'shlib-path) "\"))\n"))
+          (list "(string-append *g-wrap-shlib-dir* \""
+                (slot-ref wrapset 'shlib-path) "\")\n")
+          (list "\"" (slot-ref wrapset 'shlib-path) "\"\n"))
+      "                  \"gw_init_wrapset_" wrapset-name-c-sym "\"))\n"
       "(export " (map (lambda (sym)
 			(list "    " sym "\n"))
 		      (module-exports wrapset))
-      ")"
-;;      "(module-use! (module-public-interface (current-module)) (current-module))\n"
-      )
+      ")")
      port)
     (let ((gf-hash       (make-hash-table 67))
           (has-generics? #f))
@@ -910,10 +909,8 @@
 
       (cond (has-generics?
              (write
-              ;; use `local-ref' here to avoid "possibly undefined"
-              ;; warnings on guile 2.0
               '(module-use! (module-public-interface (current-module))
-                            (local-ref '(%generics)))
+                            %generics)
               port)
              (newline port))))))
 
