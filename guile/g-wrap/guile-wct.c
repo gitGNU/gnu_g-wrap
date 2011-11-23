@@ -212,7 +212,9 @@ wcp_data_mark (SCM wcp)
     /* Mark all the Scheme objects aggregated by WCP.  */
     scm_gc_mark (data->dependencies);
 
-  if (type_data->mark)
+  /* TYPE_DATA may be NULL in Guile 2.0 if data->type is on the free list.  See
+     gc/gc_mark.h, for more details.  */
+  if (type_data && type_data->mark)
     {
       /* Invoke the user-defined mark function.  */
       SCM ret;
@@ -222,7 +224,7 @@ wcp_data_mark (SCM wcp)
 	scm_gc_mark (ret);
     }
 
-  return (data->type);
+  return data->type;
 }
 
 static SCM
