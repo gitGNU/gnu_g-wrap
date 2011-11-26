@@ -847,13 +847,20 @@
            module-dependencies)
       ")\n"
       "\n"
-      "(eval-when (eval load compile)\n"
-      "  (load-extension "
-      (if (slot-ref wrapset 'shlib-abs?)
-          (list "(string-append *g-wrap-shlib-dir* \""
-                (slot-ref wrapset 'shlib-path) "\")\n")
-          (list "\"" (slot-ref wrapset 'shlib-path) "\"\n"))
-      "                  \"gw_init_wrapset_" wrapset-name-c-sym "\"))\n"
+      (let ((load-extension
+             (list
+              "(load-extension "
+              (if (slot-ref wrapset 'shlib-abs?)
+                  (list "(string-append *g-wrap-shlib-dir* \""
+                        (slot-ref wrapset 'shlib-path) "\") ")
+                  (list "\"" (slot-ref wrapset 'shlib-path) "\" "))
+              "\"gw_init_wrapset_" wrapset-name-c-sym "\")")))
+        (list
+         "(cond-expand\n"
+         "  (guile-2\n"
+         "    (eval-when (eval load compile) " load-extension "))\n"
+         "  (else\n"
+         "    " load-extension "))\n"))
       "(export " (map (lambda (sym)
 			(list "    " sym "\n"))
 		      (module-exports wrapset))
