@@ -1,9 +1,16 @@
 G-Wrap NEWS -- history of user-visible changes.
-Copyright (C) 2003-2009 Andreas Rottmann
+Copyright (C) 2003-2011 Andreas Rottmann
 Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Copyright (C) 2006 Ludovic Courtès <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
 See the end for copying conditions.
+
+Version 1.9.14
+
+    - Guile 2.0 is now supported.
+
+    - G-Wrap no longer ships SRFI 34 and SRFI 35 implementations, as
+      these have been both provided by Guile since 1.8.3.
 
 Version 1.9.13
 
