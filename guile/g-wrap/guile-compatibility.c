@@ -93,3 +93,13 @@ scm_without_guile (void*(*func)(void*), void *data)
 }
 
 #endif
+
+#if defined (SCM_MAJOR_VERSION) && (SCM_MAJOR_VERSION < 2)
+
+SCM
+scm_module_variable (SCM module, SCM sym)
+{
+  return scm_sym2var (sym, scm_module_lookup_closure (module), SCM_BOOL_F);
+}
+
+#endif

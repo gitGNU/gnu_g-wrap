@@ -274,16 +274,17 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
  * Memoization will look up the variables for all of the values that the
  * expression needs. For example, memoization of (sin x) would memoize the
  * variables for the symbols `sin' and `x'. Variables are located by traversing
- * the list of used modules, in order, and calling scm_sym2var on the module.
+ * the list of used modules, in order, and calling scm_module_variable on the
+ * module.
  *
- * scm_sym2var eventually dispatches down to module_variable in modules.c, which
- * searches for a variable in this order: (1) the module's obarray; (2) the
- * module's binder proc, if any; (3) recursively calling module_variable on
- * modules in the module's use list. So we see that since a module's obarray and
- * binder proc are always called together, for a given set of generics being
- * exported by a module, the question "is X a member of this set" will always be
- * answered in the same way, because the set of exports is a union of the
- * obarray and the symbols to which the binder proc will return a variable.
+ * scm_module_variable searches for a variable in this order: (1) the module's
+ * obarray; (2) the module's binder proc, if any; (3) recursively calling
+ * module_variable on modules in the module's use list. So we see that since a
+ * module's obarray and binder proc are always called together, for a given set
+ * of generics being exported by a module, the question "is X a member of this
+ * set" will always be answered in the same way, because the set of exports is a
+ * union of the obarray and the symbols to which the binder proc will return a
+ * variable.
  *
  * If that memoized expression is evaluated again, it will not run through the
  * lookup procedure, relying instead on the memoized variables. This can be
@@ -317,7 +318,7 @@ gw_guile_add_subr_method (SCM generic, SCM subr, SCM all_specializers,
  *
  * However this problem is a result of our shared-generics-module strategy, not
  * the memoization strategy. So we can conclude that memoization does not affect
- * scm_sym2var.
+ * scm_module_variable.
  *
  * Practically speaking, our strategy is this: Delay generic creation until they
  * are needed. When declaring a method, first check if the generics module
@@ -343,7 +344,7 @@ allocate_generic_variable (SCM module, SCM sym)
 
   for (uses=SCM_MODULE_USES(module); !scm_is_null (uses); uses=scm_cdr(uses)) {
     used = scm_car (uses);
-    var = scm_sym2var (sym, scm_module_lookup_closure (used), SCM_BOOL_F);
+    var = scm_module_variable (used, sym);
     if (!scm_is_false (var))
       break;
   }

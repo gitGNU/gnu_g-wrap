@@ -148,6 +148,13 @@ void *scm_without_guile (void*(*func)(void*), void *data);
 
 #endif
 
+#if defined (SCM_MAJOR_VERSION) && (SCM_MAJOR_VERSION < 2)
+
+/* Modules. */
+SCM scm_module_variable (SCM module, SCM sym);
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif
