@@ -70,7 +70,7 @@ for use with G-Wrap @value{VERSION}
 @set example-dir guile/examples
 
 @ifnottex
-@node Top, Introduction, (dir), (dir)
+@node Top, Preface, (dir), (dir)
 @top The G-Wrap Reference Manual
 
 @insertcopying
@@ -125,11 +125,11 @@ programmatic one.  You tell G-Wrap about your functions and types, and
 ask it to generate wrappers for you by calling the functions exported
 from the @code{(g-wrap)} module.
 
-G-Wrap heavily uses
-@uref{http://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS,
-GOOPS} Guile's object orientation framework.  This is what makes
-G-Wrap highly customizable: each code generation methods may be
-overloaded or redefined in order to meet the user's particular needs.
+G-Wrap heavily uses GOOPS, Guile's object oriented extension
+(@pxref{GOOPS,,, guile, The GNU Guile Reference Manual}) .  This
+is what makes G-Wrap highly customizable: each code generation methods
+may be overloaded or redefined in order to meet the user's particular
+needs.
 
 @menu
 * Why Create a Wrapper Generator?::
@@ -179,9 +179,10 @@ just have a translator from that to native G-Wrap calls.
 @node A Simple Example
 @section A Simple Example
 
+@subheading Defining and exporting your wrapset class
 
 As a simple example, if you wanted to wrap a C API that contained only
-one function with a prototype like this
+one function with a prototype like this:
 
 @example
   int frob(int x, double y);
@@ -193,16 +194,13 @@ a complete G-Wrap specification would look like this:
 @lisp
 (define-module (my-wrapset)
   #:use-module (oop goops)
-
-  #:use-module (g-wrap)        ;; the core of G-Wrap
-  #:use-module (g-wrap guile)  ;; defines `<gw-guile-wrapset>'
-
-  #:use-module (g-wrap guile ws standard) ;; the `standard' wrapset
+  #:use-module (g-wrap)					;; the core of G-Wrap
+  #:use-module (g-wrap guile)			;; defines `<gw-guile-wrapset>'
+  #:use-module (g-wrap guile ws standard)	;; the `standard' wrapset
 
   #:export (<my-wrapset>))
 
-;; Define a wrapset for Guile, and specify the wrapsets
-;; it depends on.
+;; Define a wrapset for Guile, and specify the wrapsets it depends on.
 (define-class <my-wrapset> (<gw-guile-wrapset>)
   #:id 'my-wrapset
   #:dependencies '(standard))
@@ -234,6 +232,8 @@ globally unique identifier, and declares a dependency on the
 @code{initialize} method, the @code{frob} function is wrapped,
 providing all relevant data such as return and argument types.
 
+@subheading Further customizations for Guile
+
 To refine the above wrapset for Guile, you derive from it and add the
 necessary information:
 
@@ -261,7 +261,8 @@ We derive our Guile-specific wrapset from the generic wrapset
 the wrapset should eventually reside in the Guile module
 @code{my-module}.
 
-@noindent
+@subheading Let's generate the C code, compile and use it
+
 Once G-Wrap has seen this specification, the code for the wrappers can
 be generated with this code:
 
@@ -272,7 +273,7 @@ be generated with this code:
 (generate-wrapset 'guile 'my-wrapset "my-wrapset")
 @end lisp
 
-@noindent
+
 This will produce the C file @file{my-wrapset.c}, that can be compiled
 into a shared library which will, when loaded by Guile, define a
 Scheme function named @code{frob} which you can call as expected:
@@ -280,6 +281,8 @@ Scheme function named @code{frob} which you can call as expected:
 @lisp
   (frob 4 2.3)
 @end lisp
+
+@subheading G-wrap is very flexible!
 
 When it comes to defining how C types should be handled, G-Wrap is
 very flexible.  G-Wrap provides a fairly generic underlying
@@ -295,8 +298,11 @@ At the lowest level, there is a "wrapping protocol" for types, which
 you can plug into to describe how a type is converted from and to the
 target language as well as other aspects of the type. G-Wrap comes
 with a few of these more types pre-defined.  This set should cover
-most of the common cases, but you can extend this set if needed.  The
-wrapper types currently available by default include:
+most of the common cases, but you can extend it if needed.
+
+@subheading Predefined wrapper types
+
+The wrapper types currently available by default include:
 
 @table @samp
 
@@ -645,14 +651,13 @@ recommended since it describes concepts used throughout G-Wrap.
 * G-Wrap's Code Generation API::
 @end menu
 
-@node Basic Concepts, G-Wrap's High-level API, API Reference, API Reference
+@node Basic Concepts
 @section Basic Concepts
 
 G-Wrap's APIs are centered around a few basic concepts that one should
 know before using them.  Basically, each concept has a corresponding
-GOOPS class (@pxref{Introduction, an introduction to GOOPS,, goops,
-The Goops Reference Manual}) usually exported by the @code{(g-wrap)}
-module.
+GOOPS class usually exported by the @code{(g-wrap)} module
+(@pxref{GOOPS,,, guile, The GNU Guile Reference Manual}).
 
 @menu
 * Wrapsets::
@@ -717,8 +722,8 @@ know them, except @code{initialize}.
 @deffn method initialize (wrapset <gw-wrapset>) . args
 Initialize @var{wrapset}, an newly created instance of
 @var{<gw-wrapset>}.  This method is part of the GOOPS meta-object
-protocol (@pxref{Instance Creation, GOOPS MOP specification,, goops,
-The GOOPS Reference Manual}).
+protocol (@pxref{Instance Creation Protocol,,, guile,
+The GNU Guile Reference Manual}).
 
 @cindex module
 @cindex Guile module
@@ -1167,7 +1172,7 @@ relevant only to wrapsets targeting Guile.
 @cindex mark and sweep
 @cindex memory management
 Guile's garbage-collector uses a @dfn{mark and sweep} algorithm
-(@pxref{Garbage Collecting Smob, the description of Guile's GC
+(@pxref{Conservative GC, the description of Guile's GC
 mechanism,, guile, The GNU Guile Reference Manual}).  This parameter
 allows to direct the mark phase for the specific C type being wrapped,
 using the same protocol as the one used for SMOBs in Guile.
@@ -1356,7 +1361,7 @@ generation interface, @xref{G-Wrap's Code Generation API}.
 
 
 @node G-Wrap's Code Generation API
-@section G-Wrap's Code Generation Interface
+@section G-Wrap's Code Generation API
 
 When creating Scheme bindings for a C programming interface with
 G-Wrap, one first needs to create a @dfn{wrapset} (@pxref{Wrapsets}).
