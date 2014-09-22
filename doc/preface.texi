@@ -1,0 +1,63 @@
+@c -*-texinfo-*-
+@c This is part of the G-Wrap Reference Manual.
+@c Copyright (C)  2014 David Pirotte
+@c See the file g-wrap.texi for copying conditions.
+
+@node Preface
+@unnumbered Preface
+
+This manual describes how to use G-Wrap.  It relates particularly to
+G-Wrap version @value{VERSION}.
+
+@menu
+* Contributors::
+* G-Wrap License::
+@end menu
+
+@node Contributors
+@unnumberedsec Contributors to this Manual
+
+The contributors to the G-Wrap manual are:
+
+@itemize @bullet
+@item Christopher Lee <chrislee@@ri.cmu.edu>
+@item Rob Browning <rlb@@defaultvalue.org>
+@item Andreas Rottmann <rotty@@debian.org>
+@item Ludovic Courtès <ludovic.courtes@@laas.fr>
+@item David Pirotte <david@@altosw.be>
+@end itemize
+
+If you find any problems in this manual, please report a bug.  See
+@xref{Reporting Bugs}, for more information on how to report a bug.
+
+@node G-Wrap License
+@unnumberedsec The G-Wrap License
+@cindex copying
+@cindex GPL
+@cindex LGPL
+@cindex license
+
+G-Wrap is Free Software.  G-Wrap is copyrighted, not public domain, and
+there are restrictions on its distribution or redistribution, but
+these restrictions are designed to permit everything a cooperating
+person would want to do.
+
+@itemize @bullet
+@item
+G-Wrap and supporting files are published under the terms of the GNU
+Lesser General Public License version 2 or later.  See the file
+@file{COPYING.LIB}.
+
+@item
+The manual you're now reading is published under the terms of the GNU
+Free Documentation License (@pxref{GNU Free Documentation License}).
+@end itemize
+
+You must be aware there is no warranty whatsoever for G-Wrap.  This is
+described in full in the licenses.
+
+
+@c Local Variables:
+@c TeX-master: "g-wrap.texi"
+@c ispell-local-dictionary: "american"
+@c End:

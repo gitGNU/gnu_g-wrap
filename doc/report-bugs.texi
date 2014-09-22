@@ -1,0 +1,61 @@
+@c -*-texinfo-*-
+@c This is part of the G-Wrap Reference Manual.
+@c Copyright (C)  2014 David Pirotte
+@c See the file g-wrap.texi for copying conditions.
+
+
+@node Reporting Bugs
+@section Reporting Bugs
+
+Any problems with the installation should be reported to
+@email{bug-guile@@gnu.org}.
+
+If you find a bug in G-Wrap, please report it to the Guile developers,
+so they can fix it.  When you write a bug report, please make sure to
+include as much of the information described below in the report.  If
+you can't figure out some of the items, it is not a problem, but the
+more information we get, the more likely we can diagnose and fix the
+bug.
+
+@itemize @bullet
+
+@item
+The version number of G-Wrap.  This manual documents G-Wrap version
+@value{VERSION}.
+
+@item
+The version number of Guile. You can get this information from invoking
+@samp{guile --version} at your shell, or calling @code{(version)} from
+within Guile.
+
+@item
+A complete description of how to reproduce the bug.
+
+If you have a Scheme program that produces the bug, please include it
+in the bug report. If your program is too big to include. please try
+to reduce your code to a minimal test case.
+
+@item
+A description of the incorrect behavior.  For example, "The Guile
+process gets a fatal signal," or, "The resulting output is as follows,
+which I think is wrong."
+
+If the manifestation of the bug is a Guile error message, it is
+important to report the precise text of the error message, and a
+backtrace showing how the Scheme program arrived at the error. This
+can be done using the @code{,backtrace} command in Guile's debugger.
+@end itemize
+
+If your bug causes Guile to crash, additional information from a
+low-level debugger such as GDB might be helpful. If you have built
+Guile yourself, you can run Guile under GDB via the
+@code{meta/gdb-uninstalled-guile} script. Instead of invoking Guile as
+usual, invoke the wrapper script, type @code{run} to start the
+process, then @code{backtrace} when the crash comes. Include that
+backtrace in your report.
+
+
+@c Local Variables:
+@c TeX-master: "g-wrap.texi"
+@c ispell-local-dictionary: "american"
+@c End:

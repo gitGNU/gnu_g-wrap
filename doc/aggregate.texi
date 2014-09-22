@@ -1,0 +1,96 @@
+@c -*-texinfo-*-
+@c This is part of the G-Wrap Reference Manual.
+@c Copyright (C)  2014 David Pirotte
+@c See the file g-wrap.texi for copying conditions.
+
+@node The @code{aggregated} Type Qualifier
+@section The @code{aggregated} Type Qualifier
+
+@cindex memory management
+@cindex aggregated object
+@cindex constructor
+The @code{aggregated} type qualifier is mostly useful when wrapping C
+functions (constructors) that return a new object which aggregates
+objects passed as its input parameters.  In order to illustrate the
+need for this typespec, let's imagine the following C API:
+
+@smallexample
+/* Return a new stuff.  */
+stuff_t *make_stuff (void);
+
+/* Return a stuff container that contains a pointer to CONTAINED.
+   Note that the container returned is _not_ responsible for
+   deallocating the resources attached to CONTAINED.  */
+stuff_container_t *make_stuff_container (stuff_t *contained);
+@end smallexample
+
+And now, imagine the following Scheme code that uses bindings of the
+above functions:
+
+@smalllisp
+(define c (make-stuff-container (make-stuff)))
+@end smalllisp
+
+Suppose the two C types are wrapped as WCTs (@pxref{Wrapping a C
+Pointer Type}).  The call to @code{make-stuff} will create a new
+Scheme object (a WCP, or a ``SMOB'' in Guile terms, @pxref{Defining
+New Types (Smobs), SMOBs,, guile, The GNU Guile Reference Manual}) for
+the underlying C object.  However, as soon as
+@code{make-stuff-container} has returned, the Scheme code no longer
+holds any SMOB representing the value that was returned by
+@code{make-stuff}.  Consequently, the SMOB returned by
+@code{make-stuff} may soon be garbage-collected by Guile, and its
+underlying C object (originally returned by @code{make_stuff ()}) may
+soon get freed as well.
+
+But, here is the problem: the C @code{stuff_container_t} object still
+contains a pointer to that @code{stuff_t} object that has just been
+deleted!  The goal of the @code{aggregated} typespec is to solve
+situations like this one.  In the example above, the wrapped function
+and the container type should be specified as follows:
+
+@lisp
+(wrap-as-wct! ws
+              #:name '<stuff>
+              #:c-type-name "stuff_t *"
+              #:c-const-type-name "const stuff_t *"
+              #:allowed-options '(aggregated))
+
+...
+
+(wrap-function! ws
+                #:name 'make-stuff-container
+                #:c-name "make_stuff_container"
+                #:returns '<stuff-container>
+                #:arguments '(((<stuff> aggregated) stuff)))
+@end lisp
+
+Literally, this means: ``the argument @var{stuff} of
+@code{make-stuff-container} is @emph{aggregated} by the object
+returned by @code{make-stuff-container}; therefore, it may not be GC'd
+unless the object returned by @code{make-stuff-container} is GC'd
+too.''
+
+@cindex finalization order
+Additionally, G-Wrap, in this case, enforces the @emph{finalization
+order} of WCPs: even if both the referrer (the
+@code{<stuff-container>} object) and its dependency (the @var{stuff}
+argument) become unreachable during the same GC phase, G-Wrap makes
+sure that their @code{wcp-free-function}s (@pxref{Wrapping a C Pointer
+Type}) are called in the right order, i.e., referrer first, dependency
+second.
+
+@cindex reference counting
+Note that some libraries, such as GTK+, solve this problem by relying
+on reference counting: aggregating objects must increment the
+reference counter of the objects they refer to.  The @code{aggregated}
+type qualifier facility can be seen as a solution for those C
+libraries that do @emph{not} use reference counting but have memory
+ownership semantics similar to the ones described above.  An example
+of such a library is Berkeley DB.
+
+
+@c Local Variables:
+@c TeX-master: "g-wrap.texi"
+@c ispell-local-dictionary: "american"
+@c End:

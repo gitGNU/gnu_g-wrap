@@ -1,16 +1,40 @@
-\input texinfo @c -*-texinfo-*-
+\input texinfo
+@c -*-texinfo-*-
 @c %**start of header
 @setfilename g-wrap.info
-@settitle G-Wrap
-@setchapternewpage on
-@c Choices for setchapternewpage are {on,off,odd}.
-@paragraphindent 0
+@documentencoding UTF-8
+@settitle G-Wrap Reference Manual
+@set g-wrap
+@set MANUAL-REVISION 1
 @c %**end of header
+
+@include version.texi
+@include effective-version.texi
+
+@copying
+This manual documents G-Wrap version @value{VERSION}.
+
+Copyright @copyright{} 1996-1998 Christopher Lee, 2000-2001 Rob
+Browning, 2004 Andreas Rottmann, 2005 Ludovic Courtès, 2006
+Christopher Lee, 2007 Ludovic Courtès, 2014 David Pirotte.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+copy of the license is included in the section entitled ``GNU Free
+Documentation License.''
+@end copying
+
 
 @dircategory Libraries
 @direntry
-* G-Wrap: (g-wrap). Scheme wrapper for C libraries
+* G-Wrap Reference: (g-wrap).  Scheme wrapper for C libraries
 @end direntry
+
+@c Choices for setchapternewpage are {on,off,odd}.
+@setchapternewpage odd
+@c @paragraphindent 0
 
 @iftex
 @finalout
@@ -20,149 +44,70 @@
 @end iftex
 
 @titlepage
-@title G-Wrap
+@sp 10
+@comment The title is printed in a large font.
+@title G-Wrap Reference Manual
 @subtitle A tool to wrap C APIs for Guile use.
-@subtitle Version 1.9.0
-@subtitle June 2004
+@subtitle Edition @value{EDITION}, revision @value{MANUAL-REVISION},
+for use with G-Wrap @value{VERSION}
 @author Christopher Lee <chrislee@@ri.cmu.edu>
 @author Rob Browning <rlb@@defaultvalue.org>
 @author Andreas Rottmann <rotty@@debian.org>
-@author Ludovic Court@`es <ludovic.courtes@@laas.fr>
+@author Ludovic Courtès <ludovic.courtes@@laas.fr>
+@author David Pirotte <david@@altosw.be>
 
+@c The following two commands start the copyright page.
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 1996, 1997, 1998, 2006 Christopher Lee
-Copyright @copyright{} 2000-2001 Rob Browning
-Copyright @copyright{} 2004 Andreas Rottmann
-Copyright @copyright{} 2005, 2006, 2007 Ludovic Court@`es
-
-Permission is granted to make and distribute verbatim copies of this
-manual provided the copyright notice and this permission notice are
-preserved on all copies.
-
-Permission is granted to copy and distribute modified versions of this
-manual under the conditions for verbatim copying, provided that the
-entire resulting derived work is distributed under the terms of a
-permission notice identical to this one.
-
-Permission is granted to copy and distribute translations of this manual
-into another language, under the above conditions for modified versions,
-except that this permission notice may be stated in a translation
-approved by the author.
+@insertcopying
 @end titlepage
 
-@node Top, Copying, (dir), (dir)
-@ifinfo
+@c @smallbook
+@finalout
+@headings double
 
-This is the info manual for G-Wrap, covering versions 1.9.*.
+@c Where to find G-Wrap examples.
+@set example-dir guile/examples
 
-@end ifinfo
+@ifnottex
+@node Top, Introduction, (dir), (dir)
+@top The G-Wrap Reference Manual
+
+@insertcopying
+@sp 1
+@end ifnottex
 
 @menu
-* Copying::                     
-* Introduction::                
-* Usage::                       
-* API Reference::               
-* Concept Index::               
-* Type and Class Index::        
-* Procedure and Method Index::  
 
-@detailmenu
- --- The Detailed Node Listing ---
+* Preface::
+* Introduction::
 
-Introduction
+* A More Detailed Example::
+* API Reference::
 
-* Overview::                    
-* Why Create a Wrapper Generator?::  
+Appendices
 
-Usage
+* GNU Free Documentation License::  The license of this manual.
 
-* A More Detailed Example::     
-* Creating a Wrapper Module::   
-* Defining New Wrapped Types::  
+Indices
 
-API Reference
+* Concept Index::
+* Procedure and Method Index::
+* Type and Class Index::
 
-* Basic Concepts::              
-* G-Wrap's High-level API::     
-* G-Wrap's Code Generation API::  
-
-Basic Concepts
-
-* Wrapsets::                    
-* Wrapped Types::               
-* Typespecs::                   
-* Wrapped Functions::           
-
-G-Wrap's High-level Interface
-
-* Wrapping a C Function::       
-* Wrapping a C Constant::       
-* Wrapping an Enumerate Type::  
-* Wrapping a C Pointer Type::   
-* C Types Provided in the Standard Wrapset::  
-* Wrapping Another Simple C Type::  
-
-G-Wrap's Code Generation Interface
-
-* Overview of the Code Generation Methods::  
-* The Top-Level Methods::       
-* Wrapping and Unwrapping Values::  
-
-@end detailmenu
 @end menu
 
-@c Chapter ==================================================================
-@node Copying, Introduction, Top, Top
-@chapter Copying
+@contents
 
-@center Copyright (C) 1990, 1991, 1992, 1993, 1994, 1995
-@center Free Software Foundation, Inc.
-@center 675 Mass Ave, Cambridge, MA 02139, USA
+@include preface.texi
 
-@noindent
-Permission to use, copy, modify, distribute, and sell this software and
-its documentation for any purpose is hereby granted without fee,
-provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in
-supporting documentation.
-
-@center NO WARRANTY
-
-@noindent
-BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR
-THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
-OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
-PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
-EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE
-ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH
-YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL
-NECESSARY SERVICING, REPAIR OR CORRECTION.
-
-@noindent
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
-WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
-REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR
-DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL
-DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE PROGRAM
-(INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING RENDERED
-INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A FAILURE OF
-THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS), EVEN IF SUCH HOLDER OR
-OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
-
-
-@c Chapter ==================================================================
-@node Introduction, Usage, Copying, Top
+@node Introduction
 @chapter Introduction
 
-@menu
-* Overview::                    
-* Why Create a Wrapper Generator?::  
-@end menu
-
-@node Overview, Why Create a Wrapper Generator?, Introduction, Introduction
-@section Overview
+G-Wrap is a tool (and guile library) for generating function wrappers
+for inter-language calls. It currently only supports generating Guile
+wrappers for C functions. Other languages may be supported in the
+future, possibly on both sides.
 
 Given a definition of the types and prototypes for a given C interface,
 G-Wrap will automatically generate the C code that provides access to
@@ -179,6 +124,61 @@ G-Wrap is implemented as a Guile module, and so its interface is a
 programmatic one.  You tell G-Wrap about your functions and types, and
 ask it to generate wrappers for you by calling the functions exported
 from the @code{(g-wrap)} module.
+
+G-Wrap heavily uses
+@uref{http://www.gnu.org/software/guile/manual/html_node/GOOPS.html#GOOPS,
+GOOPS} Guile's object orientation framework.  This is what makes
+G-Wrap highly customizable: each code generation methods may be
+overloaded or redefined in order to meet the user's particular needs.
+
+@menu
+* Why Create a Wrapper Generator?::
+* Obtaining and Installing G-Wrap::
+* A Simple Example::
+@end menu
+
+@node Why Create a Wrapper Generator?
+@section Why Create a Wrapper Generator?
+
+When accessing a given foreign API from a variety of target languages,
+the description of the foreign API is a common bit of information that
+will be needed by the infrastructure supporting each of the target
+languages.  Further, since the internal mechanisms by which a given
+target language can access a foreign API are often in flux, it makes
+sense to consider automatically generating the "glue code" that binds
+the library API and the target language together.  This means that
+whenever the foreign function access mechanisms in a target language
+change, only G-Wrap (or some similar tool) will need to be updated.
+Then all of the relevant glue code can be trivially re-generated.  This
+is the job that G-Wrap was designed to handle.
+
+In truth, one of the primary goals of G-Wrap is also to acumulate as
+many language independent definitions of various APIs as possible, so
+that interfaces for other languages may be generated automatically,
+whether by G-Wrap, or some other program.
+
+The original motivation for G-Wrap came from Aubrey Jaffer's suggestion
+to Christopher Lee that using Scheme to parse a language neutral API
+specification and generate glue code would be a good way to address this
+problem for Scheme interpreters.  G-Wrap may well evolve beyond that to
+support other languages, but for now, it only handles access to C APIs
+from Guile.
+
+In fact, the original implementation of G-Wrap was much more declarative
+than programmatic.  The API specification files were not executable
+Scheme code, but rather declarative Scheme forms.  In the long run, this
+might be preferable, if G-Wrap decides to move in the direction of
+language independence, or an alternate possibility is to design a
+language neutral API spec file (as guile-gnome is trying to do) and then
+just have a translator from that to native G-Wrap calls.
+
+
+@include install.texi
+
+
+@node A Simple Example
+@section A Simple Example
+
 
 As a simple example, if you wanted to wrap a C API that contained only
 one function with a prototype like this
@@ -211,7 +211,7 @@ a complete G-Wrap specification would look like this:
   (next-method)
 
   ;; Populate the wrapset.
-  (wrap-function! ws 
+  (wrap-function! ws
                   #:name 'frob
                   #:returns 'int
                   #:arguments '((int x) (double y))
@@ -329,62 +329,12 @@ modules to be able to safely exchange data among their wrapped
 functions when they share common wrapped types.
 
 As mentioned, G-Wrap itself is implemented as purely Scheme-code Guile
-modules.  This means that you you can wrap functions for multiple
+modules.  This means that you can wrap functions for multiple
 modules on the fly from any invocation of Guile.
 
-@node Why Create a Wrapper Generator?,  , Overview, Introduction
-@section Why Create a Wrapper Generator?
 
-When accessing a given foreign API from a variety of target languages,
-the description of the foreign API is a common bit of information that
-will be needed by the infrastructure supporting each of the target
-languages.  Further, since the internal mechanisms by which a given
-target language can access a foreign API are often in flux, it makes
-sense to consider automatically generating the "glue code" that binds
-the library API and the target language together.  This means that
-whenever the foreign function access mechanisms in a target language
-change, only G-Wrap (or some similar tool) will need to be updated.
-Then all of the relevant glue code can be trivially re-generated.  This
-is the job that G-Wrap was designed to handle.
-
-In truth, one of the primary goals of G-Wrap is also to acumulate as
-many language independent definitions of various APIs as possible, so
-that interfaces for other languages may be generated automatically,
-whether by G-Wrap, or some other program.
-
-The original motivation for G-Wrap came from Aubrey Jaffer's suggestion
-to Christopher Lee that using Scheme to parse a language neutral API
-specification and generate glue code would be a good way to address this
-problem for Scheme interpreters.  G-Wrap may well evolve beyond that to
-support other languages, but for now, it only handles access to C APIs
-from Guile.
-
-In fact, the original implementation of G-Wrap was much more declarative
-than programmatic.  The API specification files were not executable
-Scheme code, but rather declarative Scheme forms.  In the long run, this
-might be preferable, if G-Wrap decides to move in the direction of
-language independence, or an alternate possibility is to design a
-language neutral API spec file (as gnome-guile is trying to do) and then
-just have a translator from that to native G-Wrap calls.
-
-G-Wrap can be found at @url{http://www.nongnu.org/g-wrap/}.
-
-@c Chapter ==================================================================
-@node Usage, API Reference, Introduction, Top
-@chapter Usage
-
-This section is a guided tour through G-Wrap programmatic interface
-that will get you started quickly by looking at practical examples.
-For a more detailed view of the API, please see @xref{API Reference}.
-
-@menu
-* A More Detailed Example::     
-* Creating a Wrapper Module::   
-* Defining New Wrapped Types::  
-@end menu
-
-@node A More Detailed Example, Creating a Wrapper Module, Usage, Usage
-@section A More Detailed Example
+@node A More Detailed Example
+@chapter A More Detailed Example
 
 In this chapter we'll walk through the process of wrapping an
 increasingly complex C API.  In the process, we'll try to hit all the
@@ -414,7 +364,16 @@ functions and types.  Conventionally, if you're creating a wrapper
 module named "foo", the wrapset specification file would be named
 foo-spec.scm, or placed in separate @file{ws/} subdirectory.
 
-@node Creating a Wrapper Module, Defining New Wrapped Types, A More Detailed Example, Usage
+
+@menu
+* Creating a Wrapper Module::
+* Defining New Wrapped Types::
+* The @code{aggregated} Type Qualifier::
+* Reporting Bugs::
+@end menu
+
+
+@node Creating a Wrapper Module
 @section Creating a Wrapset
 
 Inside the wrapset specification file, the first thing you have to do
@@ -458,11 +417,11 @@ want to say something like this:
   (define-method (initialize (ws <miscutils-wrapset>) initargs)
     (next-method ws (append '(#:module (miscutils)) initargs))
 
-    (wrap-function! 
+    (wrap-function!
       ws
       #:name 'join_strings
       #:returns 'mchars
-      #:c-name "join_strings" 
+      #:c-name "join_strings"
       #:arguments '((mchars a) (mchars b))
       #:description "Return a string consisting of a followed by b.")
 
@@ -470,7 +429,7 @@ want to say something like this:
      ws
      #:name 'seconds-since-dow
      #:returns 'double
-     #:c-name "seconds_since_dow" 
+     #:c-name "seconds_since_dow"
      #:arguments '((uint day-of-week))
      #:description "Given day-of-week (ranging 1-7), return elapsed time since then."))
 @end example
@@ -499,11 +458,11 @@ string that will also be owned by the caller.  Given that, the correct
 way to wrap this function is:
 
 @example
-    (wrap-function! 
+    (wrap-function!
       ws
       #:name 'join-strings
       #:returns '(mchars caller-owned)
-      #:c-name "join_strings" 
+      #:c-name "join_strings"
       #:arguments '(((mchars caller-owned) a) ((mchars caller-owned) b))
       #:description "Return a string consisting of a followed by b.")
 @end example
@@ -522,7 +481,8 @@ these C functions normally.  You could use it like this:
   guile>
 @end example
 
-@node Defining New Wrapped Types,  , Creating a Wrapper Module, Usage
+
+@node Defining New Wrapped Types
 @section Defining New Wrapped Types
 
 Though G-Wrap already provides a number of wrapped types in the
@@ -532,13 +492,13 @@ define your own wrapped types.
 As an example, let's presume someone has added a fine-grained, wide
 ranging, time type to miscutils along with a function that uses that
 type like this:
- 
+
 FIXME: Add an overview of how G-Wrap thinks about types -- i.e. using a
 template-like process with ccodegens inserting content in important
 places.
 
 @example
- 
+
   typedef struct @{
     long long seconds;
     long int nanoseconds;
@@ -611,7 +571,7 @@ the Scheme side.
     (list
       "if (SCM_FALSEP(msu_scm_timespec64_p(" (scm-var value) ")))"
       `(gw:error ,error-var type ,(wrapped-var value))
-      "else\n"  
+      "else\n"
       "  " (var value) " = msu_timespec64_to_c(" (scm-var value) ");\n"))
 @end lisp
 
@@ -657,8 +617,11 @@ nothing overly fancy, you can get away with just @code{wrap-value-cg},
 @code{unwrap-value-cg}. For C values that need deconstruction, there
 is also @code{destruct-value-cg}.
 
-@c Chapter ==================================================================
-@node API Reference, Concept Index, Usage, Top
+@include aggregate.texi
+@include report-bugs.texi
+
+
+@node API Reference
 @chapter API Reference
 
 This section is trying to provide a reference for the most important
@@ -677,9 +640,9 @@ In any case, reading the section @xref{Basic Concepts}, is highly
 recommended since it describes concepts used throughout G-Wrap.
 
 @menu
-* Basic Concepts::              
-* G-Wrap's High-level API::     
-* G-Wrap's Code Generation API::  
+* Basic Concepts::
+* G-Wrap's High-level API::
+* G-Wrap's Code Generation API::
 @end menu
 
 @node Basic Concepts, G-Wrap's High-level API, API Reference, API Reference
@@ -692,20 +655,21 @@ The Goops Reference Manual}) usually exported by the @code{(g-wrap)}
 module.
 
 @menu
-* Wrapsets::                    
-* Wrapped Types::               
-* Typespecs::                   
-* Wrapped Functions::           
+* Wrapsets::
+* Wrapped Types::
+* Typespecs::
+* Wrapped Functions::
 @end menu
 
-@node Wrapsets, Wrapped Types, Basic Concepts, Basic Concepts
+
+@node Wrapsets
 @subsection Wrapsets
 
 @cindex wrapset
 @tindex <gw-wrapset>
 A wrapset is roughly an object that holds a representation of all the
 C types, constants, and functions what one is willing to ``wrap''.
-Wrapset specifications as seen in @xref{Overview}, are in fact a piece
+Wrapset specifications as seen in @xref{A Simple Example}, are in fact a piece
 of Scheme code that creates a wrapset object, adds a number of C
 functions, types, etc. to be wrapped and then generates code for this
 wrapset.  The code generation phase will be described in more details
@@ -831,7 +795,8 @@ call @var{proc} (a procedure or generic function).  The result is
 unspecified.
 @end deffn
 
-@node Wrapped Types, Typespecs, Wrapsets, Basic Concepts
+
+@node Wrapped Types
 @subsection Wrapped Types
 
 @tindex <gw-type>
@@ -928,15 +893,14 @@ unwraps, or destroys instances of the C type wrapped by @var{type}
 @end deffn
 
 
-
-@node Typespecs, Wrapped Functions, Wrapped Types, Basic Concepts
+@node Typespecs
 @subsection Typespecs
 
 @tindex <gw-typespec>
 FIXME: Write it; see also @xref{Wrapping a C Function}.
 
 
-@node Wrapped Functions,  , Typespecs, Basic Concepts
+@node Wrapped Functions
 @subsection Wrapped Functions
 
 @tindex <gw-function>
@@ -948,7 +912,8 @@ FIXME: Write it; see also @xref{Wrapping a C Function}.
 FIXME: Describe
 @end deffn
 
-@node G-Wrap's High-level API, G-Wrap's Code Generation API, Basic Concepts, API Reference
+
+@node G-Wrap's High-level API
 @section G-Wrap's High-level Interface
 
 G-Wrap's high-level API lives in the @code{(g-wrap)} module, and
@@ -967,18 +932,19 @@ however, may be achieved using the lower-level code generation API
 (@pxref{G-Wrap's Code Generation API}).
 
 @menu
-* Wrapping a C Function::       
-* Wrapping a C Constant::       
-* Wrapping an Enumerate Type::  
-* Wrapping a C Pointer Type::   
-* C Types Provided in the Standard Wrapset::  
-* Wrapping Another Simple C Type::  
+* Wrapping a C Function::
+* Wrapping a C Constant::
+* Wrapping an Enumerate Type::
+* Wrapping a C Pointer Type::
+* C Types Provided in the Standard Wrapset::
+* Wrapping Another Simple C Type::
 @end menu
 
-@node Wrapping a C Function, Wrapping a C Constant, G-Wrap's High-level API, G-Wrap's High-level API
+
+@node Wrapping a C Function
 @subsection Wrapping a C Function
 
-As seen in @xref{Overview}, wrapping a C function using G-Wrap's
+As seen in @xref{A Simple Example}, wrapping a C function using G-Wrap's
 high-level functions is relatively simple.  Essentially, it boils down
 to a call to the @code{wrap-function!} GOOPS method.
 
@@ -988,7 +954,7 @@ be wrapped by @var{wrapset}.  The arguments in @var{args} must contain
 the following named parameters (@pxref{Optional Arguments,
 @code{(ice-9 optargs)},, guile, The GNU Guile Reference Manual}):
 
-@c FIXME: This is (mostly) copied from the `Overview' section.
+@c FIXME: This is (mostly) copied from the `A Simple Example' section.
 @table @code
 @item #:name
 the symbol which should be bound to the wrapped function in Scheme at
@@ -1070,93 +1036,7 @@ Examples of valid usage patterns of @code{wrap-function!} are
 available in @xref{Creating a Wrapper Module}.
 
 
-@unnumbered The @code{aggregated} Type Qualifier
-
-@cindex memory management
-@cindex aggregated object
-@cindex constructor
-The @code{aggregated} type qualifier is mostly useful when wrapping C
-functions (constructors) that return a new object which aggregates
-objects passed as its input parameters.  In order to illustrate the
-need for this typespec, let's imagine the following C API:
-
-@smallexample
-/* Return a new stuff.  */
-stuff_t *make_stuff (void);
-
-/* Return a stuff container that contains a pointer to CONTAINED.
-   Note that the container returned is _not_ responsible for
-   deallocating the resources attached to CONTAINED.  */
-stuff_container_t *make_stuff_container (stuff_t *contained);
-@end smallexample
-
-And now, imagine the following Scheme code that uses bindings of the
-above functions:
-
-@smalllisp
-(define c (make-stuff-container (make-stuff)))
-@end smalllisp
-
-Suppose the two C types are wrapped as WCTs (@pxref{Wrapping a C
-Pointer Type}).  The call to @code{make-stuff} will create a new
-Scheme object (a WCP, or a ``SMOB'' in Guile terms, @pxref{Defining
-New Types (Smobs), SMOBs,, guile, The GNU Guile Reference Manual}) for
-the underlying C object.  However, as soon as
-@code{make-stuff-container} has returned, the Scheme code no longer
-holds any SMOB representing the value that was returned by
-@code{make-stuff}.  Consequently, the SMOB returned by
-@code{make-stuff} may soon be garbage-collected by Guile, and its
-underlying C object (originally returned by @code{make_stuff ()}) may
-soon get freed as well.
-
-But, here is the problem: the C @code{stuff_container_t} object still
-contains a pointer to that @code{stuff_t} object that has just been
-deleted!  The goal of the @code{aggregated} typespec is to solve
-situations like this one.  In the example above, the wrapped function
-and the container type should be specified as follows:
-
-@lisp
-(wrap-as-wct! ws
-              #:name '<stuff>
-              #:c-type-name "stuff_t *"
-              #:c-const-type-name "const stuff_t *"
-              #:allowed-options '(aggregated))
-
-...
-
-(wrap-function! ws
-                #:name 'make-stuff-container
-                #:c-name "make_stuff_container"
-                #:returns '<stuff-container>
-                #:arguments '(((<stuff> aggregated) stuff)))
-@end lisp
-
-Literally, this means: ``the argument @var{stuff} of
-@code{make-stuff-container} is @emph{aggregated} by the object
-returned by @code{make-stuff-container}; therefore, it may not be GC'd
-unless the object returned by @code{make-stuff-container} is GC'd
-too.''
-
-@cindex finalization order
-Additionally, G-Wrap, in this case, enforces the @emph{finalization
-order} of WCPs: even if both the referrer (the
-@code{<stuff-container>} object) and its dependency (the @var{stuff}
-argument) become unreachable during the same GC phase, G-Wrap makes
-sure that their @code{wcp-free-function}s (@pxref{Wrapping a C Pointer
-Type}) are called in the right order, i.e., referrer first, dependency
-second.
-
-@cindex reference counting
-Note that some libraries, such as GTK+, solve this problem by relying
-on reference counting: aggregating objects must increment the
-reference counter of the objects they refer to.  The @code{aggregated}
-type qualifier facility can be seen as a solution for those C
-libraries that do @emph{not} use reference counting but have memory
-ownership semantics similar to the ones described above.  An example
-of such a library is Berkeley DB.
-
-
-@node Wrapping a C Constant, Wrapping an Enumerate Type, Wrapping a C Function, G-Wrap's High-level API
+@node Wrapping a C Constant
 @subsection Wrapping a C Constant
 
 @deffn method wrap-constant! (wrapset <gw-wrapset>) . args
@@ -1180,7 +1060,8 @@ a string describing this constant.
 
 @end deffn
 
-@node Wrapping an Enumerate Type, Wrapping a C Pointer Type, Wrapping a C Constant, G-Wrap's High-level API
+
+@node Wrapping an Enumerate Type
 @subsection Wrapping an Enumerate Type
 
 When wrapping a whole C enumerate type, G-Wrap proposes an interface
@@ -1223,7 +1104,7 @@ This can be used as follows:
 @end deffn
 
 
-@node Wrapping a C Pointer Type, C Types Provided in the Standard Wrapset, Wrapping an Enumerate Type, G-Wrap's High-level API
+@node Wrapping a C Pointer Type
 @subsection Wrapping a C Pointer Type
 
 @cindex wrapped C type
@@ -1315,10 +1196,10 @@ field does get marked.
 A string describing this wrapped C type.
 @end table
 
-
 @end deffn
 
-@node C Types Provided in the Standard Wrapset, Wrapping Another Simple C Type, Wrapping a C Pointer Type, G-Wrap's High-level API
+
+@node C Types Provided in the Standard Wrapset
 @subsection C Types Provided in the Standard Wrapset
 
 @cindex standard wrapset
@@ -1399,7 +1280,7 @@ qualifiers to the string argument of the wrapped function, such as
 @code{caller-owned} (@pxref{Wrapping a C Function}).
 
 
-@node Wrapping Another Simple C Type,  , C Types Provided in the Standard Wrapset, G-Wrap's High-level API
+@node Wrapping Another Simple C Type
 @subsection Wrapping Another Simple C Type
 
 If you want to wrap a simple C type which is does not fit in any of
@@ -1474,7 +1355,7 @@ to do, then you may have a look at the details of G-Wrap's code
 generation interface, @xref{G-Wrap's Code Generation API}.
 
 
-@node G-Wrap's Code Generation API,  , G-Wrap's High-level API, API Reference
+@node G-Wrap's Code Generation API
 @section G-Wrap's Code Generation Interface
 
 When creating Scheme bindings for a C programming interface with
@@ -1484,23 +1365,25 @@ been added to it, G-Wrap is ready to proceed with the generation of
 C code implementing these wrappings.
 
 In the following sections, we will detail the @dfn{protocol} that is
-used to perform code generation.  G-Wrap heavily uses GOOPS, Guile's
-object orientation framework, to this end (@pxref{Top, Guile's
-Object-Oriented Programming System,, goops, The GOOPS Reference
-Manual}).  This is what makes G-Wrap highly customizable: each of
-these code generation methods may be overloaded or redefined in order
-to meet the user's particular needs.
+used to perform code generation.
+
+As mentionned in the introduction, G-Wrap heavily uses @pxref{GOOPS,,,
+guile, The GNU Guile Reference Manual}, Guile's object orientation
+framework.  This is what makes G-Wrap highly customizable: each code
+generation methods may be overloaded or redefined in order to meet the
+user's particular needs.
 
 Most of the classes and methods involved in generation of C code are
 defined in the @code{(g-wrap c-codegen)}.
 
 @menu
-* Overview of the Code Generation Methods::  
-* The Top-Level Methods::       
-* Wrapping and Unwrapping Values::  
+* Overview of the Code Generation Methods::
+* The Top-Level Methods::
+* Wrapping and Unwrapping Values::
 @end menu
 
-@node Overview of the Code Generation Methods, The Top-Level Methods, G-Wrap's Code Generation API, G-Wrap's Code Generation API
+
+@node Overview of the Code Generation Methods
 @subsection Overview of the Code Generation Methods
 
 @cindex code generation methods
@@ -1553,7 +1436,7 @@ described above.
 @end deffn
 
 
-@node The Top-Level Methods, Wrapping and Unwrapping Values, Overview of the Code Generation Methods, G-Wrap's Code Generation API
+@node The Top-Level Methods
 @subsection The Top-Level Methods
 
 As we have just seen, wrapset objects (i.e. instances of a sub-class
@@ -1615,7 +1498,8 @@ of it).
 
 FIXME: To be continued.
 
-@node Wrapping and Unwrapping Values,  , The Top-Level Methods, G-Wrap's Code Generation API
+
+@node Wrapping and Unwrapping Values
 @subsection Wrapping and Unwrapping Values
 
 For each specific wrapped type, a specific sequence of C code must be
@@ -1704,24 +1588,35 @@ Since G-Wrap allows to construct function calls at run-time via libffi
 run-time call constructor.
 @end deffn
 
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
 
-@c Chapter ==================================================================
-@node Concept Index, Type and Class Index, API Reference, Top
+@include fdl.texi
+
+@node Concept Index
 @unnumbered Concept Index
+
+This index contains concepts, keywords and non-Schemey names for
+several features, to make it easier to locate the desired sections.
 
 @printindex cp
 
-@node Type and Class Index, Procedure and Method Index, Concept Index, Top
+
+@node Procedure and Method Index
+@unnumbered Procedure and Method Index
+
+This is an alphabetical list of all the procedures and macros in
+G-Wrap.
+
+@printindex fn
+
+
+@node Type and Class Index
 @unnumbered Type and Class Index
 
 @printindex tp
 
-@node Procedure and Method Index,  , Type and Class Index, Top
-@unnumbered Procedure and Method Index
 
-@printindex fn
-
-@contents
 @bye
 
 @c Local Variables:

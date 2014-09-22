@@ -1,0 +1,41 @@
+@c -*-texinfo-*-
+@c This is part of the G-Wrap Reference Manual.
+@c Copyright (C)  2014 David Pirotte
+@c See the file g-wrap.texi for copying conditions.
+
+@node Obtaining and Installing G-Wrap
+@section Obtaining and Installing G-Wrap
+
+G-Wrap can be obtained from the main GNU archive site
+@url{http://download.savannah.gnu.org/releases/g-wrap/} or any of its
+mirrors.  The file will be named g-wrap-@var{version}.tar.gz.  The
+current version is @value{VERSION}, so the file you should grab is:
+
+@url{http://download.savannah.gnu.org/releases/g-wrap/g-wrap-@value{VERSION}.tar.gz}
+
+To unbundle G-Wrap use the instruction
+
+@example
+zcat g-wrap-@value{VERSION}.tar.gz | tar xvf -
+@end example
+
+@noindent
+which will create a directory called @file{g-wrap-@value{VERSION}} with
+all the sources.  You can look at the file @file{INSTALL} for detailed
+instructions on how to build and install G-Wrap, but you should be able
+to just do
+
+@example
+cd g-wrap-@value{VERSION}
+./configure --prefix=...
+make
+make install
+@end example
+
+This will install the G-Wrap files in @file{<prefix>/share/guile/site/g-wrap}.
+
+
+@c Local Variables:
+@c TeX-master: "g-wrap.texi"
+@c ispell-local-dictionary: "american"
+@c End:
