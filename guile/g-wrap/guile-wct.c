@@ -131,14 +131,9 @@ do_free_wcp (wrapped_c_pointer_data *data)
 	    do_free_wcp (d);
 	}
 
-      scm_gc_free (data->wcp_dependencies,
-		   sizeof (wrapped_c_pointer_data) * data->wcp_dependency_count,
-		   "gw:wcp-dependencies");
       data->wcp_dependencies = NULL;
       data->wcp_dependency_count = 0;
     }
-
-  scm_gc_free (data, sizeof (wrapped_c_pointer_data), "gw:wcp");
 
   /* At this point, DATA is no longer valid!  */
 }
@@ -307,12 +302,6 @@ gw_wcp_set_dependencies (SCM wcp, SCM deps)
   ptr_data = (wrapped_c_pointer_data *)SCM_SMOB_DATA (wcp);
   ptr_data->dependencies = deps;
 
-  if (ptr_data->wcp_dependencies)
-    scm_gc_free (ptr_data->wcp_dependencies,
-		 ptr_data->wcp_dependency_count
-		 * sizeof (wrapped_c_pointer_data),
-		 "gw:wcp-dependencies");
-
   ptr_data->wcp_dependency_count = wcp_count;
   ptr_data->wcp_dependencies =
     scm_gc_malloc (wcp_count * sizeof (wrapped_c_pointer_data),
@@ -364,22 +353,6 @@ gw_wcp_coerce(SCM obj, SCM new_type)
 
 /****************************************************************************/
 /* Wrapped C type functions */
-
-static size_t
-wct_data_free(SCM smob)
-{
-  scm_gc_free ((void *) SCM_SMOB_DATA (smob), sizeof (wrapped_c_type_data),
-               "gw:wct");
-  return 0;
-}
-
-static SCM
-wct_data_mark(SCM smob)
-{
-  wrapped_c_type_data *data = (wrapped_c_type_data *) SCM_SMOB_DATA(smob);
-
-  return data->name;
-}
 
 static int
 wct_data_print(SCM wct, SCM port, scm_print_state *pstate)
@@ -486,8 +459,6 @@ gw_wct_initialize()
   if(!wct_system_initialized) {
 
     wct_smob_id = scm_make_smob_type("gw:wct", sizeof(wrapped_c_type_data));
-    scm_set_smob_mark(wct_smob_id, wct_data_mark);
-    scm_set_smob_free(wct_smob_id, wct_data_free);
     scm_set_smob_print(wct_smob_id, wct_data_print);
     /* don't need equalp because there should never be more than one
        of these and if we do, then they're *not* equal - only one
