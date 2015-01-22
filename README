@@ -12,7 +12,7 @@ Installing
 Prerequisites
 -------------
 
-* Guile >= 1.6, http://www.gnu.org/software/guile/
+* Guile >= 2.0, http://www.gnu.org/software/guile/
 
 * Guile-Lib >= 0.1.2, http://home.gna.org/guile-lib
 
