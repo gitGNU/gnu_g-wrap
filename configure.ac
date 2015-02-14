@@ -70,6 +70,7 @@ AC_DEFINE_UNQUOTED(ffi_type_ssize_t, ffi_type_${ffi_ssize_type},
 		   [ffi type for ssize_t])
 
 dnl Guile
+GUILE_PKG([2.2 2.0])
 GUILE_PROGS
 GUILE_FLAGS
 GUILE_VERSION="`guile-config info guileversion | sed -r 's,\\.[[0-9]]+$,,'`"
