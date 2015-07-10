@@ -36,6 +36,7 @@ doc/stamp-vti
 /missing
 /doc/g-wrap.info
 /doc/texinfo.tex
+/doc/version.texi
 /g-wrap/ffi-support.h
 /g-wrap/stamp-h2
 /guile/g-wrap-2.0-guile.pc

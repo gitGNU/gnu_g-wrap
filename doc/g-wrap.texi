@@ -9,7 +9,6 @@
 @c %**end of header
 
 @include version.texi
-@include effective-version.texi
 
 @copying
 This manual documents G-Wrap version @value{VERSION}.
