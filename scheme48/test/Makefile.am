@@ -8,7 +8,7 @@ clean-local:
 	rm -f packages.scm test-standard.scm
 
 all-local:
-	guile $(GUILE_FLAGS) -c \
+	$(GUILE) $(GUILE_FLAGS) -c \
 	  $(SETGWPATH)" \
 	  (use-modules (g-wrap) (g-wrap scheme48)) \
 	  $(foreach ws,$(WRAPSETS),(use-modules (scheme48 test s48-$(ws)-spec))) \

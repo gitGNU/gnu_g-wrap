@@ -94,7 +94,7 @@ libgw_test_compat_la_LIBADD = $(std_libs)
 
 gw-test-%.c gw-test-%.scm: guile-test-%-spec.scm $(top_srcdir)/test/test-%-spec.scm
 	LD_LIBRARY_PATH=${LOCALPWD}/..:${LD_LIBRARY_PATH} \
-	guile $(GUILE_FLAGS) -c  \
+	$(GUILE) $(GUILE_FLAGS) -c  \
 	  ${SETGWPATH}" \
 	  (use-modules (g-wrap)) \
 	  (use-modules (guile test guile-test-$*-spec)) \
@@ -102,7 +102,7 @@ gw-test-%.c gw-test-%.scm: guile-test-%-spec.scm $(top_srcdir)/test/test-%-spec.
 
 gw-test-compat.c gw-test-compat.scm: guile-test-compat-spec.scm
 	LD_LIBRARY_PATH=${LOCALPWD}/..:${LD_LIBRARY_PATH} \
-	guile $(GUILE_FLAGS) -c  \
+	$(GUILE) $(GUILE_FLAGS) -c  \
 	  ${SETGWPATH}" \
 	  (use-modules (g-wrap compat)) \
 	  (use-modules (guile test guile-test-compat-spec)) \

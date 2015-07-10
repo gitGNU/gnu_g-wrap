@@ -21,7 +21,7 @@ CLEANFILES = $(wildcard gw-*)
 # Wrapset generation
 gw-%.c gw-%.scm: %-spec.scm
 	LD_LIBRARY_PATH=${LOCALPWD}/..:${LD_LIBRARY_PATH} \
-	guile $(GUILE_FLAGS) -c  \
+	$(GUILE) $(GUILE_FLAGS) -c  \
 	  ${SETGWPATH}" \
 	  (use-modules (g-wrap)) \
 	  (use-modules (examples $*-spec)) \

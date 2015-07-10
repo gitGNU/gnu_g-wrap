@@ -28,7 +28,7 @@ libgw_guile_standard_la_CFLAGS = -std=c99 $(AM_CFLAGS)
 LIBGW_STANDARD_GWGEN = $(addprefix standard, .h .c .scm) 
 
 ${LIBGW_STANDARD_GWGEN}: $(top_srcdir)/guile/g-wrap/guile/ws/standard.scm
-	guile $(GUILE_FLAGS) -c \
+	$(GUILE) $(GUILE_FLAGS) -c \
           $(SETGWPATH)"(use-modules (g-wrap)) \
 	               (use-modules (g-wrap guile)) \
                        (use-modules (g-wrap guile ws standard)) \
@@ -51,7 +51,7 @@ libgw_guile_gw_glib_la_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
 LIBGW_GW_GLIB_GWGEN = $(addprefix gw-glib, .h .c .scm) 
 
 ${LIBGW_GW_GLIB_GWGEN}: $(top_srcdir)/guile/g-wrap/gw-glib-spec.scm
-	guile $(GUILE_FLAGS) -c \
+	$(GUILE) $(GUILE_FLAGS) -c \
           $(SETGWPATH)"(use-modules (g-wrap)) \
 	               (use-modules (g-wrap guile)) \
                        (use-modules (g-wrap gw-glib-spec)) \
