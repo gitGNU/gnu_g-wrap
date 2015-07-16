@@ -1,0 +1,355 @@
+2009-03-20  Andreas Rottmann  <a.rottmann@gmx.at>
+
+ 	Debian Bug #475673 -- (sparc/unstable): test failures
+
+	* g-wrap/core-runtime.c, guile/g-wrap/guile-runtime.c: Take the
+	type's alignment into consideration.
+
+2009-02-20  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* NEWS: Add entry for 1.9.12.
+	* configure.ac: Bump version number to 1.9.12.
+
+	* configure.ac: Modernize AC_INIT and AM_INIT_AUTOMAKE invocation,
+	disable "non-portable make" automake warnings.
+
+
+	Bug #25187 Incorrect placeholders in Guile's .pc.in template
+
+	* guile/g-wrap-2.0-guile.pc.in: Fixup handling of libffi (it comes
+	now with pkg-config support, so just use pkg-config's dependency
+	mechanism).
+
+2008-03-25  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* Makefile.am (SUBDIRS, DIST_SUBDIRS): Drop in-tree libffi.
+	* configure.ac: Logic for in-tree libffi dropped, use pkg-config 
+	as the new libffi supports it.
+
+	* guile/g-wrap/gw/Makefile.am (libgw_guile_standard_la_LIBADD):
+	Added $(LIBFFI_LIBS).
+
+	* guile/examples/Makefile.am (libgw_guile_miscutils_la_CFLAGS):
+	Added $(GUILE_CFLAGS).
+
+	* g-wrap/ffi-support.h.in (GW_RVALUE_PTR): Fix for args greater in
+	size than sizeof(ffi_arg) on bigendian platforms.
+
+2007-12-09  Andy Wingo  <wingo@pobox.com>
+
+	* guile/test/test-standard (test-double-type): Add a test for
+	double echoing.
+
+	* g-wrap.scm (gw-handle-condition): Fix an error message.
+
+2007-10-26  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	Fix WCT nullable behaviour.
+	
+	* g-wrap/c-types.scm (gw-wcts-nullable?): New SRFI-39 parameter
+	controlling nullable behaviour. If this is #t, WCTs will be
+	nullable unless the `non-null' typespec option is given; when #f,
+	`null-ok' must be specified for nullable types (this is the default,
+	and all new code should use this mode of operation).
+	(make-typespec): Respect the setting of `gw-wcts-nullable?'.
+
+	* guile/g-wrap/compat.scm (gw:generate-wrapset): Parameterize
+	`gw-wcts-nullable?' to #t.
+	
+	* NEWS: Added entry regarding nullable behaviour.
+	
+2007-09-01  Ludovic Courtès  <ludo@gnu.org>
+
+	* g-wrap/util.scm: Use `srfi-13'.
+	(any-str->c-sym-str): Use `string-concatenate'.
+	(class-slot-set-supers-union!): Use `concatenate'.
+
+	* g-wrap/scm-codegen.scm (generate-wrapset-scm): Removed unused
+	bindings.
+
+	* g-wrap.scm (g-wrap): Don't use `srfi-11', don't export
+	`provide-type-class!' (unbound), export the condition type
+	predicates.
+	(gw-handle-condition): Fixed typos, handle
+	`gw-bad-typespec-option-error?' properly.
+	(raise-bad-typespec-option): Don't provide initializers for
+	`spec' and `type'.
+	(for-each-function): Removed.
+	(wrap-type!): Use `format-error' instead of `error'.
+
+2007-09-01  Ludovic Courtès  <ludo@gnu.org>
+
+	Use proper SRFI-35 constructs.
+
+	* g-wrap.scm (&gw-bad-typespec, &gw-bad-typespec-option,
+	&gw-name-conflict, &gw-stacked): Use `define-condition-type'
+	instead of `define-class'.
+	(gw-handle-condition): New, replacement for the set of
+	`handle-condition' methods.
+	(raise-bad-typespec, raise-bad-typespec-option, raise-stacked):
+	Specify all fields when invoking the `condition' macro, as
+	required per SRFI-35.
+	(make-typespec): Use `condition-has-type?' instead of `is-a?'.
+	(generate-wrapset): Use `gw-handle-condition' instead of
+	`handle-condition'.
+
+	* g-wrap/util.scm: Autoload `(g-wrap)'.
+	(&gw-bad-element): Use `define-condition-type'.
+	(guard/handle): Use `gw-handle-condition'.
+	(call-with-output-file/cleanup): Likewise.
+
+	* scheme48/g-wrap/scheme48.scm (generate-packages): Use
+	`gw-handle-condition'.
+
+2007-08-14  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* guile/examples/Makefile.am
+	(nodist_libgw_guile_miscutils_la_SOURCES)
+	(libgw_guile_miscutils_la_SOURCES, EXTRA_DIST): Distribute the
+	spec, not the generated source.
+
+	* guile/g-wrap-2.0-guile.pc.in (datarootdir, datadir): Define; see
+	http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=382131.
+
+2007-08-12  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* guile/g-wrap/compat.scm (make-typespec): Make WCTs null-ok by
+	default.
+	* guile/test/guile-test-compat-spec.scm: 
+	* guile/test/test-compat (test-wct): Check that NULL is allowed
+	for the WCT.
+
+	* g-wrap.scm (<gw-type>, initialize): Support per-instance
+	allowed-options.
+
+	* g-wrap/c-types.scm (check-typespec-options): 
+	* g-wrap/rti.scm (check-typespec-options): Cleanup a bit.
+
+2007-08-11  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap.scm, g-wrap/c-types.scm, g-wrap/rti.scm:
+	* guile/g-wrap/guile.scm: Move "allowed-options" to <gw-type> 
+	from <gw-rti-type>.
+
+2007-07-12  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* Makefile.am: Distribute and install SRFI 34/35 again.
+	* lib/srfi: Moved to toplevel.
+
+2007-07-10  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* guile/examples/Makefile.am: Don't install the libraries.
+
+2007-07-04  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* test/g-wrap-test-c-code.c, test/g-wrap-test-c-code.h
+	(gw_test_many_args): New function.
+	* test/test-standard-spec.scm (initialize): Added wrapper for 
+	gw_test_many_args().
+	* guile/test/test-standard (test-many-args): Testcase for 
+	gw_test_many_args.
+	
+	* g-wrap.scm (visible?): Output arguments are not always
+	invisible.
+	* guile/g-wrap/guile.scm (function-wrapper-cg): Adapted.
+
+2007-05-20  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* autogen.sh: Pass -Wno-portability to automake; this avoids
+	warnings about GNU make extension usage.
+
+2007-05-19  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* configure.ac: Fix HAVE_GLIB automake conditional.
+
+2007-05-18  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* guile/examples/Makefile.am: Fix build when libffi isn't
+	installed.
+
+2007-05-04  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	Buildsystem update.
+
+	* m4, lib: Import gnulib vasprintf implementation.
+
+2007-05-03  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* NEWS: Mention function flags feature.
+
+	* configure.ac: Choose the right guile binary when more than one
+	Guile version is installed.
+
+2007-05-02  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* guile/test/Makefile.am: Don't distribute guile-test-env any
+	longer.
+
+	* guile/run-guile.in (GUILE_LOAD_PATH): Fixed for Guile 1.8, which
+	has "." not in the default path.
+
+2007-04-15  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* test/g-wrap-test-c-code.c (gw_test_cleanup_aggregating_obj):
+	Format string vs. argument mismatch fixed.
+
+2007-02-02  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-runtime.c
+	("%gw:procedure-to-method-public!"): Fix a bug that prevented
+	method addition to a generic that was already forced.
+
+2007-01-04  Andy Wingo  <wingo@pobox.com>
+
+	Add a flag to GWFunctionInfo to control whether or not we leave
+	guile/the language when calling functions.
+	
+	* guile/g-wrap/guile-runtime.c (do_ffi_call): Renamed from
+	ffi_call_without_guile. 
+	(dynproc_smob_apply): Only leave guile if the LEAVE_RUNTIME
+	function flag is set.
+
+	* guile/examples/Makefile.am (CLEANFILES): Fix the clean target.
+
+	* guile/g-wrap/guile.scm (initializations-cg): 
+	* g-wrap/rti.scm (add-function-rti-cg): Write the flags arg into
+	the generated C.
+
+	* g-wrap/core-runtime.h (GWFunctionFlag): New data type.
+	(GW_FUNCTION_FLAG_LEAVE_RUNTIME, GW_FUNCTION_FLAGS_USER_SHIFT):
+	A flag supported by G-Wrap, and some padding so that users can
+	have flags too.
+	(struct _GWFunctionInfo): Add flags member.
+
+	* g-wrap/core-runtime.c (gw_wrapset_add_function): Add flags arg.
+
+	* g-wrap.scm (<gw-function>): Add flags slot.
+	(flags) New exported public accessor of flags. Flags is a string
+	that should evaluate to an unsigned int in C, and normally should
+	use the constants in core-runtime.h.
+	(wrap-function!): Accept a flags kwarg, defaults to "0".
+
+2007-01-02  Andreas Rottmann  <rotty@gkar.rotty.yi.org>
+
+	* configure.ac, Makefile.am (DIST_SUBDIRS): Always include libffi
+	in "dist" target when it's present in the source tree.
+
+2006-12-17  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-compatibility.c (scm_without_guile): 
+	* guile/g-wrap/guile-compatibility.h: Support scm_without_guile on
+	guile 1.6.
+
+	* guile/g-wrap/guile-runtime.c (dynproc_smob_apply)
+	(ffi_call_without_guile): Wrap the ffi_call in scm_without_guile,
+	which allows guile to GC without the participation of this thread,
+	and allows other threads to register themselves with guile.
+	Procedures with SCM arguments should still be fine as long as they
+	are just examining their arguments; I'm not sure how to deal with
+	procedures that allocate new SCM objects, for example as their
+	return values. That part needs more thought, and thus makes this a
+	somewhat experimental patch :)
+
+2006-12-15  Andy Wingo  <wingo@pobox.com>
+
+	* Makefile.am (DIST_SUBDIRS): libffi needs to be in a
+	@substitutedvariable@, or otherwise automake will require that it
+	exist when doing an autogen. Allows build from bzr without libffi.
+	
+	* guile/examples/Makefile.am (lib_LTLIBRARIES): Add the
+	uninstalled guile path to the CFLAGS.
+
+2006-11-25  Andreas Rottmann  <rotty@gkar.rotty.yi.org>
+
+	* guile/test/guile-test-env.in: Renamed to
+	guile/run-guile.in. configure.ac and tests adapted.
+
+	* guile/examples: New "miscutils" example from documentation.
+	* doc/g-wrap.texi: Corrected a few mistakes regarding the miscutils example.
+	
+	* g-wrap.scm (c-type-name): Add single-argument method that
+	invokes the two-argument method.
+
+2006-11-09  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap/config.scm.in: New file.
+	
+	* guile/g-wrap/guile.scm: Use *g-wrap-shlib-dir* from (g-wrap
+	config) so shlib modules can be placed in $(pkglibdir).
+
+	* common.mk, g-wrap/Makefile.am, guile/g-wrap/gw/Makefile.am,
+	guile/test/guile-test-env.in: Adapted.
+
+	* guile/g-wrap/guile/ws/standard.scm (unwrap-value-cg): Casts away
+	constness of "char *" to prevent compiler error when inlined.
+
+2006-10-27  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile.scm (<gw-guile-wct>): Since in our methods we
+	handle null-ok, allow it in the type qualifier (typespec). Perhaps
+	this should go in <gw-wct> instead, though.
+
+2006-10-26  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-runtime.c (gw_module_binder_proc): Factor
+	functionality out into separate procedures.
+	(make_class_variable): The latent class functionality, unchanged.
+	(allocate_generic_variable, make_generic_variable): The latent
+	generics code, factored out a bit. Brought back in old code to
+	extend existing functions if there is a name conflict. For
+	example, this will allow gtk-list-store-append to be a method on
+	`append', but still fall back on the core binding in the normal
+	cases.
+
+2006-10-20  Andy Wingo  <wingo@pobox.com>
+
+	* Makefile.am (DIST_SUBDIRS, dist-hook): Trick automake if libffi
+	is not present, but add a rule so that you can't make a tarball if
+	libffi is not there.
+
+2006-10-20  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile-runtime.c (gw_module_binder_proc)
+	(gw_guile_ensure_latent_variables_hash_and_binder)
+	(gw_generics_module_binder_proc, gw_guile_set_generics_module_x)
+	("%gw:procedure-to-method-public!"): A hopefully last refactor of
+	the latent bindings infrastructure. This one will only install one
+	kind of module binder to handle both classes and generics, fixes a
+	bug with gw_guile_set_generics_module_x, removes some old code
+	dealing with the old molest-the-scm-module strategy. The code is
+	shorter and hopefully clearer, and there's a bit of a rationale
+	comment in there.
+
+	* guile/g-wrap/guile-compatibility.h: Add scm_c[ad]d?r wrappers.
+
+2006-10-10  Andreas Rottmann  <a.rottmann@gmx.at>
+
+	* g-wrap.scm: Get rid of `module-use!' clauses for (g-wrap
+	c-codegen) and (g-wrap scm-codegen), as the (g-wrap guile) now
+	uses them.
+
+2006-10-05  Andy Wingo  <wingo@pobox.com>
+
+	* guile/g-wrap/guile.scm (module-public-interface): Make sure that
+	using (g-wrap guile) also uses (g-wrap c-codegen), as it used to.
+	This fixes compilation of guile-gnome.
+	(generate-wrapset-scm): Reindent for spaces instead of tabs. If
+	this module had generics, make our public interface export the
+	generics as well.
+
+	* guile/g-wrap/guile-runtime.c
+	(gw_guile_ensure_latent_generics_hash)
+	(gw_generics_module_binder_proc)
+	(gw_guile_ensure_generics_module)
+	(gw_guile_set_generics_module_x)
+	("%gw:procedure-to-method-public!"): Rework so that we don't munge
+	the root module or the scm module. Instead our generics are
+	deposited into a module of the user's choosing, defaulting to a
+	submodule named %generics.
+	
+	* guile/g-wrap/guile-runtime.c
+	* guile/g-wrap/guile-runtime.h
+	(gw_guile_set_generics_module_x): New public
+	API.
+
+	* ChangeLog: Finally started a changelog here.
