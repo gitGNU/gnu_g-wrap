@@ -50,7 +50,7 @@ tool_run "$autoheader"
 
 # It seems like config.rpath is needed by automake, even though we
 # don't use gettext.  Work around that apparent bug:
-[ -e config.rpath ] || touch config.rpath
+[ -e build-aux/config.rpath ] || touch build-aux/config.rpath
 
 tool_run "$autoconf"
 debug "automake: $automake"

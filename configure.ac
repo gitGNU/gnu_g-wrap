@@ -1,15 +1,23 @@
 dnl -*- Autoconf -*-
 
-dnl Program version
+AC_PREREQ(2.61)
+
 AC_INIT(g-wrap, 1.9.14)
-AM_INIT_AUTOMAKE([no-define -Wno-portability])
+
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([m4])
+
+dnl Use `serial-tests' (`parallel-tests' is the default in Automake
+dnl 1.13.)  `serial-tests' was introduced in Automake 1.12.
+AM_INIT_AUTOMAKE([1.12 no-define -Wno-portability serial-tests])
+AM_MAINTAINER_MODE([enable])
+AM_SILENT_RULES([yes])
+
 AC_CONFIG_HEADERS(config.h g-wrap/ffi-support.h)
 
 dnl Branch number, e.g. for pkg-config
 GW_BRANCH=2.0
 AC_SUBST(GW_BRANCH)
-
-AM_MAINTAINER_MODE
 
 AC_SUBST(ACLOCAL_FLAGS,$ACLOCAL_FLAGS)
 
