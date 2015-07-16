@@ -1,9 +1,27 @@
 G-Wrap NEWS -- history of user-visible changes.
+Copyright (C) 2014-2015 David Pirotte
 Copyright (C) 2003-2011 Andreas Rottmann
 Copyright (C) 2000-2002 Rob Browning <rlb@defaultvalue.org>
 Copyright (C) 2006 Ludovic Courtès <ludovic.courtes@laas.fr>
 Initially created by Christopher Lee.
 See the end for copying conditions.
+
+Version 1.9.15
+
+    - G-Wrap now requires Guile 2.0, allows Guile 2.2.
+
+    - Requires autoconf >= 2.61, automake >= 1.12, adding /build-aux.
+
+    - We no longer update Changelog, see G-Wrap's git logs instead.
+
+    - No free/mark on WCT objects, and remove use of scm_gc_free.
+
+    - Use scm_module_variable instead of the deprecated scm_sym2var.
+
+    - The documentation has been restructured, updated and fixed to work
+      with texinfo >= 5.2.
+
+    - Removing doc/version.texi - it is generated/updated.
 
 Version 1.9.14
 
