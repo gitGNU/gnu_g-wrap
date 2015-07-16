@@ -12,21 +12,59 @@ Installing
 Prerequisites
 -------------
 
-* Guile >= 2.0, http://www.gnu.org/software/guile/
+    - Autoconf >= 2.61
+    - Automake >= 1.12
+    - libffi
+    - Guile-2.0 or Guile-2.2
+    - Guile-Lib >= 0.2.2	http://www.nongnu.org/guile-lib/
 
-* Guile-Lib >= 0.1.2, http://home.gna.org/guile-lib
+In addition, if you build G-Wrap for Guile-Gnome and/or Guile-Clutter,
+which is most probably the case, you also need:
+
+    - Glib-2.0
 
 Instructions
 ------------
 
 For detailed, general instructions, see the file INSTALL.
 
+
 * Building from a tarball
 
-Run ./configure and then "make" and "make install".
-Note:
-+ Use option --prefix={where} to tell ./configure where
-  to install g-wrap.
+Once all dependencies are statisfied, open a terminal and:
+
+    cd <download-path>
+    tar zxf g-wrap-<version>.tar.gz
+    cd g-wrap-<version>
+    ./configure [--prefix=/your/prefix]
+    make
+    make install
+
+Notes:
+
+(1) In the above configure step, --prefix=/your/prefix is
+    optional. The default value is /usr/local.
+
+(2) To install G-Wrap, you must have write permissions to the $prefix
+    dir and its subdirs.
+
+(3) G-Wrap's modules will be installed in $prefix/share/guile/site. If
+    it differs from Guile's global site directory, then this path must
+    be aded to Guile's load paths before to use G-Wrap and compile
+    Guile-Gnome or Guile-Clutter. You may check Guile's values using:
+
+    guile -c "(display (%global-site-dir)) (newline)"
+    guile -c "(display %load-path) (newline)"
+
+    To augment Guile's load paths, you can: (a) create/update your
+    personnal ~/.guile file, (b) update Guile's global site located
+    init.scm file or (c) define/update your GUILE_LOAD_PATH shell
+    environment variable.
+
+(4) Like for any other GNU Tool Chain compatible software, you may
+    install the documentation locally using make install-info, make
+    install-html and/or make install-pdf.
+
 
 * Building from Arch working copy
 
